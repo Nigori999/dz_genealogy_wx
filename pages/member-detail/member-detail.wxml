@@ -1,0 +1,205 @@
+<!-- 成员详情页面 -->
+<view class="container">
+  <!-- 顶部基本信息 -->
+  <view class="member-header">
+    <view class="member-avatar">
+      <image 
+        src="{{member.avatar || (member.gender === 'male' ? '/images/avatar_male_default.png' : '/images/avatar_female_default.png')}}" 
+        mode="aspectFill"
+        bindtap="previewAvatar"
+      ></image>
+    </view>
+    <view class="member-base-info">
+      <view class="member-name">{{member.name}}</view>
+      <view class="member-years">
+        <text>{{formatBirthDate}}</text>
+        <text wx:if="{{member.deathDate}}"> - {{formatDeathDate}}</text>
+      </view>
+      <view class="member-tags">
+        <view wx:if="{{member.gender === 'male'}}" class="tag gender-tag male">男</view>
+        <view wx:else class="tag gender-tag female">女</view>
+        <view wx:if="{{member.rank}}" class="tag rank-tag">{{member.rank}}</view>
+        <view wx:if="{{member.generation}}" class="tag generation-tag">第{{member.generation}}代</view>
+      </view>
+    </view>
+    <view wx:if="{{isEditable}}" class="edit-btn" bindtap="editMember">
+      <text class="iconfont icon-edit"></text>
+    </view>
+  </view>
+
+  <!-- 关系信息 -->
+  <view class="relation-section card">
+    <view class="section-title">家族关系</view>
+    
+    <!-- 父母 -->
+    <view wx:if="{{parentInfo}}" class="relation-group">
+      <view class="relation-label">父母</view>
+      <view class="relation-members">
+        <view 
+          class="relation-member" 
+          bindtap="navigateToMember" 
+          data-id="{{parentInfo.id}}"
+        >
+          <image 
+            class="relation-avatar" 
+            src="{{parentInfo.avatar || (parentInfo.gender === 'male' ? '/images/avatar_male_default.png' : '/images/avatar_female_default.png')}}" 
+            mode="aspectFill"
+          ></image>
+          <text class="relation-name">{{parentInfo.name}}</text>
+        </view>
+      </view>
+    </view>
+    
+    <!-- 配偶 -->
+    <view wx:if="{{spousesInfo.length > 0}}" class="relation-group">
+      <view class="relation-label">配偶</view>
+      <view class="relation-members">
+        <view 
+          wx:for="{{spousesInfo}}" 
+          wx:key="id" 
+          class="relation-member" 
+          bindtap="navigateToMember" 
+          data-id="{{item.id}}"
+        >
+          <image 
+            class="relation-avatar" 
+            src="{{item.avatar || (item.gender === 'male' ? '/images/avatar_male_default.png' : '/images/avatar_female_default.png')}}" 
+            mode="aspectFill"
+          ></image>
+          <text class="relation-name">{{item.name}}</text>
+        </view>
+        
+        <view wx:if="{{isEditable}}" class="add-relation" bindtap="addSpouse">
+          <view class="add-icon">+</view>
+          <text class="add-text">添加配偶</text>
+        </view>
+      </view>
+    </view>
+    
+    <!-- 子女 -->
+    <view wx:if="{{childrenInfo.length > 0}}" class="relation-group">
+      <view class="relation-label">子女</view>
+      <view class="relation-members">
+        <view 
+          wx:for="{{childrenInfo}}" 
+          wx:key="id" 
+          class="relation-member" 
+          bindtap="navigateToMember" 
+          data-id="{{item.id}}"
+        >
+          <image 
+            class="relation-avatar" 
+            src="{{item.avatar || (item.gender === 'male' ? '/images/avatar_male_default.png' : '/images/avatar_female_default.png')}}" 
+            mode="aspectFill"
+          ></image>
+          <text class="relation-name">{{item.name}}</text>
+        </view>
+        
+        <view wx:if="{{isEditable}}" class="add-relation" bindtap="addChild">
+          <view class="add-icon">+</view>
+          <text class="add-text">添加子女</text>
+        </view>
+      </view>
+    </view>
+    
+    <!-- 添加关系 -->
+    <view wx:if="{{!parentInfo && spousesInfo.length === 0 && childrenInfo.length === 0}}" class="empty-relation">
+      <text>暂无家族关系</text>
+      <view wx:if="{{isEditable}}" class="add-relation-actions">
+        <button class="btn-primary btn-sm" bindtap="addParent">添加父母</button>
+        <button class="btn-primary btn-sm" bindtap="addSpouse">添加配偶</button>
+        <button class="btn-primary btn-sm" bindtap="addChild">添加子女</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 个人信息 -->
+  <view class="profile-section card">
+    <view class="section-title">个人信息</view>
+    
+    <view class="profile-group">
+      <view wx:if="{{member.birthPlace}}" class="profile-item">
+        <view class="profile-label">出生地</view>
+        <view class="profile-value">{{member.birthPlace}}</view>
+      </view>
+      
+      <view wx:if="{{member.occupation}}" class="profile-item">
+        <view class="profile-label">职业</view>
+        <view class="profile-value">{{member.occupation}}</view>
+      </view>
+      
+      <view wx:if="{{member.education}}" class="profile-item">
+        <view class="profile-label">教育</view>
+        <view class="profile-value">{{member.education}}</view>
+      </view>
+    </view>
+    
+    <!-- 生平事迹 -->
+    <view wx:if="{{member.biography}}" class="biography">
+      <view class="profile-label">生平事迹</view>
+      <view class="biography-content">{{member.biography}}</view>
+    </view>
+    
+    <!-- 空状态 -->
+    <view wx:if="{{!member.birthPlace && !member.occupation && !member.education && !member.biography}}" class="empty-profile">
+      <text>暂无个人资料</text>
+    </view>
+  </view>
+
+  <!-- 照片集 -->
+  <view class="photos-section card">
+    <view class="section-title">照片集</view>
+    
+    <view wx:if="{{member.photos && member.photos.length > 0}}" class="photo-grid">
+      <image 
+        wx:for="{{member.photos}}" 
+        wx:key="index" 
+        class="photo-item" 
+        src="{{item}}" 
+        mode="aspectFill"
+        bindtap="previewPhoto"
+        data-index="{{index}}"
+      ></image>
+    </view>
+    
+    <!-- 添加照片 -->
+    <view wx:if="{{isEditable}}" class="add-photo" bindtap="addPhoto">
+      <view class="add-icon">+</view>
+      <text class="add-text">添加照片</text>
+    </view>
+    
+    <!-- 空状态 -->
+    <view wx:if="{{!member.photos || member.photos.length === 0}}" class="empty-photos">
+      <text>暂无照片</text>
+    </view>
+  </view>
+
+  <!-- 相关大事记 -->
+  <view class="events-section card">
+    <view class="section-header">
+      <view class="section-title">相关大事记</view>
+      <view wx:if="{{relatedEvents.length > 0}}" class="section-action" bindtap="navigateToAllEvents">
+        <text>查看全部</text>
+        <text class="iconfont icon-arrow-right"></text>
+      </view>
+    </view>
+    
+    <view wx:if="{{relatedEvents.length > 0}}" class="event-list">
+      <timeline-item 
+        wx:for="{{relatedEvents}}" 
+        wx:key="id"
+        item="{{item}}"
+        is-first="{{index === 0}}"
+        is-last="{{index === relatedEvents.length - 1}}"
+        bind:detail="onEventDetail"
+      ></timeline-item>
+    </view>
+    
+    <!-- 空状态 -->
+    <view wx:if="{{relatedEvents.length === 0}}" class="empty-events">
+      <text>暂无相关大事记</text>
+      <button wx:if="{{isEditable}}" class="btn-primary" bindtap="addEvent">添加大事记</button>
+    </view>
+  </view>
+
+</view>

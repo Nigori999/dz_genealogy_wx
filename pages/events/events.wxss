@@ -1,0 +1,223 @@
+/* 大事记页面样式 */
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: var(--color-background);
+}
+
+/* 族谱历史概述 */
+.genealogy-history {
+  background-color: #FFFFFF;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.history-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--color-text-dark);
+  position: relative;
+  padding-left: 12px;
+}
+
+.history-title::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 4px;
+  background-color: var(--color-primary);
+  border-radius: 2px;
+}
+
+.history-edit {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-light);
+}
+
+.history-content {
+  font-size: 14px;
+  color: var(--color-text-medium);
+  line-height: 1.6;
+  max-height: 80px;
+  overflow: hidden;
+  position: relative;
+}
+
+.history-content::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 20px;
+  background: linear-gradient(to top, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0));
+}
+
+.history-placeholder {
+  color: var(--color-text-light);
+  font-style: italic;
+}
+
+/* 筛选控制条 */
+.filter-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #FFFFFF;
+  padding: 8px 16px;
+  margin-bottom: 1px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.filter-group {
+  display: flex;
+}
+
+.filter-option {
+  padding: 4px 12px;
+  margin-right: 8px;
+  border-radius: 16px;
+  font-size: 14px;
+  color: var(--color-text-medium);
+  background-color: var(--color-background);
+}
+
+.filter-option.active {
+  background-color: var(--color-primary-ultralight);
+  color: var(--color-primary);
+  font-weight: bold;
+}
+
+.filter-selector {
+  font-size: 14px;
+  color: var(--color-text-medium);
+}
+
+.selector-text {
+  display: flex;
+  align-items: center;
+}
+
+.selector-text .iconfont {
+  margin-left: 4px;
+  font-size: 12px;
+}
+
+/* 时间轴视图 */
+.timeline-view {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.timeline {
+  padding: 16px;
+  padding-bottom: 80px; /* 为FAB留出空间 */
+}
+
+/* 时代分隔线 */
+.era-divider {
+  display: flex;
+  align-items: center;
+  margin: 16px 0;
+}
+
+.era-line {
+  flex: 1;
+  height: 1px;
+  background-color: var(--color-border);
+}
+
+.era-text {
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--color-text-medium);
+}
+
+.era-events {
+  margin-bottom: 16px;
+}
+
+/* 加载更多 */
+.load-more {
+  text-align: center;
+  padding: 12px 0;
+  color: var(--color-primary);
+  font-size: 14px;
+}
+
+.loading-more {
+  padding: 12px 0;
+}
+
+.load-end {
+  text-align: center;
+  padding: 12px 0;
+  color: var(--color-text-light);
+  font-size: 12px;
+}
+
+/* 加载容器 */
+.loading-container {
+  padding: 32px 0;
+}
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 16px;
+  text-align: center;
+}
+
+.empty-image {
+  width: 120px;
+  height: 120px;
+  margin-bottom: 16px;
+  opacity: 0.7;
+}
+
+.empty-text {
+  font-size: 14px;
+  color: var(--color-text-light);
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+/* 悬浮添加按钮 */
+.fab {
+  position: fixed;
+  right: 32px;
+  bottom: 32px;
+  width: 56px;
+  height: 56px;
+  border-radius: 28px;
+  background-image: var(--gradient-button);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-button);
+  z-index: 100;
+}
+
+.fab .iconfont {
+  font-size: 24px;
+}

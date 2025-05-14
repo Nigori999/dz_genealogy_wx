@@ -1,0 +1,221 @@
+/* 家族树页面样式 */
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: var(--color-background);
+}
+
+/* 族谱信息 */
+.genealogy-info {
+  background-image: var(--gradient-header);
+  padding: 16px;
+  color: #FFFFFF;
+}
+
+.genealogy-name {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.genealogy-meta {
+  display: flex;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  margin-right: 16px;
+}
+
+.meta-label {
+  font-size: 12px;
+  opacity: 0.8;
+  margin-right: 4px;
+}
+
+.meta-value {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+/* 控制面板 */
+.tree-controls {
+  display: flex;
+  justify-content: space-between;
+  background-color: #FFFFFF;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.control-group {
+  display: flex;
+}
+
+.control-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: 16px;
+  margin-right: 8px;
+  font-size: 14px;
+  color: var(--color-text-medium);
+  background-color: var(--color-background);
+}
+
+.control-btn:last-child {
+  margin-right: 0;
+}
+
+.control-btn.active {
+  background-color: var(--color-primary-ultralight);
+  color: var(--color-primary);
+  font-weight: bold;
+}
+
+.control-btn .iconfont {
+  margin-right: 4px;
+  font-size: 16px;
+}
+
+.direction-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+}
+
+.direction-btn .iconfont {
+  margin-right: 0;
+}
+
+/* 世代筛选器 */
+.generation-filter {
+  background-color: #FFFFFF;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.filter-scroll {
+  white-space: nowrap;
+}
+
+.filter-options {
+  padding: 0 16px;
+  display: inline-flex;
+}
+
+.filter-option {
+  padding: 4px 12px;
+  margin-right: 8px;
+  border-radius: 16px;
+  font-size: 14px;
+  color: var(--color-text-medium);
+  background-color: var(--color-background);
+}
+
+.filter-option.active {
+  background-color: var(--color-primary-ultralight);
+  color: var(--color-primary);
+  font-weight: bold;
+}
+
+/* 树图视图 */
+.tree-view {
+  flex: 1;
+  position: relative;
+  overflow: auto;
+}
+
+.tree-view.vertical {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.tree-view.horizontal {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.tree-container {
+  position: relative;
+  min-height: 300px;
+}
+
+.tree-container.vertical {
+  padding: 24px 16px;
+}
+
+.tree-container.horizontal {
+  padding: 16px 24px;
+}
+
+.tree-loading, .tree-empty {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.empty-image {
+  width: 120px;
+  height: 120px;
+  margin-bottom: 16px;
+  opacity: 0.7;
+}
+
+.empty-text {
+  font-size: 14px;
+  color: var(--color-text-light);
+  text-align: center;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+/* 列表视图 */
+.list-view {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.member-list {
+  padding-bottom: 72px; /* 为FAB留出空间 */
+}
+
+.list-loading, .list-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  height: 100%;
+}
+
+/* 悬浮添加按钮 */
+.fab {
+  position: fixed;
+  right: 32px;
+  bottom: 32px;
+  width: 56px;
+  height: 56px;
+  border-radius: 28px;
+  background-image: var(--gradient-button);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-button);
+  z-index: 100;
+}
+
+.fab .iconfont {
+  font-size: 24px;
+}

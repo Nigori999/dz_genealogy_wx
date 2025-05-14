@@ -1,0 +1,345 @@
+/* 成员详情页面样式 */
+.container {
+  padding: 16px;
+  background-color: var(--color-background);
+  min-height: 100vh;
+}
+
+/* 卡片通用样式 */
+.card {
+  background-color: #FFFFFF;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* 标题通用样式 */
+.section-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--color-text-dark);
+  margin-bottom: 16px;
+  position: relative;
+  padding-left: 12px;
+}
+
+.section-title::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 4px;
+  background-color: var(--color-primary);
+  border-radius: 2px;
+}
+
+/* 成员头部信息 */
+.member-header {
+  display: flex;
+  position: relative;
+  background-color: #FFFFFF;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.member-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 40px;
+  margin-right: 16px;
+  overflow: hidden;
+  border: 2px solid var(--color-primary-light);
+}
+
+.member-avatar image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.member-base-info {
+  flex: 1;
+}
+
+.member-name {
+  font-size: 20px;
+  font-weight: bold;
+  color: var(--color-text-dark);
+  margin-bottom: 4px;
+}
+
+.member-years {
+  font-size: 14px;
+  color: var(--color-text-medium);
+  margin-bottom: 8px;
+}
+
+.member-tags {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.tag {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-right: 6px;
+  margin-bottom: 4px;
+}
+
+.gender-tag {
+  background-color: rgba(109, 76, 65, 0.1);
+  color: var(--color-primary);
+}
+
+.gender-tag.male {
+  background-color: rgba(0, 122, 255, 0.1);
+  color: #007AFF;
+}
+
+.gender-tag.female {
+  background-color: rgba(255, 45, 85, 0.1);
+  color: #FF2D55;
+}
+
+.rank-tag {
+  background-color: rgba(216, 67, 21, 0.1);
+  color: var(--color-accent);
+}
+
+.generation-tag {
+  background-color: rgba(88, 86, 214, 0.1);
+  color: #5856D6;
+}
+
+.edit-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  border-radius: 18px;
+  background-color: var(--color-primary-ultralight);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary);
+}
+
+/* 关系信息 */
+.relation-section {
+  margin-bottom: 16px;
+}
+
+.relation-group {
+  margin-bottom: 16px;
+}
+
+.relation-group:last-child {
+  margin-bottom: 0;
+}
+
+.relation-label {
+  font-size: 14px;
+  color: var(--color-text-medium);
+  margin-bottom: 8px;
+}
+
+.relation-members {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.relation-member {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-right: 16px;
+  margin-bottom: 8px;
+}
+
+.relation-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 25px;
+  margin-bottom: 4px;
+}
+
+.relation-name {
+  font-size: 12px;
+  color: var(--color-text-medium);
+  text-align: center;
+  max-width: 50px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.add-relation {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-right: 16px;
+  margin-bottom: 8px;
+}
+
+.add-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 25px;
+  border: 1px dashed var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: var(--color-text-light);
+  margin-bottom: 4px;
+}
+
+.add-text {
+  font-size: 12px;
+  color: var(--color-text-light);
+}
+
+.empty-relation {
+  text-align: center;
+  padding: 24px 0;
+  color: var(--color-text-light);
+  font-size: 14px;
+}
+
+.add-relation-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 14px;
+  margin: 0 8px;
+}
+
+/* 个人信息 */
+.profile-section {
+  margin-bottom: 16px;
+}
+
+.profile-group {
+  margin-bottom: 16px;
+}
+
+.profile-item {
+  margin-bottom: 12px;
+}
+
+.profile-label {
+  font-size: 14px;
+  color: var(--color-text-light);
+  margin-bottom: 4px;
+}
+
+.profile-value {
+  font-size: 16px;
+  color: var(--color-text-dark);
+}
+
+.biography {
+  margin-top: 16px;
+}
+
+.biography-content {
+  font-size: 14px;
+  color: var(--color-text-medium);
+  line-height: 1.6;
+}
+
+.empty-profile {
+  text-align: center;
+  padding: 24px 0;
+  color: var(--color-text-light);
+  font-size: 14px;
+}
+
+/* 照片集 */
+.photos-section {
+  margin-bottom: 16px;
+}
+
+.photo-grid {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0 -4px;
+}
+
+.photo-item {
+  width: calc(33.33% - 8px);
+  height: 100px;
+  margin: 4px;
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+.add-photo {
+  width: calc(33.33% - 8px);
+  height: 100px;
+  margin: 4px;
+  border-radius: 4px;
+  border: 1px dashed var(--color-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-light);
+}
+
+.empty-photos {
+  text-align: center;
+  padding: 24px 0;
+  color: var(--color-text-light);
+  font-size: 14px;
+}
+
+/* 相关大事记 */
+.events-section {
+  margin-bottom: 16px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.section-action {
+  font-size: 14px;
+  color: var(--color-text-light);
+  display: flex;
+  align-items: center;
+}
+
+.section-action .iconfont {
+  margin-left: 4px;
+  font-size: 12px;
+}
+
+.event-list {
+  margin-bottom: 16px;
+}
+
+.empty-events {
+  text-align: center;
+  padding: 24px 0;
+  color: var(--color-text-light);
+  font-size: 14px;
+}
+
+.empty-events button {
+  margin-top: 16px;
+}

@@ -1,0 +1,239 @@
+/* 时间轴项目组件样式 */
+.timeline-item {
+  display: flex;
+  position: relative;
+  padding-bottom: 24px;
+}
+
+.timeline-date {
+  width: 60px;
+  flex-shrink: 0;
+  text-align: center;
+  padding-top: 8px;
+}
+
+.timeline-year {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--color-text-dark);
+}
+
+.timeline-month-day {
+  font-size: 14px;
+  color: var(--color-text-medium);
+}
+
+.timeline-line {
+  position: relative;
+  width: 20px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.timeline-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 6px;
+  background-color: var(--color-primary);
+  margin-top: 16px;
+  z-index: 1;
+}
+
+.timeline-dot.birth {
+  background-color: #28A745;
+}
+
+.timeline-dot.death {
+  background-color: #DC3545;
+}
+
+.timeline-dot.wedding {
+  background-color: #FFC107;
+}
+
+.timeline-dot.career {
+  background-color: #17A2B8;
+}
+
+.timeline-dot.education {
+  background-color: #6610F2;
+}
+
+.timeline-dot.achievement {
+  background-color: #D84315;
+}
+
+.timeline-connector {
+  position: absolute;
+  top: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  background-color: var(--color-border);
+  height: calc(100% - 28px);
+}
+
+.timeline-content {
+  flex: 1;
+  background-color: #FFFFFF;
+  border-radius: 12px;
+  padding: 16px;
+  margin-left: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  position: relative;
+}
+
+.timeline-content::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: 16px;
+  width: 12px;
+  height: 12px;
+  background-color: #FFFFFF;
+  transform: rotate(45deg);
+  box-shadow: -2px 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.timeline-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--color-text-dark);
+  flex: 1;
+}
+
+.timeline-type-badge {
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background-color: var(--color-primary-ultralight);
+  color: var(--color-primary);
+}
+
+.timeline-type-badge.birth {
+  background-color: rgba(40, 167, 69, 0.1);
+  color: #28A745;
+}
+
+.timeline-type-badge.death {
+  background-color: rgba(220, 53, 69, 0.1);
+  color: #DC3545;
+}
+
+.timeline-type-badge.wedding {
+  background-color: rgba(255, 193, 7, 0.1);
+  color: #FFC107;
+}
+
+.timeline-type-badge.career {
+  background-color: rgba(23, 162, 184, 0.1);
+  color: #17A2B8;
+}
+
+.timeline-type-badge.education {
+  background-color: rgba(102, 16, 242, 0.1);
+  color: #6610F2;
+}
+
+.timeline-type-badge.achievement {
+  background-color: rgba(216, 67, 21, 0.1);
+  color: #D84315;
+}
+
+.timeline-body {
+  font-size: 14px;
+  color: var(--color-text-medium);
+}
+
+.timeline-description {
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.timeline-location {
+  font-size: 12px;
+  color: var(--color-text-light);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+}
+
+.timeline-location .iconfont {
+  margin-right: 4px;
+  font-size: 14px;
+}
+
+.timeline-media {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0 -4px;
+}
+
+.timeline-media image {
+  width: calc(33.33% - 8px);
+  height: 80px;
+  margin: 4px;
+  border-radius: 4px;
+}
+
+.timeline-actions {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+}
+
+.timeline-action-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 14px;
+  background-color: var(--color-background);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 8px;
+}
+
+.timeline-action-btn:active {
+  opacity: 0.7;
+}
+
+/* 第一个和最后一个项目特殊处理 */
+.timeline-item.first .timeline-connector {
+  top: 28px;
+  height: calc(100% - 28px);
+}
+
+.timeline-item.last .timeline-connector {
+  display: none;
+}
+
+/* 时代分隔线 */
+.era-divider {
+  display: flex;
+  align-items: center;
+  margin: 16px 0;
+  padding: 0 16px;
+}
+
+.era-line {
+  flex: 1;
+  height: 1px;
+  background-color: var(--color-border);
+}
+
+.era-text {
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--color-text-medium);
+}

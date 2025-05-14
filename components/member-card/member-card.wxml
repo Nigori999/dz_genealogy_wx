@@ -1,0 +1,32 @@
+<!-- 成员卡片组件 -->
+<view class="member-card">
+  <view class="member-card-inner">
+    <view class="member-avatar">
+      <image 
+        src="{{member.avatar || (member.gender === 'male' ? '/images/avatar_male_default.png' : '/images/avatar_female_default.png')}}" 
+        mode="aspectFill"
+        bindtap="previewAvatar"
+      ></image>
+      <view wx:if="{{member.deathDate}}" class="memorial-badge"></view>
+    </view>
+    <view class="member-info">
+      <view class="member-name">{{member.name}}</view>
+      <view class="member-meta">
+        <text class="birth-year">{{formatBirthYear}}</text>
+        <text wx:if="{{member.deathDate}}" class="death-year">- {{formatDeathYear}}</text>
+      </view>
+      <view class="member-tags">
+        <view wx:if="{{member.rank}}" class="tag tag-primary">{{member.rank}}</view>
+        <view wx:if="{{member.generation}}" class="tag tag-accent">第{{member.generation}}代</view>
+      </view>
+    </view>
+    <view wx:if="{{showActions}}" class="member-actions">
+      <view class="action-btn" catchtap="onDetail">
+        <text class="iconfont icon-detail"></text>
+      </view>
+      <view wx:if="{{editable}}" class="action-btn" catchtap="onEdit">
+        <text class="iconfont icon-edit"></text>
+      </view>
+    </view>
+  </view>
+</view>

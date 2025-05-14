@@ -1,0 +1,239 @@
+/* 事件卡片组件样式 */
+.event-card {
+  margin-bottom: 16px;
+  width: 100%;
+}
+
+.event-card-inner {
+  display: flex;
+  position: relative;
+}
+
+.event-date {
+  width: 60px;
+  flex-shrink: 0;
+  text-align: center;
+  padding-top: 8px;
+}
+
+.event-year {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--color-text-dark);
+}
+
+.event-month-day {
+  font-size: 14px;
+  color: var(--color-text-medium);
+}
+
+.event-line {
+  position: relative;
+  width: 24px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.event-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 6px;
+  background-color: var(--color-primary);
+  margin-top: 16px;
+}
+
+.event-dot.birth {
+  background-color: #28A745;
+}
+
+.event-dot.death {
+  background-color: #DC3545;
+}
+
+.event-dot.wedding {
+  background-color: #FFC107;
+}
+
+.event-dot.career {
+  background-color: #17A2B8;
+}
+
+.event-dot.education {
+  background-color: #6610F2;
+}
+
+.event-dot.achievement {
+  background-color: #D84315;
+}
+
+.event-line-inner {
+  width: 2px;
+  background-color: var(--color-border);
+  flex: 1;
+  margin-top: 4px;
+}
+
+.event-content {
+  background-color: #FFFFFF;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  flex: 1;
+  margin-bottom: 16px;
+}
+
+.event-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.event-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--color-text-dark);
+  flex: 1;
+}
+
+.event-type {
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background-color: var(--color-primary-ultralight);
+  color: var(--color-primary);
+}
+
+.event-type.birth {
+  background-color: rgba(40, 167, 69, 0.1);
+  color: #28A745;
+}
+
+.event-type.death {
+  background-color: rgba(220, 53, 69, 0.1);
+  color: #DC3545;
+}
+
+.event-type.wedding {
+  background-color: rgba(255, 193, 7, 0.1);
+  color: #FFC107;
+}
+
+.event-type.career {
+  background-color: rgba(23, 162, 184, 0.1);
+  color: #17A2B8;
+}
+
+.event-type.education {
+  background-color: rgba(102, 16, 242, 0.1);
+  color: #6610F2;
+}
+
+.event-type.achievement {
+  background-color: rgba(216, 67, 21, 0.1);
+  color: #D84315;
+}
+
+.event-description {
+  font-size: 14px;
+  color: var(--color-text-medium);
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.event-location {
+  font-size: 12px;
+  color: var(--color-text-light);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+}
+
+.event-location .iconfont {
+  margin-right: 4px;
+  font-size: 14px;
+}
+
+.event-media {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0 -4px 12px;
+}
+
+.event-media image {
+  width: calc(33.33% - 8px);
+  height: 80px;
+  margin: 4px;
+  border-radius: 4px;
+}
+
+.event-members {
+  border-top: 1px solid var(--color-border);
+  padding-top: 12px;
+}
+
+.event-members-title {
+  font-size: 14px;
+  color: var(--color-text-medium);
+  margin-bottom: 8px;
+}
+
+.event-members-list {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.event-member-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-right: 16px;
+  margin-bottom: 8px;
+}
+
+.event-member-item image {
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  margin-bottom: 4px;
+}
+
+.event-member-item text {
+  font-size: 12px;
+  color: var(--color-text-medium);
+}
+
+.event-actions {
+  position: absolute;
+  right: 0;
+  top: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 16px;
+  background-color: var(--color-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.action-btn:last-child {
+  margin-bottom: 0;
+}
+
+.action-btn:active {
+  opacity: 0.7;
+}
+
+/* 最后一个卡片特殊处理 */
+.event-card:last-child .event-line-inner {
+  display: none;
+}

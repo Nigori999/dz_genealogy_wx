@@ -1,0 +1,114 @@
+/**
+ * 云族谱小程序主题样式
+ * 基于设计规范文档定义的颜色系统、间距、圆角等
+ */
+
+/* 颜色变量 */
+page {
+  /* 主色调 */
+  --color-primary: #6D4C41;
+  --color-primary-light: #8D6E63;
+  --color-primary-ultralight: rgba(109, 76, 65, 0.1);
+  
+  /* 辅助色 */
+  --color-secondary: #A1887F;
+  
+  /* 强调色 */
+  --color-accent: #D84315;
+  --color-accent-light: #FF7043;
+  
+  /* 功能色 */
+  --color-success: #28A745;
+  --color-success-light: #34CE57;
+  --color-warning: #FFC107;
+  --color-error: #DC3545;
+  
+  /* 中性色 */
+  --color-text-dark: #333333;
+  --color-text-medium: #666666;
+  --color-text-light: #999999;
+  --color-border: #EEEEEE;
+  --color-background: #F8F5F2;
+  --color-white: #FFFFFF;
+  
+  /* 间距 */
+  --spacing-base: 8px;
+  --spacing-2x: 16px;
+  --spacing-2.5x: 20px;
+  --spacing-3x: 24px;
+  
+  /* 圆角 */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-pill: 20px;
+  --radius-circle: 50%;
+  
+  /* 阴影 */
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-button: 0 3px 6px rgba(216, 67, 21, 0.3);
+  --shadow-modal: 0 4px 12px rgba(0, 0, 0, 0.15);
+  
+  /* 渐变 */
+  --gradient-header: linear-gradient(to right, #6D4C41, #8D6E63);
+  --gradient-card-header: linear-gradient(to right, #6D4C41, rgba(141, 110, 99, 0.7));
+  --gradient-button: linear-gradient(to right, #D84315, #FF7043);
+  --gradient-icon: linear-gradient(135deg, #8D6E63, #A1887F);
+  --gradient-success: linear-gradient(to right, #28A745, #34CE57);
+}
+
+/* 主题样式类 */
+.bg-primary {
+  background-color: var(--color-primary);
+}
+
+.bg-primary-light {
+  background-color: var(--color-primary-light);
+}
+
+.bg-primary-gradient {
+  background-image: var(--gradient-header);
+}
+
+.bg-accent {
+  background-color: var(--color-accent);
+}
+
+.bg-accent-gradient {
+  background-image: var(--gradient-button);
+}
+
+.bg-white {
+  background-color: var(--color-white);
+}
+
+.bg-background {
+  background-color: var(--color-background);
+}
+
+.border-light {
+  border: 1px solid var(--color-border);
+}
+
+.shadow-card {
+  box-shadow: var(--shadow-card);
+}
+
+.shadow-button {
+  box-shadow: var(--shadow-button);
+}
+
+.radius-sm {
+  border-radius: var(--radius-sm);
+}
+
+.radius-md {
+  border-radius: var(--radius-md);
+}
+
+.radius-pill {
+  border-radius: var(--radius-pill);
+}
+
+.radius-circle {
+  border-radius: var(--radius-circle);
+}

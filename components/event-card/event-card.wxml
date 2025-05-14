@@ -1,0 +1,57 @@
+<!-- 事件卡片组件 -->
+<view class="event-card">
+  <view class="event-card-inner">
+    <view class="event-date">
+      <view class="event-year">{{formatYear}}</view>
+      <view class="event-month-day">{{formatMonthDay}}</view>
+    </view>
+    <view class="event-line">
+      <view class="event-dot {{eventTypeClass}}"></view>
+      <view class="event-line-inner"></view>
+    </view>
+    <view class="event-content">
+      <view class="event-header">
+        <view class="event-title">{{event.title}}</view>
+        <view class="event-type">{{eventTypeText}}</view>
+      </view>
+      <view class="event-description">{{event.description || ''}}</view>
+      <view wx:if="{{event.location}}" class="event-location">
+        <text class="iconfont icon-location"></text>
+        <text>{{event.location}}</text>
+      </view>
+      <view wx:if="{{event.media && event.media.length > 0}}" class="event-media">
+        <image 
+          wx:for="{{event.media}}" 
+          wx:key="index" 
+          src="{{item}}" 
+          mode="aspectFill"
+          bindtap="previewMedia"
+          data-index="{{index}}"
+        ></image>
+      </view>
+      <view wx:if="{{relatedMembers && relatedMembers.length > 0}}" class="event-members">
+        <view class="event-members-title">相关成员：</view>
+        <view class="event-members-list">
+          <view 
+            wx:for="{{relatedMembers}}" 
+            wx:key="id" 
+            class="event-member-item"
+            bindtap="onMemberTap"
+            data-id="{{item.id}}"
+          >
+            <image src="{{item.avatar || (item.gender === 'male' ? '/images/avatar_male_default.png' : '/images/avatar_female_default.png')}}" mode="aspectFill"></image>
+            <text>{{item.name}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+    <view wx:if="{{showActions}}" class="event-actions">
+      <view class="action-btn" catchtap="onDetail">
+        <text class="iconfont icon-detail"></text>
+      </view>
+      <view wx:if="{{editable}}" class="action-btn" catchtap="onEdit">
+        <text class="iconfont icon-edit"></text>
+      </view>
+    </view>
+  </view>
+</view>

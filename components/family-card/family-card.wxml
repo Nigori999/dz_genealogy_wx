@@ -1,0 +1,25 @@
+<!-- 家族卡片组件 -->
+<view class="family-card" bindtap="onTapCard">
+  <view class="family-card-inner">
+    <image
+      class="family-cover"
+      src="{{genealogy.coverImage || '/images/genealogy_default_cover.jpg'}}"
+      mode="aspectFill"
+    ></image>
+    <view class="family-info">
+      <view class="family-name">{{genealogy.name}}</view>
+      <view class="family-meta">
+        <view class="meta-item">
+          <text class="iconfont icon-member"></text>
+          <text>{{genealogy.memberCount || 0}}人</text>
+        </view>
+        <view class="meta-item">
+          <text class="iconfont icon-event"></text>
+          <text>{{genealogy.eventsCount || 0}}事</text>
+        </view>
+      </view>
+      <view class="family-update-time">更新于 {{formatUpdateTime}}</view>
+    </view>
+    <view wx:if="{{genealogy.isOwner}}" class="owner-badge">族长</view>
+  </view>
+</view>

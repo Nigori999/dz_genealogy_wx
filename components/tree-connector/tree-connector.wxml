@@ -1,0 +1,7 @@
+<!-- 树连接线组件 -->
+<canvas 
+  type="2d" 
+  id="connector-canvas"
+  class="connector-canvas {{type}} {{direction}}"
+  style="left: {{left}}px; top: {{top}}px; width: {{width}}px; height: {{height}}px;"
+></canvas>

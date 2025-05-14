@@ -1,0 +1,239 @@
+/* 首页样式 */
+.container {
+  padding: 16px;
+}
+
+/* 搜索栏 */
+.search-bar {
+  display: flex;
+  align-items: center;
+  background-color: var(--color-white);
+  border-radius: 20px;
+  padding: 8px 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.search-bar .iconfont {
+  color: var(--color-text-light);
+  font-size: 18px;
+  margin-right: 8px;
+}
+
+.search-input {
+  flex: 1;
+  height: 24px;
+  font-size: 14px;
+  color: var(--color-text-medium);
+}
+
+/* 族谱预览 */
+.current-genealogy-preview {
+  background-color: var(--color-white);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.preview-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--color-text-dark);
+}
+
+.preview-switch {
+  display: flex;
+  align-items: center;
+  color: var(--color-primary);
+  font-size: 14px;
+}
+
+.preview-switch .iconfont {
+  margin-left: 4px;
+}
+
+.family-tree-preview {
+  display: flex;
+  align-items: center;
+  background-color: var(--color-background);
+  border-radius: 8px;
+  padding: 12px;
+  position: relative;
+}
+
+.tree-preview-image {
+  width: 80px;
+  height: 60px;
+  margin-right: 16px;
+}
+
+.tree-preview-info {
+  flex: 1;
+}
+
+.preview-count {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--color-text-dark);
+  margin-bottom: 4px;
+}
+
+.preview-hint {
+  font-size: 12px;
+  color: var(--color-text-light);
+}
+
+/* 创建族谱引导 */
+.create-genealogy-guide {
+  background-color: var(--color-white);
+  border-radius: 12px;
+  padding: 24px 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.guide-image {
+  width: 120px;
+  height: 120px;
+  margin-bottom: 16px;
+}
+
+.guide-text {
+  font-size: 16px;
+  color: var(--color-text-medium);
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.guide-actions {
+  display: flex;
+  width: 100%;
+}
+
+.guide-actions button {
+  flex: 1;
+  margin: 0 8px;
+}
+
+/* 近期家族动态 */
+.recent-events {
+  margin-bottom: 16px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--color-text-dark);
+  position: relative;
+  padding-left: 12px;
+}
+
+.section-title::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 4px;
+  background-color: var(--color-accent);
+  border-radius: 2px;
+}
+
+.section-more {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  color: var(--color-text-light);
+}
+
+.section-more .iconfont {
+  margin-left: 4px;
+  font-size: 12px;
+}
+
+.event-list {
+  margin-bottom: 8px;
+}
+
+/* 快捷功能入口 */
+.quick-actions {
+  margin-bottom: 16px;
+}
+
+.action-grid {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0 -8px;
+}
+
+.action-item {
+  width: calc(25% - 16px);
+  margin: 0 8px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.action-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 30px;
+  background-image: var(--gradient-button);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+  box-shadow: var(--shadow-button);
+}
+
+.action-icon .iconfont {
+  font-size: 28px;
+  color: var(--color-white);
+}
+
+.action-text {
+  font-size: 14px;
+  color: var(--color-text-medium);
+  text-align: center;
+}
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 16px;
+  text-align: center;
+}
+
+.empty-image {
+  width: 120px;
+  height: 120px;
+  margin-bottom: 16px;
+  opacity: 0.7;
+}
+
+.empty-text {
+  font-size: 14px;
+  color: var(--color-text-light);
+  line-height: 1.5;
+  max-width: 280px;
+}

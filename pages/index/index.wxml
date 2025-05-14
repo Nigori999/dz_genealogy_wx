@@ -1,0 +1,109 @@
+<!-- 首页 -->
+<view class="container">
+  <!-- 顶部搜索栏 -->
+  <view class="search-bar">
+    <text class="iconfont icon-search"></text>
+    <input 
+      class="search-input" 
+      placeholder="搜索族谱、成员..."
+      bindinput="onSearchInput"
+      bindconfirm="onSearchConfirm"
+    />
+  </view>
+
+  <!-- 族谱简略预览 -->
+  <view wx:if="{{currentGenealogy}}" class="current-genealogy-preview">
+    <view class="preview-header">
+      <view class="preview-title">{{currentGenealogy.name}}</view>
+      <view class="preview-switch" bindtap="navigateToSwitchGenealogy">
+        <text>切换</text>
+        <text class="iconfont icon-switch"></text>
+      </view>
+    </view>
+    <view class="family-tree-preview" bindtap="navigateToFamilyTree">
+      <image 
+        class="tree-preview-image" 
+        src="/images/tree_preview.png" 
+        mode="aspectFit"
+      ></image>
+      <view class="tree-preview-info">
+        <view class="preview-count">{{currentGenealogy.memberCount || 0}}位家族成员</view>
+        <view class="preview-hint">点击查看完整家族树</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 创建族谱引导 -->
+  <view wx:else class="create-genealogy-guide">
+    <image class="guide-image" src="/images/create_genealogy.png" mode="aspectFit"></image>
+    <view class="guide-text">创建或加入一个族谱，记录您的家族历史</view>
+    <view class="guide-actions">
+      <button class="btn-primary" bindtap="createGenealogy">创建族谱</button>
+      <button class="btn-secondary" bindtap="joinGenealogy">加入族谱</button>
+    </view>
+  </view>
+
+  <!-- 家族近期动态 -->
+  <view wx:if="{{currentGenealogy && recentEvents.length > 0}}" class="recent-events">
+    <view class="section-header">
+      <view class="section-title">近期家族动态</view>
+      <view class="section-more" bindtap="navigateToEvents">
+        <text>查看更多</text>
+        <text class="iconfont icon-arrow-right"></text>
+      </view>
+    </view>
+    
+    <view class="event-list">
+      <event-card 
+        wx:for="{{recentEvents}}" 
+        wx:key="id" 
+        event="{{item}}"
+        related-members="{{getMembersById(item.relatedMembers)}}"
+        bind:detail="onEventDetail"
+        bind:membertap="onMemberTap"
+      ></event-card>
+    </view>
+  </view>
+
+  <!-- 快捷功能入口 -->
+  <view class="quick-actions">
+    <view class="section-header">
+      <view class="section-title">快捷操作</view>
+    </view>
+    <view class="action-grid">
+      <view class="action-item" bindtap="navigateToAddMember">
+        <view class="action-icon">
+          <text class="iconfont icon-add-member"></text>
+        </view>
+        <view class="action-text">添加成员</view>
+      </view>
+      <view class="action-item" bindtap="navigateToAddEvent">
+        <view class="action-icon">
+          <text class="iconfont icon-add-event"></text>
+        </view>
+        <view class="action-text">记录大事</view>
+      </view>
+      <view class="action-item" bindtap="navigateToInvite">
+        <view class="action-icon">
+          <text class="iconfont icon-invite"></text>
+        </view>
+        <view class="action-text">邀请亲人</view>
+      </view>
+      <view class="action-item" bindtap="navigateToGenealogyHistory">
+        <view class="action-icon">
+          <text class="iconfont icon-history"></text>
+        </view>
+        <view class="action-text">族谱历史</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 加载状态 -->
+  <loading wx:if="{{isLoading}}" type="spinner" text="加载中..."></loading>
+
+  <!-- 没有数据提示 -->
+  <view wx:if="{{!isLoading && currentGenealogy && recentEvents.length === 0}}" class="empty-state">
+    <image class="empty-image" src="/images/empty_events.png" mode="aspectFit"></image>
+    <view class="empty-text">暂无家族动态，点击"记录大事"添加第一条家族大事记</view>
+  </view>
+</view>

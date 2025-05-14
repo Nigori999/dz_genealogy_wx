@@ -1,0 +1,101 @@
+<!-- 事件详情页面 -->
+<view class="container">
+  <!-- 事件头部信息 -->
+  <view class="event-header card">
+    <view class="event-title">{{event.title}}</view>
+    <view class="event-date">{{formatDate}}</view>
+    <view class="event-type">
+      <view class="type-badge {{eventTypeClass}}">{{eventTypeText}}</view>
+    </view>
+    <view wx:if="{{isEditable}}" class="edit-btn" bindtap="editEvent">
+      <text class="iconfont icon-edit"></text>
+    </view>
+  </view>
+
+  <!-- 事件详情 -->
+  <view class="event-detail card">
+    <view class="section-title">事件详情</view>
+    
+    <!-- 描述 -->
+    <view wx:if="{{event.description}}" class="detail-item">
+      <view class="detail-label">描述</view>
+      <view class="detail-content">{{event.description}}</view>
+    </view>
+    
+    <!-- 地点 -->
+    <view wx:if="{{event.location}}" class="detail-item">
+      <view class="detail-label">地点</view>
+      <view class="detail-content">{{event.location}}</view>
+    </view>
+  </view>
+
+  <!-- 事件媒体 -->
+  <view wx:if="{{event.media && event.media.length > 0}}" class="event-media card">
+    <view class="section-title">照片/视频</view>
+    
+    <view class="media-grid">
+      <image 
+        wx:for="{{event.media}}" 
+        wx:key="index" 
+        class="media-item" 
+        src="{{item}}" 
+        mode="aspectFill"
+        bindtap="previewMedia"
+        data-index="{{index}}"
+      ></image>
+    </view>
+    
+    <!-- 添加媒体 -->
+    <view wx:if="{{isEditable}}" class="add-media" bindtap="addMedia">
+      <view class="add-icon">+</view>
+      <text class="add-text">添加照片/视频</text>
+    </view>
+  </view>
+  
+  <!-- 空媒体提示 -->
+  <view wx:elif="{{isEditable}}" class="empty-media card">
+    <view class="section-title">照片/视频</view>
+    <view class="empty-content">
+      <text>暂无照片或视频</text>
+      <button class="btn-primary" bindtap="addMedia">添加照片/视频</button>
+    </view>
+  </view>
+
+  <!-- 相关成员 -->
+  <view class="related-members card">
+    <view class="section-title">相关成员</view>
+    
+    <view wx:if="{{relatedMembersInfo.length > 0}}" class="members-grid">
+      <view 
+        wx:for="{{relatedMembersInfo}}" 
+        wx:key="id" 
+        class="member-item" 
+        bindtap="navigateToMember" 
+        data-id="{{item.id}}"
+      >
+        <image 
+          class="member-avatar" 
+          src="{{item.avatar || (item.gender === 'male' ? '/images/avatar_male_default.png' : '/images/avatar_female_default.png')}}" 
+          mode="aspectFill"
+        ></image>
+        <text class="member-name">{{item.name}}</text>
+      </view>
+      
+      <view wx:if="{{isEditable}}" class="add-member" bindtap="addRelatedMember">
+        <view class="add-icon">+</view>
+        <text class="add-text">添加成员</text>
+      </view>
+    </view>
+    
+    <!-- 空成员提示 -->
+    <view wx:else class="empty-members">
+      <text>暂无相关成员</text>
+      <button wx:if="{{isEditable}}" class="btn-primary" bindtap="addRelatedMember">添加成员</button>
+    </view>
+  </view>
+
+  <!-- 删除按钮 -->
+  <view wx:if="{{isEditable}}" class="delete-section">
+    <button class="btn-delete" bindtap="deleteEvent">删除事件</button>
+  </view>
+</view>

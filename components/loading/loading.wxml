@@ -1,0 +1,17 @@
+<!-- 加载状态组件 -->
+<view class="loading-container {{align}}">
+  <view class="loading-wrapper {{type}}">
+    <view wx:if="{{type === 'spinner'}}" class="loading-spinner">
+      <view class="spinner-circle"></view>
+    </view>
+    <view wx:elif="{{type === 'dots'}}" class="loading-dots">
+      <view class="dot dot1"></view>
+      <view class="dot dot2"></view>
+      <view class="dot dot3"></view>
+    </view>
+    <view wx:else class="loading-default">
+      <view class="default-spinner"></view>
+    </view>
+    <view wx:if="{{text}}" class="loading-text">{{text}}</view>
+  </view>
+</view>

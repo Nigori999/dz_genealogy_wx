@@ -1,0 +1,53 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/family-tree/family-tree",
+    "pages/events/events",
+    "pages/mine/mine",
+    "pages/member-detail/member-detail",
+    "pages/event-detail/event-detail",
+    "pages/add-member/add-member",
+    "pages/add-event/add-event"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#6D4C41",
+    "navigationBarTitleText": "云族谱",
+    "navigationBarTextStyle": "white"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#D84315",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "images/tab-home.png",
+        "selectedIconPath": "images/tab-home-active.png"
+      },
+      {
+        "pagePath": "pages/family-tree/family-tree",
+        "text": "家族树",
+        "iconPath": "images/tab-tree.png",
+        "selectedIconPath": "images/tab-tree-active.png"
+      },
+      {
+        "pagePath": "pages/events/events",
+        "text": "大事记",
+        "iconPath": "images/tab-events.png",
+        "selectedIconPath": "images/tab-events-active.png"
+      },
+      {
+        "pagePath": "pages/mine/mine",
+        "text": "我的",
+        "iconPath": "images/tab-mine.png",
+        "selectedIconPath": "images/tab-mine-active.png"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "usingComponents": {}
+}

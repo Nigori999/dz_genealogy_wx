@@ -1,0 +1,43 @@
+<!-- 时间轴项目组件 -->
+<view class="timeline-item {{isFirst ? 'first' : ''}} {{isLast ? 'last' : ''}}">
+  <view class="timeline-date">
+    <view class="timeline-year">{{formatYear}}</view>
+    <view class="timeline-month-day">{{formatMonthDay}}</view>
+  </view>
+  <view class="timeline-line">
+    <view class="timeline-dot {{eventTypeClass}}"></view>
+    <view class="timeline-connector"></view>
+  </view>
+  <view class="timeline-content">
+    <view class="timeline-header">
+      <view class="timeline-title">{{item.title}}</view>
+      <view class="timeline-type-badge {{eventTypeClass}}">{{eventTypeText}}</view>
+    </view>
+    <view class="timeline-body">
+      <view wx:if="{{item.description}}" class="timeline-description">{{item.description}}</view>
+      <view wx:if="{{item.location}}" class="timeline-location">
+        <text class="iconfont icon-location"></text>
+        <text>{{item.location}}</text>
+      </view>
+      <view wx:if="{{item.media && item.media.length > 0}}" class="timeline-media">
+        <image 
+          wx:for="{{item.media}}" 
+          wx:key="index" 
+          wx:for-item="mediaItem"
+          src="{{mediaItem}}" 
+          mode="aspectFill"
+          bindtap="previewMedia"
+          data-index="{{index}}"
+        ></image>
+      </view>
+    </view>
+    <view wx:if="{{showActions}}" class="timeline-actions">
+      <view class="timeline-action-btn" catchtap="onDetail">
+        <text class="iconfont icon-detail"></text>
+      </view>
+      <view wx:if="{{editable}}" class="timeline-action-btn" catchtap="onEdit">
+        <text class="iconfont icon-edit"></text>
+      </view>
+    </view>
+  </view>
+</view>

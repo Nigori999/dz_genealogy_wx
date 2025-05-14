@@ -1,0 +1,121 @@
+<!-- 大事记页面 -->
+<view class="container">
+  <!-- 族谱历史概述 -->
+  <view class="genealogy-history">
+    <view class="history-header">
+      <view class="history-title">族谱历史</view>
+      <view wx:if="{{isEditable}}" class="history-edit" bindtap="editHistory">
+        <text class="iconfont icon-edit"></text>
+      </view>
+    </view>
+    <view class="history-content">
+      <text wx:if="{{genealogyHistory}}">{{genealogyHistory}}</text>
+      <text wx:else class="history-placeholder">暂无族谱历史记录，点击右上角编辑按钮添加</text>
+    </view>
+  </view>
+
+  <!-- 筛选控制条 -->
+  <view class="filter-bar">
+    <!-- 按时间筛选 -->
+    <view class="filter-group">
+      <view 
+        class="filter-option {{timeFilter === 'all' ? 'active' : ''}}" 
+        bindtap="setTimeFilter" 
+        data-filter="all"
+      >全部</view>
+      <view 
+        class="filter-option {{timeFilter === 'century' ? 'active' : ''}}" 
+        bindtap="setTimeFilter" 
+        data-filter="century"
+      >世纪</view>
+      <view 
+        class="filter-option {{timeFilter === 'decade' ? 'active' : ''}}" 
+        bindtap="setTimeFilter" 
+        data-filter="decade"
+      >年代</view>
+    </view>
+    
+    <!-- 按类型筛选 -->
+    <view class="filter-selector">
+      <picker 
+        bindchange="onTypeFilterChange" 
+        value="{{typeFilterIndex}}" 
+        range="{{typeFilterOptions}}"
+      >
+        <view class="selector-text">
+          <text>{{typeFilterOptions[typeFilterIndex]}}</text>
+          <text class="iconfont icon-arrow-down"></text>
+        </view>
+      </picker>
+    </view>
+  </view>
+
+  <!-- 时间轴视图 -->
+  <scroll-view 
+    scroll-y
+    class="timeline-view"
+    style="height: {{timelineHeight}}px;"
+    bindscrolltolower="onLoadMore"
+  >
+    <view wx:if="{{isLoading && events.length === 0}}" class="loading-container">
+      <loading type="spinner" text="加载中..."></loading>
+    </view>
+    
+    <block wx:elif="{{events.length > 0}}">
+      <!-- 时间轴 -->
+      <view class="timeline">
+        <!-- 按年代或世纪分组显示 -->
+        <block wx:for="{{groupedEvents}}" wx:key="era">
+          <!-- 时代分隔线 -->
+          <view class="era-divider">
+            <view class="era-line"></view>
+            <view class="era-text">{{item.era}}</view>
+            <view class="era-line"></view>
+          </view>
+          
+          <!-- 该时代的事件 -->
+          <view class="era-events">
+            <timeline-item 
+              wx:for="{{item.events}}" 
+              wx:key="id"
+              wx:for-item="event"
+              item="{{event}}"
+              is-first="{{index === 0}}"
+              is-last="{{index === item.events.length - 1}}"
+              editable="{{isEditable}}"
+              bind:detail="onEventDetail"
+              bind:edit="onEventEdit"
+            ></timeline-item>
+          </view>
+        </block>
+        
+        <!-- 加载更多 -->
+        <view wx:if="{{hasMore && !isLoading}}" class="load-more" bindtap="loadMoreEvents">
+          点击加载更多
+        </view>
+        
+        <!-- 加载中 -->
+        <view wx:if="{{isLoading && events.length > 0}}" class="loading-more">
+          <loading type="dots" text="加载更多..."></loading>
+        </view>
+        
+        <!-- 全部加载完毕 -->
+        <view wx:if="{{!hasMore && events.length > 0}}" class="load-end">
+          已经到底啦
+        </view>
+      </view>
+    </block>
+    
+    <!-- 空状态 -->
+    <view wx:elif="{{!isLoading && events.length === 0}}" class="empty-state">
+      <image class="empty-image" src="/images/empty_events.png" mode="aspectFit"></image>
+      <view class="empty-text">暂无家族大事记，点击下方按钮添加第一条</view>
+      <button class="btn-primary" bindtap="navigateToAddEvent">记录大事</button>
+    </view>
+  </scroll-view>
+
+  <!-- 悬浮添加按钮 -->
+  <view class="fab" bindtap="navigateToAddEvent" wx:if="{{events.length > 0}}">
+    <text class="iconfont icon-add"></text>
+  </view>
+</view>
