@@ -1,0 +1,33 @@
+<!-- 族谱历史编辑页面 -->
+<view class="container">
+  <view class="page-header">
+    <view class="header-title">编辑族谱历史</view>
+  </view>
+
+  <view class="editor-panel">
+    <view class="editor-tips">
+      <text>在这里编辑您的族谱历史，记录家族的起源、变迁和重要事件。</text>
+    </view>
+    
+    <view class="textarea-wrapper">
+      <textarea 
+        class="history-textarea" 
+        value="{{history}}" 
+        placeholder="请输入族谱历史内容，例如：张氏家族起源于明朝中叶，祖上曾为朝廷命官，后因战乱迁徙至河南定居..."
+        maxlength="{{maxLength}}"
+        bindinput="onInput"
+      ></textarea>
+      
+      <view class="word-count">{{currentLength}}/{{maxLength}}</view>
+    </view>
+  </view>
+
+  <!-- 底部操作栏 -->
+  <view class="action-bar">
+    <button class="btn-cancel" bindtap="cancelEdit">取消</button>
+    <button class="btn-submit" bindtap="saveHistory">保存</button>
+  </view>
+
+  <!-- Loading 状态 -->
+  <loading wx:if="{{isLoading}}" type="spinner" text="处理中..."></loading>
+</view>

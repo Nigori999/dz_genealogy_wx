@@ -7,7 +7,8 @@
     "pages/member-detail/member-detail",
     "pages/event-detail/event-detail",
     "pages/add-member/add-member",
-    "pages/add-event/add-event"
+    "pages/add-event/add-event",
+    "pages/edit-history/edit-history"
   ],
   "window": {
     "backgroundTextStyle": "light",
@@ -24,26 +25,26 @@
       {
         "pagePath": "pages/index/index",
         "text": "首页",
-        "iconPath": "images/tab-home.png",
-        "selectedIconPath": "images/tab-home-active.png"
+        "iconPath": "assets/images/tab-home.png",
+        "selectedIconPath": "assets/images/tab-home-active.png"
       },
       {
         "pagePath": "pages/family-tree/family-tree",
         "text": "家族树",
-        "iconPath": "images/tab-tree.png",
-        "selectedIconPath": "images/tab-tree-active.png"
+        "iconPath": "assets/images/tab-tree.png",
+        "selectedIconPath": "assets/images/tab-tree-active.png"
       },
       {
         "pagePath": "pages/events/events",
         "text": "大事记",
-        "iconPath": "images/tab-events.png",
-        "selectedIconPath": "images/tab-events-active.png"
+        "iconPath": "assets/images/tab-events.png",
+        "selectedIconPath": "assets/images/tab-events-active.png"
       },
       {
         "pagePath": "pages/mine/mine",
         "text": "我的",
-        "iconPath": "images/tab-mine.png",
-        "selectedIconPath": "images/tab-mine-active.png"
+        "iconPath": "assets/images/tab-mine.png",
+        "selectedIconPath": "assets/images/tab-mine-active.png"
       }
     ]
   },

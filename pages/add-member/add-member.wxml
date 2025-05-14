@@ -1,2 +1,286 @@
-<!--pages/add-member/add-member.wxml-->
-<text>pages/add-member/add-member.wxml</text>
+<!-- 添加成员页面 -->
+<view class="container">
+  <view class="page-header">
+    <view class="header-title">添加家族成员</view>
+  </view>
+
+  <view class="form-panel">
+    <!-- 基本信息 -->
+    <view class="form-section">
+      <view class="section-title">基本信息</view>
+      
+      <!-- 头像 -->
+      <view class="avatar-upload" bindtap="uploadAvatar">
+        <image 
+          class="avatar-image" 
+          src="{{avatarUrl || (formData.gender === 'male' ? '/images/avatar_male_default.png' : '/images/avatar_female_default.png')}}" 
+          mode="aspectFill"
+        ></image>
+        <view class="avatar-upload-text">点击上传头像</view>
+      </view>
+
+      <!-- 姓名 -->
+      <view class="form-item {{errors.name ? 'has-error' : ''}}">
+        <view class="form-label">姓名 <text class="required">*</text></view>
+        <input 
+          class="form-input" 
+          value="{{formData.name}}" 
+          placeholder="请输入成员姓名" 
+          data-field="name" 
+          bindinput="onInput"
+        />
+        <view wx:if="{{errors.name}}" class="error-message">{{errors.name}}</view>
+      </view>
+
+      <!-- 性别 -->
+      <view class="form-item">
+        <view class="form-label">性别</view>
+        <radio-group class="radio-group" bindchange="onGenderChange">
+          <label class="radio" wx:for="{{genderOptions}}" wx:key="value">
+            <radio value="{{item.value}}" checked="{{formData.gender === item.value}}" />
+            <text>{{item.name}}</text>
+          </label>
+        </radio-group>
+      </view>
+
+      <!-- 世代 -->
+      <view class="form-item">
+        <view class="form-label">世代</view>
+        <picker 
+          mode="selector" 
+          range="{{[...Array(maxGeneration).keys()].map(i => '第' + (i+1) + '代')}}" 
+          value="{{formData.generation - 1}}" 
+          bindchange="onGenerationChange"
+        >
+          <view class="picker-value">
+            第{{formData.generation}}代
+            <text class="iconfont icon-arrow-down"></text>
+          </view>
+        </picker>
+      </view>
+
+      <!-- 称谓/排行 -->
+      <view class="form-item">
+        <view class="form-label">称谓/排行</view>
+        <input 
+          class="form-input" 
+          value="{{formData.rank}}" 
+          placeholder="如：长子、次女等" 
+          data-field="rank" 
+          bindinput="onInput"
+        />
+      </view>
+      
+      <!-- 出生日期 -->
+      <view class="form-item">
+        <view class="form-label">出生日期</view>
+        <view class="date-picker" bindtap="showDatePicker" data-field="birthDate">
+          <text>{{birthDateText}}</text>
+          <text class="iconfont icon-calendar"></text>
+        </view>
+      </view>
+      
+      <!-- 去世日期 -->
+      <view class="form-item">
+        <view class="form-label">去世日期（如已故）</view>
+        <view class="date-picker" bindtap="showDatePicker" data-field="deathDate">
+          <text>{{deathDateText}}</text>
+          <text class="iconfont icon-calendar"></text>
+        </view>
+      </view>
+      
+      <!-- 出生地 -->
+      <view class="form-item">
+        <view class="form-label">出生地</view>
+        <input 
+          class="form-input" 
+          value="{{formData.birthPlace}}" 
+          placeholder="请输入出生地" 
+          data-field="birthPlace" 
+          bindinput="onInput"
+        />
+      </view>
+    </view>
+
+    <!-- 家族关系 -->
+    <view class="form-section">
+      <view class="section-title">家族关系</view>
+      
+      <!-- 父母 -->
+      <view class="form-item">
+        <view class="form-label">父母</view>
+        <view wx:if="{{!parentMember}}" class="relation-picker" bindtap="showPickParentDialog">
+          <text>选择父母</text>
+          <text class="iconfont icon-add"></text>
+        </view>
+        <view wx:else class="relation-item">
+          <image 
+            class="relation-avatar" 
+            src="{{parentMember.avatar || (parentMember.gender === 'male' ? '/images/avatar_male_default.png' : '/images/avatar_female_default.png')}}" 
+            mode="aspectFill"
+          ></image>
+          <text class="relation-name">{{parentMember.name}}</text>
+          <view class="relation-remove" catchtap="removeParent">
+            <text class="iconfont icon-close"></text>
+          </view>
+        </view>
+      </view>
+      
+      <!-- 配偶 -->
+      <view class="form-item">
+        <view class="form-label">配偶</view>
+        <view class="relation-picker" bindtap="showPickSpouseDialog">
+          <text>{{spouseMembers.length > 0 ? '添加更多配偶' : '选择配偶'}}</text>
+          <text class="iconfont icon-add"></text>
+        </view>
+        <view class="relation-list">
+          <view 
+            wx:for="{{spouseMembers}}" 
+            wx:key="id" 
+            class="relation-item"
+          >
+            <image 
+              class="relation-avatar" 
+              src="{{item.avatar || (item.gender === 'male' ? '/images/avatar_male_default.png' : '/images/avatar_female_default.png')}}" 
+              mode="aspectFill"
+            ></image>
+            <text class="relation-name">{{item.name}}</text>
+            <view class="relation-remove" catchtap="removeSpouse" data-index="{{index}}">
+              <text class="iconfont icon-close"></text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 个人信息 -->
+    <view class="form-section">
+      <view class="section-title">个人信息</view>
+      
+      <!-- 职业 -->
+      <view class="form-item">
+        <view class="form-label">职业</view>
+        <input 
+          class="form-input" 
+          value="{{formData.occupation}}" 
+          placeholder="请输入职业" 
+          data-field="occupation" 
+          bindinput="onInput"
+        />
+      </view>
+      
+      <!-- 教育 -->
+      <view class="form-item">
+        <view class="form-label">教育</view>
+        <input 
+          class="form-input" 
+          value="{{formData.education}}" 
+          placeholder="请输入教育背景" 
+          data-field="education" 
+          bindinput="onInput"
+        />
+      </view>
+      
+      <!-- 生平事迹 -->
+      <view class="form-item">
+        <view class="form-label">生平事迹</view>
+        <textarea 
+          class="form-textarea" 
+          value="{{formData.biography}}" 
+          placeholder="请输入生平事迹" 
+          data-field="biography" 
+          bindinput="onInput"
+        ></textarea>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部操作栏 -->
+  <view class="action-bar">
+    <button class="btn-cancel" bindtap="cancelAdd">取消</button>
+    <button class="btn-submit" bindtap="submitForm">添加成员</button>
+  </view>
+
+  <!-- 日期选择器 -->
+  <picker 
+    wx:if="{{showDatePicker}}"
+    mode="date" 
+    value="{{formData[currentDateField] || ''}}"
+    start="1900-01-01"
+    end="2100-12-31"
+    bindcancel="onDatePickerCancel"
+    bindchange="onDatePickerConfirm"
+  >
+  </picker>
+
+  <!-- 成员选择对话框 - 父母 -->
+  <view class="member-picker-modal" wx:if="{{showPickParentDialog}}">
+    <view class="modal-mask" bindtap="onPickParentCancel"></view>
+    <view class="modal-content">
+      <view class="modal-header">
+        <text>选择父母</text>
+      </view>
+      <scroll-view scroll-y class="member-list">
+        <view 
+          wx:for="{{allMembers}}" 
+          wx:key="id" 
+          class="member-item"
+          bindtap="onPickParentConfirm"
+          data-member="{{item}}"
+        >
+          <image 
+            class="member-avatar" 
+            src="{{item.avatar || (item.gender === 'male' ? '/images/avatar_male_default.png' : '/images/avatar_female_default.png')}}" 
+            mode="aspectFill"
+          ></image>
+          <view class="member-info">
+            <text class="member-name">{{item.name}}</text>
+            <text class="member-generation">第{{item.generation || 1}}代</text>
+          </view>
+        </view>
+      </scroll-view>
+      <view class="modal-footer">
+        <button class="btn-cancel" bindtap="onPickParentCancel">取消</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 成员选择对话框 - 配偶 -->
+  <view class="member-picker-modal" wx:if="{{showPickSpouseDialog}}">
+    <view class="modal-mask" bindtap="onPickSpouseCancel"></view>
+    <view class="modal-content">
+      <view class="modal-header">
+        <text>选择配偶</text>
+      </view>
+      <scroll-view scroll-y class="member-list">
+        <view 
+          wx:for="{{allMembers.filter(m => !formData.spouseIds.includes(m.id))}}" 
+          wx:key="id" 
+          class="member-item"
+        >
+          <checkbox-group bindchange="onPickSpouseChange">
+            <label class="member-checkbox">
+              <checkbox value="{{item.id}}" checked="{{formData.spouseIds.includes(item.id)}}" />
+              <image 
+                class="member-avatar" 
+                src="{{item.avatar || (item.gender === 'male' ? '/images/avatar_male_default.png' : '/images/avatar_female_default.png')}}" 
+                mode="aspectFill"
+              ></image>
+              <view class="member-info">
+                <text class="member-name">{{item.name}}</text>
+                <text class="member-generation">第{{item.generation || 1}}代</text>
+              </view>
+            </label>
+          </checkbox-group>
+        </view>
+      </scroll-view>
+      <view class="modal-footer">
+        <button class="btn-cancel" bindtap="onPickSpouseCancel">取消</button>
+        <button class="btn-confirm" bindtap="onPickSpouseConfirm">确定</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- Loading 状态 -->
+  <loading wx:if="{{isLoading}}" type="spinner" text="处理中..."></loading>
+</view>

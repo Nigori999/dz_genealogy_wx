@@ -1,2 +1,195 @@
-<!--pages/add-event/add-event.wxml-->
-<text>pages/add-event/add-event.wxml</text>
+<!-- 添加事件页面 -->
+<view class="container">
+  <view class="page-header">
+    <view class="header-title">添加家族大事记</view>
+  </view>
+
+  <view class="form-panel">
+    <!-- 基本信息 -->
+    <view class="form-section">
+      <view class="section-title">事件信息</view>
+      
+      <!-- 事件标题 -->
+      <view class="form-item {{errors.title ? 'has-error' : ''}}">
+        <view class="form-label">事件标题 <text class="required">*</text></view>
+        <input 
+          class="form-input" 
+          value="{{formData.title}}" 
+          placeholder="请输入事件标题" 
+          data-field="title" 
+          bindinput="onInput"
+        />
+        <view wx:if="{{errors.title}}" class="error-message">{{errors.title}}</view>
+      </view>
+
+      <!-- 事件类型 -->
+      <view class="form-item">
+        <view class="form-label">事件类型</view>
+        <picker 
+          mode="selector" 
+          range="{{typeOptions}}" 
+          range-key="name"
+          value="{{typeOptions.findIndex(item => item.value === formData.type)}}" 
+          bindchange="onTypeChange"
+        >
+          <view class="picker-value">
+            {{typeOptions.find(item => item.value === formData.type).name}}
+            <text class="iconfont icon-arrow-down"></text>
+          </view>
+        </picker>
+      </view>
+
+      <!-- 事件日期 -->
+      <view class="form-item {{errors.date ? 'has-error' : ''}}">
+        <view class="form-label">事件日期 <text class="required">*</text></view>
+        <view class="date-picker" bindtap="showDatePicker">
+          <text>{{dateText}}</text>
+          <text class="iconfont icon-calendar"></text>
+        </view>
+        <view wx:if="{{errors.date}}" class="error-message">{{errors.date}}</view>
+      </view>
+      
+      <!-- 事件地点 -->
+      <view class="form-item">
+        <view class="form-label">事件地点</view>
+        <input 
+          class="form-input" 
+          value="{{formData.location}}" 
+          placeholder="请输入事件发生地点" 
+          data-field="location" 
+          bindinput="onInput"
+        />
+      </view>
+      
+      <!-- 事件描述 -->
+      <view class="form-item">
+        <view class="form-label">事件描述</view>
+        <textarea 
+          class="form-textarea" 
+          value="{{formData.description}}" 
+          placeholder="请输入事件描述" 
+          data-field="description" 
+          bindinput="onInput"
+        ></textarea>
+      </view>
+    </view>
+
+    <!-- 相关成员 -->
+    <view class="form-section">
+      <view class="section-title">相关成员</view>
+      
+      <view class="form-item">
+        <view class="relation-picker" bindtap="showPickMembersDialog">
+          <text>{{relatedMembersList.length > 0 ? '添加更多相关成员' : '选择相关成员'}}</text>
+          <text class="iconfont icon-add"></text>
+        </view>
+        
+        <view class="relation-list">
+          <view 
+            wx:for="{{relatedMembersList}}" 
+            wx:key="id" 
+            class="relation-item"
+          >
+            <image 
+              class="relation-avatar" 
+              src="{{item.avatar || (item.gender === 'male' ? '/images/avatar_male_default.png' : '/images/avatar_female_default.png')}}" 
+              mode="aspectFill"
+            ></image>
+            <text class="relation-name">{{item.name}}</text>
+            <view class="relation-remove" catchtap="removeMember" data-index="{{index}}">
+              <text class="iconfont icon-close"></text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 媒体文件 -->
+    <view class="form-section">
+      <view class="section-title">照片/视频</view>
+      
+      <view class="media-grid">
+        <!-- 已上传的媒体文件 -->
+        <view 
+          wx:for="{{mediaFiles}}" 
+          wx:key="index" 
+          class="media-item"
+        >
+          <image 
+            class="media-image" 
+            src="{{item}}" 
+            mode="aspectFill"
+            bindtap="previewMedia"
+            data-index="{{index}}"
+          ></image>
+          <view class="media-remove" catchtap="removeMedia" data-index="{{index}}">
+            <text class="iconfont icon-close"></text>
+          </view>
+        </view>
+        
+        <!-- 上传按钮 -->
+        <view class="media-upload" bindtap="uploadMedia" wx:if="{{mediaFiles.length < 9}}">
+          <text class="iconfont icon-add"></text>
+          <text class="upload-text">添加</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部操作栏 -->
+  <view class="action-bar">
+    <button class="btn-cancel" bindtap="cancelAdd">取消</button>
+    <button class="btn-submit" bindtap="submitForm">添加事件</button>
+  </view>
+
+  <!-- 日期选择器 -->
+  <picker 
+    wx:if="{{showDatePicker}}"
+    mode="date" 
+    value="{{formData.date || ''}}"
+    start="1900-01-01"
+    end="2100-12-31"
+    bindcancel="onDatePickerCancel"
+    bindchange="onDatePickerConfirm"
+  >
+  </picker>
+
+  <!-- 成员选择对话框 -->
+  <view class="member-picker-modal" wx:if="{{showPickMembersDialog}}">
+    <view class="modal-mask" bindtap="onPickMembersCancel"></view>
+    <view class="modal-content">
+      <view class="modal-header">
+        <text>选择相关成员</text>
+      </view>
+      <scroll-view scroll-y class="member-list">
+        <checkbox-group bindchange="onMemberCheckboxChange">
+          <view 
+            wx:for="{{allMembers}}" 
+            wx:key="id" 
+            class="member-item"
+          >
+            <label class="member-checkbox">
+              <checkbox value="{{item.id}}" checked="{{formData.relatedMembers.includes(item.id)}}" />
+              <image 
+                class="member-avatar" 
+                src="{{item.avatar || (item.gender === 'male' ? '/images/avatar_male_default.png' : '/images/avatar_female_default.png')}}" 
+                mode="aspectFill"
+              ></image>
+              <view class="member-info">
+                <text class="member-name">{{item.name}}</text>
+                <text class="member-generation">第{{item.generation || 1}}代</text>
+              </view>
+            </label>
+          </view>
+        </checkbox-group>
+      </scroll-view>
+      <view class="modal-footer">
+        <button class="btn-cancel" bindtap="onPickMembersCancel">取消</button>
+        <button class="btn-confirm" bindtap="onPickMembersConfirm">确定</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- Loading 状态 -->
+  <loading wx:if="{{isLoading}}" type="spinner" text="处理中..."></loading>
+</view>

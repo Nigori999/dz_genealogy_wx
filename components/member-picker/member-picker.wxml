@@ -1,0 +1,85 @@
+<!-- 成员选择器组件 -->
+<view class="member-picker-modal" wx:if="{{visible}}">
+  <view class="modal-mask" bindtap="onCancel"></view>
+  <view class="modal-content">
+    <view class="modal-header">
+      <text>{{title}}</text>
+    </view>
+    
+    <!-- 搜索框 -->
+    <view class="search-bar">
+      <text class="iconfont icon-search"></text>
+      <input 
+        class="search-input" 
+        placeholder="搜索成员姓名" 
+        value="{{searchKeyword}}"
+        bindinput="onSearchInput"
+        confirm-type="search"
+      />
+    </view>
+    
+    <!-- 成员列表 -->
+    <scroll-view scroll-y class="member-list">
+      <!-- 单选模式 -->
+      <block wx:if="{{mode === 'single'}}">
+        <view 
+          wx:for="{{filteredMembers}}" 
+          wx:key="id" 
+          class="member-item {{internalSelectedIds.includes(item.id) ? 'selected' : ''}}"
+          bindtap="onItemClick"
+          data-id="{{item.id}}"
+        >
+          <image 
+            class="member-avatar" 
+            src="{{item.avatar || (item.gender === 'male' ? '/images/avatar_male_default.png' : '/images/avatar_female_default.png')}}" 
+            mode="aspectFill"
+          ></image>
+          <view class="member-info">
+            <text class="member-name">{{item.name}}</text>
+            <text class="member-meta">{{item.gender === 'male' ? '男' : '女'}} · 第{{item.generation || 1}}代</text>
+          </view>
+          <view class="member-select-icon" wx:if="{{internalSelectedIds.includes(item.id)}}">
+            <text class="iconfont icon-check"></text>
+          </view>
+        </view>
+      </block>
+      
+      <!-- 多选模式 -->
+      <block wx:else>
+        <checkbox-group bindchange="onCheckboxChange">
+          <view 
+            wx:for="{{filteredMembers}}" 
+            wx:key="id" 
+            class="member-item {{internalSelectedIds.includes(item.id) ? 'selected' : ''}}"
+          >
+            <label class="member-checkbox">
+              <checkbox value="{{item.id}}" checked="{{internalSelectedIds.includes(item.id)}}" />
+              <image 
+                class="member-avatar" 
+                src="{{item.avatar || (item.gender === 'male' ? '/images/avatar_male_default.png' : '/images/avatar_female_default.png')}}" 
+                mode="aspectFill"
+              ></image>
+              <view class="member-info">
+                <text class="member-name">{{item.name}}</text>
+                <text class="member-meta">{{item.gender === 'male' ? '男' : '女'}} · 第{{item.generation || 1}}代</text>
+              </view>
+            </label>
+          </view>
+        </checkbox-group>
+      </block>
+      
+      <!-- 空状态 -->
+      <view wx:if="{{filteredMembers.length === 0}}" class="empty-state">
+        <text>{{searchKeyword ? '未找到匹配的成员' : '暂无可选成员'}}</text>
+      </view>
+    </scroll-view>
+    
+    <!-- 底部操作按钮 -->
+    <view class="modal-footer">
+      <button class="btn-cancel" bindtap="onCancel">取消</button>
+      <button wx:if="{{mode === 'multiple'}}" class="btn-confirm" bindtap="onConfirm">
+        确定 ({{internalSelectedIds.length}})
+      </button>
+    </view>
+  </view>
+</view>
