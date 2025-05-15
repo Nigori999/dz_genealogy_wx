@@ -30,6 +30,12 @@ Page({
    * 生命周期函数--监听页面加载
    */
   onLoad: function () {
+    // 检查登录状态
+    if (!app.globalData.isLogin) {
+      app.checkLogin(false);
+      return;
+    }
+    
     // 获取屏幕高度
     const systemInfo = wx.getSystemInfoSync();
     const windowHeight = systemInfo.windowHeight;
@@ -51,6 +57,12 @@ Page({
    * 生命周期函数--监听页面显示
    */
   onShow: function () {
+    // 检查登录状态
+    if (!app.globalData.isLogin) {
+      app.checkLogin(false);
+      return;
+    }
+    
     // 如果有更新，重新加载数据
     if (this.data.currentGenealogy && this.needRefresh) {
       this._loadGenealogyData(this.data.currentGenealogy.id);

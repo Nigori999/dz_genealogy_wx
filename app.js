@@ -26,7 +26,16 @@ App({
     });
 
     // 检查用户登录状态
-    this.checkLoginStatus();
+    this.checkLoginStatus()
+      .then(userInfo => {
+        if (userInfo) {
+          // 尝试加载族谱数据
+          this.loadMyGenealogies();
+        }
+      })
+      .catch(error => {
+        console.error('Login status check failed:', error);
+      });
   },
 
   /**
@@ -146,5 +155,79 @@ App({
       }
     }
     return this.globalData.currentGenealogy;
+  },
+
+  /**
+   * 检查用户是否已登录，未登录则跳转到登录页
+   * @param {Boolean} showToast - 是否显示提示信息
+   * @returns {Boolean} 是否已登录
+   */
+  checkLogin: function(showToast = true) {
+    if (!this.globalData.isLogin) {
+      if (showToast) {
+        wx.showToast({
+          title: '请先登录',
+          icon: 'none',
+          duration: 1500
+        });
+      }
+      
+      // 延迟跳转，让用户看到提示
+      setTimeout(() => {
+        wx.navigateTo({
+          url: '/pages/login/login'
+        });
+      }, 1000);
+      
+      return false;
+    }
+    return true;
+  },
+
+  /**
+   * 加载用户的族谱列表并设置默认族谱
+   */
+  loadMyGenealogies: function() {
+    const api = require('./services/api');
+    
+    // 首先，确保模拟数据正确重置（仅在使用模拟数据时）
+    try {
+      const mockService = require('./services/mock');
+      if (typeof mockService._resetMockData === 'function') {
+        mockService._resetMockData();
+        console.log('重置模拟数据成功');
+      }
+    } catch (error) {
+      console.error('重置模拟数据失败:', error);
+    }
+    
+    // 加载用户的族谱列表
+    api.genealogyAPI.getMyGenealogies()
+      .then(genealogies => {
+        if (genealogies && genealogies.length > 0) {
+          console.log('获取到族谱列表:', genealogies.length);
+          
+          // 检查是否已有存储的当前族谱
+          const currentGenealogyId = wx.getStorageSync('currentGenealogy')?.id;
+          
+          // 如果有存储的族谱ID且在列表中存在，选择该族谱；否则选择第一个
+          let genealogyToSet = genealogies[0];
+          if (currentGenealogyId) {
+            const storedGenealogy = genealogies.find(g => g.id === currentGenealogyId);
+            if (storedGenealogy) {
+              genealogyToSet = storedGenealogy;
+            }
+          }
+          
+          // 设置当前族谱
+          this.setCurrentGenealogy(genealogyToSet);
+          console.log('Auto set current genealogy:', genealogyToSet.name);
+        } else {
+          console.warn('未获取到族谱列表数据');
+        }
+      })
+      .catch(error => {
+        console.error('Failed to load genealogies:', error);
+      });
   }
 });

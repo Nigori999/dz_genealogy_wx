@@ -329,15 +329,15 @@ Page({
   },
 
   /**
-   * 验证表单
+   * 表单验证
    */
-  validateForm: function () {
-    const { formData } = this.data;
+  _validateForm: function () {
     let isValid = true;
+    const { formData } = this.data;
     const errors = {};
     
     // 验证标题
-    if (!formData.title || formData.title.trim() === '') {
+    if (!formData.title || !formData.title.trim()) {
       errors.title = '请输入事件标题';
       isValid = false;
     }
@@ -348,8 +348,14 @@ Page({
       isValid = false;
     }
     
-    // 设置错误信息
     this.setData({ errors });
+    
+    if (!isValid) {
+      wx.showToast({
+        title: '请完善表单信息',
+        icon: 'none'
+      });
+    }
     
     return isValid;
   },
@@ -358,112 +364,139 @@ Page({
    * 提交表单
    */
   submitForm: function () {
-    if (!this.validateForm()) {
-      wx.showToast({
-        title: '请完善表单信息',
-        icon: 'none'
-      });
+    // 数据验证
+    if (!this._validateForm()) {
       return;
     }
     
-    this.setData({ isLoading: true });
+    this._showLoading('处理中...');
     
-    // 准备提交数据
-    const submitData = { ...this.data.formData };
+    const { formData, mediaFiles, genealogyId } = this.data;
     
-    // 添加事件
-    api.eventsAPI.addEvent(this.data.genealogyId, submitData)
-      .then(result => {
-        if (result) {
-          // 如果有媒体文件，上传媒体文件
-          if (this.data.mediaFiles.length > 0) {
-            this._uploadEventMedia(result.id);
-          } else {
-            this.setData({ isLoading: false });
-            this._onAddSuccess();
-          }
-        } else {
-          this.setData({ isLoading: false });
+    // 创建大事记数据对象
+    const eventData = {
+      title: formData.title.trim(),
+      description: formData.description.trim(),
+      date: formData.date,
+      type: formData.type,
+      location: formData.location.trim(),
+      relatedMembers: formData.relatedMembers,
+      media: [] // 初始化为空媒体数组
+    };
+    
+    // 创建大事记
+    api.eventsAPI.addEvent(genealogyId, eventData)
+      .then(res => {
+        if (!res || !res.id) {
+          throw new Error('创建大事记失败');
+        }
+        
+        const eventId = res.id;
+        
+        // 如果有媒体文件，上传媒体文件
+        if (mediaFiles.length > 0) {
+          this._showLoading(`上传媒体文件 (0/${mediaFiles.length})`);
           
-          wx.showToast({
-            title: '添加失败，请重试',
-            icon: 'none'
-          });
+          // 逐个上传媒体文件
+          this._uploadMediaFilesSequentially(genealogyId, eventId, mediaFiles)
+            .then(() => {
+              this._hideLoading();
+              this._showSuccess('添加成功');
+            })
+            .catch(error => {
+              console.error('Upload media failed:', error);
+              this._hideLoading();
+              this._showSuccess('添加成功，但部分媒体上传失败');
+            });
+        } else {
+          // 没有媒体文件，直接完成
+          this._hideLoading();
+          this._showSuccess('添加成功');
         }
       })
       .catch(error => {
         console.error('Add event failed:', error);
-        
-        this.setData({ isLoading: false });
-        
-        wx.showToast({
-          title: '添加失败，请重试',
-          icon: 'none'
-        });
+        this._hideLoading();
+        this._showError('添加失败，请重试');
       });
   },
-
+  
   /**
-   * 上传事件媒体文件
+   * 顺序上传媒体文件
    */
-  _uploadEventMedia: function (eventId) {
-    const { genealogyId, mediaFiles } = this.data;
+  _uploadMediaFilesSequentially: function(genealogyId, eventId, mediaFiles) {
+    // 使用Promise链顺序上传所有文件
+    let uploadPromise = Promise.resolve();
+    let uploadedCount = 0;
     
-    // 显示上传进度
-    wx.showLoading({
-      title: `上传媒体文件 (0/${mediaFiles.length})`,
-      mask: true
+    mediaFiles.forEach((filePath, index) => {
+      uploadPromise = uploadPromise
+        .then(() => {
+          // 更新上传进度
+          this._showLoading(`上传媒体文件 (${index + 1}/${mediaFiles.length})`);
+          
+          // 上传单个文件
+          return api.eventsAPI.uploadEventMedia(genealogyId, eventId, filePath);
+        })
+        .then(() => {
+          uploadedCount++;
+        })
+        .catch(err => {
+          console.error(`上传第 ${index + 1} 个文件失败:`, err);
+          // 继续上传下一个文件
+        });
     });
     
-    // 逐个上传媒体文件
-    const uploadFile = (index) => {
-      if (index >= mediaFiles.length) {
-        // 所有文件上传完成
-        wx.hideLoading();
-        this.setData({ isLoading: false });
-        this._onAddSuccess();
-        return;
+    return uploadPromise.then(() => {
+      // 检查是否所有文件都上传成功
+      if (uploadedCount < mediaFiles.length) {
+        return Promise.reject(new Error(`部分文件上传失败，${uploadedCount}/${mediaFiles.length} 上传成功`));
       }
-      
-      const filePath = mediaFiles[index];
-      
-      // 更新上传进度
-      wx.showLoading({
-        title: `上传媒体文件 (${index + 1}/${mediaFiles.length})`,
-        mask: true
-      });
-      
-      // 上传文件
-      api.eventsAPI.uploadEventMedia(genealogyId, eventId, filePath)
-        .then(() => {
-          // 上传下一个文件
-          uploadFile(index + 1);
-        })
-        .catch(error => {
-          console.error('Upload media failed:', error);
-          
-          // 继续上传下一个文件
-          uploadFile(index + 1);
-        });
-    };
-    
-    // 开始上传
-    uploadFile(0);
+    });
   },
-
+  
   /**
-   * 添加成功处理
+   * 显示加载提示
    */
-  _onAddSuccess: function () {
+  _showLoading: function (text = '处理中...') {
+    this.setData({ isLoading: true });
+    wx.showLoading({ 
+      title: text,
+      mask: true
+    });
+  },
+  
+  /**
+   * 隐藏加载提示
+   */
+  _hideLoading: function () {
+    this.setData({ isLoading: false });
+    wx.hideLoading();
+  },
+  
+  /**
+   * 显示成功提示并返回上一页
+   */
+  _showSuccess: function (text = '操作成功') {
     wx.showToast({
-      title: '添加成功',
+      title: text,
       icon: 'success'
     });
     
-    // 延迟返回上一页
+    // 延迟返回上一页，给用户查看提示的时间
     setTimeout(() => {
       wx.navigateBack();
     }, 1500);
+  },
+  
+  /**
+   * 显示错误提示
+   */
+  _showError: function (text = '操作失败') {
+    wx.showToast({
+      title: text,
+      icon: 'none'
+    });
   },
 
   /**

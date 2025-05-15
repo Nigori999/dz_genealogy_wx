@@ -11,12 +11,12 @@ const { request } = require('./http');
  * @param {Object} params 查询参数
  * @param {number} params.page 页码
  * @param {number} params.pageSize 每页条数
- * @param {string} params.type 通知类型
  * @param {boolean} params.onlyUnread 是否仅获取未读通知
+ * @param {boolean} params.onlyRead 是否仅获取已读通知
  * @returns {Promise} 请求结果
  */
 function getNotifications(params = {}) {
-  const { page = 1, pageSize = 20, type, onlyUnread } = params;
+  const { page = 1, pageSize = 20, onlyUnread, onlyRead } = params;
   
   // 模拟API调用
   return new Promise((resolve) => {
@@ -26,14 +26,11 @@ function getNotifications(params = {}) {
     // 筛选逻辑
     let filteredNotifications = [...notifications];
     
-    // 按类型筛选
-    if (type) {
-      filteredNotifications = filteredNotifications.filter(item => item.type === type);
-    }
-    
     // 按已读/未读状态筛选
     if (onlyUnread === true) {
       filteredNotifications = filteredNotifications.filter(item => !item.read);
+    } else if (onlyRead === true) {
+      filteredNotifications = filteredNotifications.filter(item => item.read);
     }
     
     // 分页处理

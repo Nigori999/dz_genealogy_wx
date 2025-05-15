@@ -3,6 +3,13 @@
   padding: 16px;
 }
 
+/* 顶部栏 */
+.top-bar {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
 /* 搜索栏 */
 .search-bar {
   display: flex;
@@ -10,8 +17,10 @@
   background-color: var(--color-white);
   border-radius: 20px;
   padding: 8px 16px;
-  margin-bottom: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  flex: 1;
+  height: 40px;
+  box-sizing: border-box;
 }
 
 .search-bar .iconfont {
@@ -25,6 +34,43 @@
   height: 24px;
   font-size: 14px;
   color: var(--color-text-medium);
+}
+
+/* 通知图标 */
+.notification-icon {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 12px;
+  background-color: var(--color-white);
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-sizing: border-box;
+}
+
+.notification-icon .iconfont {
+  font-size: 22px;
+  color: var(--color-text-medium);
+}
+
+.notification-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  background-color: var(--color-error);
+  color: #fff;
+  font-size: 10px;
+  font-weight: bold;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* 族谱预览 */
@@ -136,6 +182,7 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
+  cursor: pointer;
 }
 
 .section-title {
@@ -169,6 +216,26 @@
   font-size: 12px;
 }
 
+/* 折叠控制 */
+.section-toggle {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  color: var(--color-text-light);
+}
+
+.toggle-text {
+  margin-right: 4px;
+}
+
+.toggle-icon {
+  transition: transform 0.3s ease;
+}
+
+.toggle-icon.collapsed {
+  transform: rotate(-180deg);
+}
+
 .event-list {
   margin-bottom: 8px;
 }
@@ -176,12 +243,25 @@
 /* 快捷功能入口 */
 .quick-actions {
   margin-bottom: 16px;
+  background-color: var(--color-white);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .action-grid {
   display: flex;
   flex-wrap: wrap;
   margin: 0 -8px;
+  transition: all 0.3s ease;
+  max-height: 200px;
+  overflow: hidden;
+}
+
+.action-grid.collapsed {
+  max-height: 0;
+  margin-top: 0;
+  opacity: 0;
 }
 
 .action-item {

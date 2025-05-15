@@ -10,50 +10,129 @@
 const parseDate = (dateString) => {
   if (!dateString) return null;
   
-  // 尝试解析不同格式的日期
-  const date = new Date(dateString);
-  
-  // 检查日期是否有效
-  if (isNaN(date.getTime())) {
-    // 尝试解析其他格式
-    // 例如："2021年5月1日" 或 "2021/5/1" 等
-    const formats = [
-      // "2021年5月1日" 格式
-      {
-        regex: /^(\d{4})年(\d{1,2})月(\d{1,2})日$/,
-        parser: (match) => new Date(parseInt(match[1]), parseInt(match[2]) - 1, parseInt(match[3]))
-      },
-      // "2021/5/1" 格式
-      {
-        regex: /^(\d{4})\/(\d{1,2})\/(\d{1,2})$/,
-        parser: (match) => new Date(parseInt(match[1]), parseInt(match[2]) - 1, parseInt(match[3]))
-      },
-      // "2021-5-1" 格式
-      {
-        regex: /^(\d{4})-(\d{1,2})-(\d{1,2})$/,
-        parser: (match) => new Date(parseInt(match[1]), parseInt(match[2]) - 1, parseInt(match[3]))
-      },
-      // "2021.5.1" 格式
-      {
-        regex: /^(\d{4})\.(\d{1,2})\.(\d{1,2})$/,
-        parser: (match) => new Date(parseInt(match[1]), parseInt(match[2]) - 1, parseInt(match[3]))
+  // 处理数值型时间戳
+  if (typeof dateString === 'number') {
+    try {
+      const date = new Date(dateString);
+      if (!isNaN(date.getTime())) {
+        return date;
       }
-    ];
-    
-    for (const format of formats) {
-      const match = dateString.match(format.regex);
-      if (match) {
+    } catch (error) {
+      console.warn('Invalid timestamp:', dateString);
+    }
+    return null;
+  }
+  
+  // 处理字符串
+  if (typeof dateString !== 'string') {
+    console.warn('Invalid date input type:', typeof dateString);
+    return null;
+  }
+  
+  // 清理输入字符串
+  const trimmedDateString = dateString.trim();
+  if (!trimmedDateString) return null;
+  
+  // 先尝试标准解析
+  try {
+    const standardDate = new Date(trimmedDateString);
+    if (!isNaN(standardDate.getTime())) {
+      return standardDate;
+    }
+  } catch (error) {
+    // 标准解析失败，继续尝试其他格式
+  }
+  
+  // 尝试解析其他格式
+  const formats = [
+    // "2021年5月1日" 格式
+    {
+      regex: /^(\d{4})年(\d{1,2})月(\d{1,2})日$/,
+      parser: (match) => new Date(parseInt(match[1]), parseInt(match[2]) - 1, parseInt(match[3]))
+    },
+    // "2021年5月1号" 格式
+    {
+      regex: /^(\d{4})年(\d{1,2})月(\d{1,2})号$/,
+      parser: (match) => new Date(parseInt(match[1]), parseInt(match[2]) - 1, parseInt(match[3]))
+    },
+    // "2021/5/1" 格式
+    {
+      regex: /^(\d{4})\/(\d{1,2})\/(\d{1,2})$/,
+      parser: (match) => new Date(parseInt(match[1]), parseInt(match[2]) - 1, parseInt(match[3]))
+    },
+    // "2021-5-1" 格式
+    {
+      regex: /^(\d{4})-(\d{1,2})-(\d{1,2})$/,
+      parser: (match) => new Date(parseInt(match[1]), parseInt(match[2]) - 1, parseInt(match[3]))
+    },
+    // "2021.5.1" 格式
+    {
+      regex: /^(\d{4})\.(\d{1,2})\.(\d{1,2})$/,
+      parser: (match) => new Date(parseInt(match[1]), parseInt(match[2]) - 1, parseInt(match[3]))
+    },
+    // 年月格式 "2021年5月"
+    {
+      regex: /^(\d{4})年(\d{1,2})月$/,
+      parser: (match) => new Date(parseInt(match[1]), parseInt(match[2]) - 1, 1)
+    },
+    // 年月格式 "2021-5"
+    {
+      regex: /^(\d{4})-(\d{1,2})$/,
+      parser: (match) => new Date(parseInt(match[1]), parseInt(match[2]) - 1, 1)
+    },
+    // 年月格式 "2021/5"
+    {
+      regex: /^(\d{4})\/(\d{1,2})$/,
+      parser: (match) => new Date(parseInt(match[1]), parseInt(match[2]) - 1, 1)
+    },
+    // 仅年份 "2021年"
+    {
+      regex: /^(\d{4})年$/,
+      parser: (match) => new Date(parseInt(match[1]), 0, 1)
+    },
+    // 仅年份 "2021"
+    {
+      regex: /^(\d{4})$/,
+      parser: (match) => new Date(parseInt(match[1]), 0, 1)
+    },
+    // ISO格式 "2021-05-01T12:30:45Z"
+    {
+      regex: /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/,
+      parser: (match) => new Date(match[0])
+    }
+  ];
+  
+  for (const format of formats) {
+    const match = trimmedDateString.match(format.regex);
+    if (match) {
+      try {
         const parsedDate = format.parser(match);
         if (!isNaN(parsedDate.getTime())) {
           return parsedDate;
         }
+      } catch (error) {
+        console.warn('Error parsing date with format:', format.regex, error);
       }
     }
-    
-    return null;
   }
   
-  return date;
+  // 尝试从可能包含日期的字符串中提取日期部分
+  try {
+    // 查找常见的日期模式
+    const yearMatch = trimmedDateString.match(/\b(19|20)\d{2}\b/);
+    if (yearMatch) {
+      const year = parseInt(yearMatch[0]);
+      // 如果只有年份信息，返回该年的1月1日
+      if (year >= 1900 && year <= 2100) {
+        return new Date(year, 0, 1);
+      }
+    }
+  } catch (error) {
+    console.warn('Error extracting year from string:', error);
+  }
+  
+  console.warn('Failed to parse date:', trimmedDateString);
+  return null;
 };
 
 /**

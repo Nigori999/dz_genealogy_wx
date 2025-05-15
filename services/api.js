@@ -328,10 +328,74 @@ const paymentAPI = {
   }
 };
 
+/**
+ * 通知相关接口
+ */
+const notificationAPI = {
+  /**
+   * 获取通知列表
+   * @param {Object} params - 查询参数
+   * @returns {Promise} 通知列表
+   */
+  getNotifications: (params = {}) => {
+    if (USE_MOCK) return mockService.getNotifications(params);
+    return http.get('/notifications', params);
+  },
+
+  /**
+   * 获取未读通知数量
+   * @returns {Promise} 未读通知数量
+   */
+  getUnreadCount: () => {
+    if (USE_MOCK) return mockService.getUnreadNotificationsCount();
+    return http.get('/notifications/unread-count');
+  },
+
+  /**
+   * 标记通知为已读
+   * @param {String} notificationId - 通知ID, 如不提供则标记所有通知为已读
+   * @returns {Promise} 标记结果
+   */
+  markAsRead: (notificationId) => {
+    if (USE_MOCK) return mockService.markNotificationAsRead(notificationId);
+    return http.put(notificationId ? `/notifications/${notificationId}/read` : '/notifications/read-all');
+  },
+
+  /**
+   * 删除通知
+   * @param {String} notificationId - 通知ID
+   * @returns {Promise} 删除结果
+   */
+  deleteNotification: (notificationId) => {
+    if (USE_MOCK) return mockService.deleteNotification(notificationId);
+    return http.del(`/notifications/${notificationId}`);
+  },
+
+  /**
+   * 获取通知设置
+   * @returns {Promise} 通知设置
+   */
+  getNotificationSettings: () => {
+    if (USE_MOCK) return mockService.getNotificationSettings();
+    return http.get('/notifications/settings');
+  },
+
+  /**
+   * 更新通知设置
+   * @param {Object} settings - 通知设置
+   * @returns {Promise} 更新结果
+   */
+  updateNotificationSettings: (settings) => {
+    if (USE_MOCK) return mockService.updateNotificationSettings(settings);
+    return http.put('/notifications/settings', settings);
+  }
+};
+
 module.exports = {
   userAPI,
   genealogyAPI,
   memberAPI,
   eventsAPI,
-  paymentAPI
+  paymentAPI,
+  notificationAPI
 };

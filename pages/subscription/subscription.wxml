@@ -44,7 +44,10 @@
         <!-- 族谱数量 -->
         <view class="subscription-item">
           <view class="item-header">
-            <text class="item-title">族谱数量</text>
+            <view class="item-title-container">
+              <text class="item-title">族谱数量</text>
+              <text class="item-description">每个族谱自带10个席位</text>
+            </view>
             <text class="item-price">¥{{priceRates.genealogy}}/个/月</text>
           </view>
           <view class="item-content">
@@ -73,10 +76,19 @@
         <!-- 席位数量 -->
         <view class="subscription-item">
           <view class="item-header">
-            <text class="item-title">席位数量</text>
+            <view class="item-title-container">
+              <text class="item-title">席位数量</text>
+              <text class="item-description">当前用户作为管理员所管理的所有族谱共享</text>
+            </view>
             <text class="item-price">¥{{priceRates.member}}/人/月</text>
           </view>
-          <view class="item-content">
+          <view class="item-content compact">
+            <view class="quick-options">
+              <view class="quick-option {{customPlan.memberCount === 30 ? 'active' : ''}}" data-value="30" bindtap="setQuickMemberCount">30人</view>
+              <view class="quick-option {{customPlan.memberCount === 50 ? 'active' : ''}}" data-value="50" bindtap="setQuickMemberCount">50人</view>
+              <view class="quick-option {{customPlan.memberCount === 100 ? 'active' : ''}}" data-value="100" bindtap="setQuickMemberCount">100人</view>
+              <view class="quick-option {{customPlan.memberCount === 200 ? 'active' : ''}}" data-value="200" bindtap="setQuickMemberCount">200人</view>
+            </view>
             <slider 
               min="30" 
               max="5000" 
@@ -93,11 +105,6 @@
               <input class="count-input" type="number" value="{{customPlan.memberCount}}" bindinput="onMemberCountInput" />
               <view class="count-btn" bindtap="increaseMemberCount">+</view>
             </view>
-            <view class="quick-options">
-              <view class="quick-option {{customPlan.memberCount === 30 ? 'active' : ''}}" data-value="30" bindtap="setQuickMemberCount">30人</view>
-              <view class="quick-option {{customPlan.memberCount === 50 ? 'active' : ''}}" data-value="50" bindtap="setQuickMemberCount">50人</view>
-              <view class="quick-option {{customPlan.memberCount === 100 ? 'active' : ''}}" data-value="100" bindtap="setQuickMemberCount">100人</view>
-            </view>
           </view>
           <view class="item-subtotal">
             小计：¥{{priceStrings.memberTotal}}
@@ -107,10 +114,13 @@
         <!-- 存储空间 -->
         <view class="subscription-item">
           <view class="item-header">
-            <text class="item-title">存储空间</text>
+            <view class="item-title-container">
+              <text class="item-title">存储空间</text>
+              <text class="item-description">当前用户作为管理员所管理的所有族谱共享</text>
+            </view>
             <text class="item-price">¥{{priceRates.storage}}/GB/月</text>
           </view>
-          <view class="item-content">
+          <view class="item-content compact">
             <slider 
               min="1" 
               max="100" 
@@ -165,9 +175,9 @@
       <view class="info-item">1. 订阅成功后立即生效，可用资源将按新设置调整；</view>
       <view class="info-item">2. 如有未到期的旧订阅，剩余时间将自动折算；</view>
       <view class="info-item">3. 订阅到期后，将自动降级为免费版（1个族谱，50人席位，100MB存储空间）；</view>
-      <view class="info-item">4. 族谱数量是指可创建的族谱数量上限；</view>
-      <view class="info-item">5. 席位数量是指每个族谱中可添加的最大成员数；</view>
-      <view class="info-item">6. 存储空间用于储存照片、视频等媒体文件。</view>
+      <view class="info-item">4. 族谱数量是指可创建的族谱数量上限，每个族谱自带10个基础席位；</view>
+      <view class="info-item">5. 席位数量是指当前用户作为管理员所管理的所有族谱共享的席位总数；</view>
+      <view class="info-item">6. 存储空间用于储存照片、视频等媒体文件，由当前用户作为管理员所管理的所有族谱共享使用。</view>
     </view>
   </block>
 </view> 

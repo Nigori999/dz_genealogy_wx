@@ -152,9 +152,22 @@ Page({
    * 格式化日期
    */
   _formatDate: function (event) {
-    if (event.date) {
+    if (!event || !event.date) {
+      this.setData({
+        formatDate: '未知日期'
+      });
+      return;
+    }
+    
+    const date = dateUtil.parseDate(event.date);
+    if (date && !isNaN(date.getTime())) {
       this.setData({
         formatDate: dateUtil.formatDate(event.date, 'YYYY年MM月DD日')
+      });
+    } else {
+      console.warn('Invalid date format:', event.date);
+      this.setData({
+        formatDate: '日期格式错误'
       });
     }
   },
@@ -243,19 +256,19 @@ Page({
       success: (res) => {
         const tempFilePaths = res.tempFilePaths;
         
+        if (!tempFilePaths || tempFilePaths.length === 0) {
+          return;
+        }
+        
         // 显示上传中
         wx.showLoading({
-          title: '上传中...',
+          title: `上传中 (0/${tempFilePaths.length})`,
           mask: true
         });
         
-        // 上传媒体
-        const uploadPromises = tempFilePaths.map(filePath => {
-          return api.eventsAPI.uploadEventMedia(genealogyId, eventId, filePath, 'photo');
-        });
-        
-        Promise.all(uploadPromises)
-          .then(results => {
+        // 逐个上传媒体，避免并发问题
+        this._uploadMediaFilesSequentially(genealogyId, eventId, tempFilePaths)
+          .then(() => {
             wx.hideLoading();
             
             // 重新加载事件详情
@@ -276,6 +289,48 @@ Page({
             });
           });
       }
+    });
+  },
+  
+  /**
+   * 顺序上传媒体文件
+   */
+  _uploadMediaFilesSequentially: function(genealogyId, eventId, mediaFiles) {
+    // 使用Promise链顺序上传所有文件
+    let uploadPromise = Promise.resolve();
+    let uploadedCount = 0;
+    
+    mediaFiles.forEach((filePath, index) => {
+      uploadPromise = uploadPromise
+        .then(() => {
+          // 更新上传进度
+          wx.showLoading({
+            title: `上传中 (${index + 1}/${mediaFiles.length})`,
+            mask: true
+          });
+          
+          // 上传单个文件
+          return api.eventsAPI.uploadEventMedia(genealogyId, eventId, filePath, 'photo');
+        })
+        .then(() => {
+          uploadedCount++;
+        })
+        .catch(err => {
+          console.error(`上传第 ${index + 1} 个文件失败:`, err);
+          // 继续上传下一个文件
+        });
+    });
+    
+    return uploadPromise.then(() => {
+      // 检查是否所有文件都上传成功
+      if (uploadedCount < mediaFiles.length) {
+        if (uploadedCount === 0) {
+          return Promise.reject(new Error('所有文件上传失败'));
+        } else {
+          console.warn(`部分文件上传失败，${uploadedCount}/${mediaFiles.length} 上传成功`);
+        }
+      }
+      return Promise.resolve();
     });
   },
 

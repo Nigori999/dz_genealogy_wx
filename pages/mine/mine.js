@@ -27,6 +27,12 @@ Page({
    */
   onLoad: function () {
     // 检查登录状态
+    if (!app.globalData.isLogin) {
+      app.checkLogin(false);
+      return;
+    }
+    
+    // 检查登录状态
     this._checkLoginStatus();
   },
 
@@ -34,6 +40,12 @@ Page({
    * 生命周期函数--监听页面显示
    */
   onShow: function () {
+    // 检查登录状态
+    if (!app.globalData.isLogin) {
+      app.checkLogin(false);
+      return;
+    }
+    
     // 更新当前族谱显示
     this.setData({
       currentGenealogy: app.getCurrentGenealogy()

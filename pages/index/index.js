@@ -10,7 +10,9 @@ Page({
     isLoading: true,
     currentGenealogy: null,
     allMembers: [],
-    recentEvents: []
+    recentEvents: [],
+    isQuickActionsCollapsed: false, // 快捷操作区域是否折叠
+    unreadNotificationsCount: 0 // 未读通知数量
   },
 
   /**
@@ -19,6 +21,9 @@ Page({
   onLoad: function () {
     // 检查登录状态
     this._checkLoginStatus();
+    
+    // 恢复快捷操作区域的折叠状态
+    this._restoreQuickActionsState();
   },
 
   /**
@@ -27,6 +32,70 @@ Page({
   onShow: function () {
     // 获取当前族谱
     this._getCurrentGenealogy();
+    
+    // 获取未读通知数量
+    this._getUnreadNotificationsCount();
+  },
+  
+  /**
+   * 功能按钮点击前的登录检查
+   * @returns {Boolean} 是否已登录
+   */
+  checkLoginBeforeAction: function() {
+    return app.checkLogin();
+  },
+  
+  /**
+   * 获取未读通知数量
+   */
+  _getUnreadNotificationsCount: function () {
+    if (!app.globalData.isLogin) return;
+    
+    api.notificationAPI.getUnreadCount()
+      .then(count => {
+        this.setData({
+          unreadNotificationsCount: count || 0
+        });
+      })
+      .catch(error => {
+        console.error('Get unread notifications count failed:', error);
+      });
+  },
+  
+  /**
+   * 导航到通知中心
+   */
+  navigateToNotificationCenter: function () {
+    if (!this.checkLoginBeforeAction()) return;
+    
+    wx.navigateTo({
+      url: '/pages/notification-center/notification-center?filter=unread'
+    });
+  },
+  
+  /**
+   * 恢复快捷操作区域的折叠状态
+   */
+  _restoreQuickActionsState: function() {
+    const isCollapsed = wx.getStorageSync('quickActionsCollapsed');
+    if (isCollapsed !== '') {
+      this.setData({
+        isQuickActionsCollapsed: isCollapsed
+      });
+    }
+  },
+
+  /**
+   * 切换快捷操作区域的折叠状态
+   */
+  toggleQuickActions: function() {
+    const isCollapsed = !this.data.isQuickActionsCollapsed;
+    this.setData({
+      isQuickActionsCollapsed: isCollapsed
+    });
+    
+    // 保存折叠状态到本地存储
+    wx.setStorageSync('quickActionsCollapsed', isCollapsed);
   },
 
   /**
@@ -39,6 +108,7 @@ Page({
       app.checkLoginStatus()
         .then(() => {
           this._getCurrentGenealogy();
+          this._getUnreadNotificationsCount();
         })
         .catch(() => {
           wx.navigateTo({
@@ -101,15 +171,26 @@ Page({
    * 加载族谱数据（成员和事件）
    */
   _loadGenealogyData: function (genealogyId) {
-    if (!genealogyId) return;
+    if (!genealogyId) {
+      this.setData({ isLoading: false });
+      return;
+    }
     
     // 加载成员数据
-    const loadMembers = api.memberAPI.getMembers(genealogyId);
+    const loadMembers = api.memberAPI.getMembers(genealogyId)
+      .catch(err => {
+        console.error('Load members failed:', err);
+        return [];
+      });
     
     // 加载近期事件
     const loadEvents = api.eventsAPI.getEvents(genealogyId, {
       limit: 5,
       orderBy: 'date desc'
+    })
+    .catch(err => {
+      console.error('Load events failed:', err);
+      return [];
     });
     
     // 并行请求
@@ -123,7 +204,11 @@ Page({
       })
       .catch(error => {
         console.error('Load genealogy data failed:', error);
-        this.setData({ isLoading: false });
+        this.setData({ 
+          isLoading: false,
+          allMembers: [],
+          recentEvents: []
+        });
       });
   },
 
@@ -136,7 +221,15 @@ Page({
     }
     
     const { allMembers } = this.data;
-    return memberIds.map(id => allMembers.find(m => m.id === id)).filter(Boolean);
+    if (!allMembers || allMembers.length === 0) {
+      return [];
+    }
+    
+    // 过滤掉无效的ID，然后查找对应的成员
+    return memberIds
+      .filter(id => id) // 过滤掉null、undefined、空字符串等
+      .map(id => allMembers.find(m => m && m.id === id))
+      .filter(Boolean); // 过滤掉未找到的成员
   },
 
   /**
@@ -211,11 +304,19 @@ Page({
    * 导航到添加成员页面
    */
   navigateToAddMember: function () {
-    const { currentGenealogy } = this.data;
-    if (!currentGenealogy) return;
+    if (!this.checkLoginBeforeAction()) return;
+    
+    // 确保有选择的族谱
+    if (!this.data.currentGenealogy) {
+      wx.showToast({
+        title: '请先选择族谱',
+        icon: 'none'
+      });
+      return;
+    }
     
     wx.navigateTo({
-      url: `/pages/add-member/add-member?genealogyId=${currentGenealogy.id}`
+      url: '/pages/add-member/add-member'
     });
   },
 
@@ -223,11 +324,19 @@ Page({
    * 导航到添加事件页面
    */
   navigateToAddEvent: function () {
-    const { currentGenealogy } = this.data;
-    if (!currentGenealogy) return;
+    if (!this.checkLoginBeforeAction()) return;
+    
+    // 确保有选择的族谱
+    if (!this.data.currentGenealogy) {
+      wx.showToast({
+        title: '请先选择族谱',
+        icon: 'none'
+      });
+      return;
+    }
     
     wx.navigateTo({
-      url: `/pages/add-event/add-event?genealogyId=${currentGenealogy.id}`
+      url: '/pages/add-event/add-event'
     });
   },
 
@@ -236,7 +345,10 @@ Page({
    */
   navigateToInvite: function () {
     const { currentGenealogy } = this.data;
-    if (!currentGenealogy) return;
+    if (!currentGenealogy) {
+      this._showNoGenealogyTip();
+      return;
+    }
     
     wx.navigateTo({
       url: `/pages/invite/invite?genealogyId=${currentGenealogy.id}`
@@ -248,34 +360,46 @@ Page({
    */
   navigateToGenealogyHistory: function () {
     const { currentGenealogy } = this.data;
-    if (!currentGenealogy) return;
+    if (!currentGenealogy) {
+      this._showNoGenealogyTip();
+      return;
+    }
     
     wx.navigateTo({
-      url: `/pages/genealogy-history/genealogy-history?genealogyId=${currentGenealogy.id}`
+      url: `/pages/edit-history/edit-history?genealogyId=${currentGenealogy.id}`
+    });
+  },
+  
+  /**
+   * 显示无族谱提示
+   */
+  _showNoGenealogyTip: function() {
+    wx.showToast({
+      title: '请先创建或加入族谱',
+      icon: 'none',
+      duration: 2000
     });
   },
 
   /**
-   * 事件详情
+   * 事件详情点击
    */
   onEventDetail: function (e) {
-    const { event } = e.detail;
-    const { currentGenealogy } = this.data;
+    const eventId = e.detail.id;
     
     wx.navigateTo({
-      url: `/pages/event-detail/event-detail?genealogyId=${currentGenealogy.id}&eventId=${event.id}`
+      url: `/pages/event-detail/event-detail?id=${eventId}`
     });
   },
 
   /**
-   * 点击成员
+   * 成员点击
    */
   onMemberTap: function (e) {
-    const { memberId } = e.detail;
-    const { currentGenealogy } = this.data;
+    const memberId = e.detail.id;
     
     wx.navigateTo({
-      url: `/pages/member-detail/member-detail?genealogyId=${currentGenealogy.id}&memberId=${memberId}`
+      url: `/pages/member-detail/member-detail?id=${memberId}`
     });
   },
 
@@ -332,5 +456,82 @@ Page({
       path: '/pages/index/index',
       imageUrl: '/images/share_app.png'
     };
-  }
+  },
+
+  /**
+   * 跳转到添加成员页面
+   */
+  navigateToAddMember: function () {
+    if (!this.checkLoginBeforeAction()) return;
+    
+    // 确保有选择的族谱
+    if (!this.data.currentGenealogy) {
+      wx.showToast({
+        title: '请先选择族谱',
+        icon: 'none'
+      });
+      return;
+    }
+    
+    wx.navigateTo({
+      url: '/pages/add-member/add-member'
+    });
+  },
+  
+  /**
+   * 跳转到添加大事记页面
+   */
+  navigateToAddEvent: function () {
+    if (!this.checkLoginBeforeAction()) return;
+    
+    // 确保有选择的族谱
+    if (!this.data.currentGenealogy) {
+      wx.showToast({
+        title: '请先选择族谱',
+        icon: 'none'
+      });
+      return;
+    }
+    
+    wx.navigateTo({
+      url: '/pages/add-event/add-event'
+    });
+  },
+  
+  /**
+   * 跳转到创建族谱页面
+   */
+  navigateToCreateGenealogy: function () {
+    if (!this.checkLoginBeforeAction()) return;
+    
+    wx.navigateTo({
+      url: '/pages/create-genealogy/create-genealogy'
+    });
+  },
+  
+  /**
+   * 跳转到大事记详情页
+   */
+  navigateToEventDetail: function (e) {
+    if (!this.checkLoginBeforeAction()) return;
+    
+    const { eventId } = e.currentTarget.dataset;
+    
+    wx.navigateTo({
+      url: `/pages/event-detail/event-detail?id=${eventId}`
+    });
+  },
+  
+  /**
+   * 跳转到成员详情页
+   */
+  navigateToMemberDetail: function (e) {
+    if (!this.checkLoginBeforeAction()) return;
+    
+    const { memberId } = e.currentTarget.dataset;
+    
+    wx.navigateTo({
+      url: `/pages/member-detail/member-detail?id=${memberId}`
+    });
+  },
 });

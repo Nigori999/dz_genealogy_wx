@@ -1,14 +1,22 @@
 <!-- 首页 -->
 <view class="container">
-  <!-- 顶部搜索栏 -->
-  <view class="search-bar">
-    <text class="iconfont icon-search"></text>
-    <input 
-      class="search-input" 
-      placeholder="搜索族谱、成员..."
-      bindinput="onSearchInput"
-      bindconfirm="onSearchConfirm"
-    />
+  <!-- 顶部搜索栏和通知图标 -->
+  <view class="top-bar">
+    <view class="search-bar">
+      <text class="iconfont icon-search"></text>
+      <input 
+        class="search-input" 
+        placeholder="搜索族谱、成员..."
+        bindinput="onSearchInput"
+        bindconfirm="onSearchConfirm"
+      />
+    </view>
+    <view class="notification-icon" bindtap="navigateToNotificationCenter">
+      <text class="iconfont icon-notification"></text>
+      <view wx:if="{{unreadNotificationsCount > 0}}" class="notification-badge">
+        {{unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount}}
+      </view>
+    </view>
   </view>
 
   <!-- 族谱简略预览 -->
@@ -67,10 +75,16 @@
 
   <!-- 快捷功能入口 -->
   <view class="quick-actions">
-    <view class="section-header">
+    <view class="section-header" bindtap="toggleQuickActions">
       <view class="section-title">快捷操作</view>
+      <view class="section-toggle">
+        <text class="toggle-text">{{isQuickActionsCollapsed ? '展开' : '收起'}}</text>
+        <view class="toggle-icon {{isQuickActionsCollapsed ? 'collapsed' : ''}}">
+          <text class="iconfont icon-arrow-down"></text>
+        </view>
+      </view>
     </view>
-    <view class="action-grid">
+    <view class="action-grid {{isQuickActionsCollapsed ? 'collapsed' : ''}}">
       <view class="action-item" bindtap="navigateToAddMember">
         <view class="action-icon">
           <text class="iconfont icon-add-member"></text>

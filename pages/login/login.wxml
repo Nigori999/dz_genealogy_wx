@@ -7,9 +7,58 @@
   </view>
 
   <view class="login-content">
-    <view class="welcome-text">欢迎使用云族谱</view>
-    <view class="login-description">
-      请授权微信登录，开始记录您的家族历史
+    <!-- 登录表单区域 -->
+    <!-- 模拟账号登录 -->
+    <form bindsubmit="onFormSubmit">
+      <view class="account-login">
+        <view class="input-group {{usernameFocus ? 'focus' : ''}}">
+          <text class="input-label">手机号</text>
+          <view class="input-wrapper">
+            <input 
+              class="input-field {{username ? 'has-value' : ''}}" 
+              type="number"
+              maxlength="11"
+              placeholder="请输入手机号" 
+              value="{{username}}" 
+              bindinput="onUsernameInput"
+              bindfocus="onUsernameFocus"
+              bindblur="onUsernameBlur"
+              confirm-type="next"
+            />
+            <text wx:if="{{username}}" class="complete-icon iconfont icon-check"></text>
+          </view>
+        </view>
+        <view class="input-group {{passwordFocus ? 'focus' : ''}}">
+          <text class="input-label">密码</text>
+          <view class="input-wrapper">
+            <input 
+              class="input-field {{password ? 'has-value' : ''}}" 
+              type="password" 
+              placeholder="请输入密码" 
+              value="{{password}}" 
+              bindinput="onPasswordInput"
+              bindfocus="onPasswordFocus"
+              bindblur="onPasswordBlur"
+              confirm-type="done"
+              bindconfirm="directLogin"
+            />
+            <text wx:if="{{password}}" class="complete-icon iconfont icon-check"></text>
+          </view>
+        </view>
+        <view class="login-tip">默认账号：13800138000 密码：123456</view>
+        <button 
+          form-type="submit"
+          class="login-button account-button" 
+          disabled="{{isLoading}}"
+        >
+          <text class="iconfont icon-user"></text>
+          <text>账号登录</text>
+        </button>
+      </view>
+    </form>
+
+    <view class="divider">
+      <text class="divider-text">或</text>
     </view>
 
     <!-- 微信登录按钮 -->
@@ -40,6 +89,13 @@
     登录即表示您同意《用户协议》和《隐私政策》
   </view>
 
-  <!-- 加载状态 -->
-  <loading wx:if="{{isLoading}}" type="spinner" text="登录中..."></loading>
+  <!-- 自定义加载动画 -->
+  <view class="loading-container" wx:if="{{isLoading}}">
+    <view class="spinner"></view>
+  </view>
+  
+  <!-- 气泡背景 -->
+  <view class="bubbles">
+    <view class="bubble" wx:for="{{12}}" wx:key="index"></view>
+  </view>
 </view>

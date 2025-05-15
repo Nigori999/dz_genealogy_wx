@@ -24,8 +24,7 @@ Page({
       birthDate: '',
       deathDate: '',
       birthPlace: '',
-      rank: '',
-      generation: 1,
+      residenceRegion: ['', '', ''], // 省、市、区/县
       occupation: '',
       education: '',
       biography: '',
@@ -44,6 +43,19 @@ Page({
       { name: '女', value: 'female' }
     ],
     
+    // 教育程度选项
+    educationOptions: [
+      '小学',
+      '初中',
+      '高中/中专',
+      '大专',
+      '本科',
+      '硕士',
+      '博士',
+      '其他'
+    ],
+    educationIndex: -1,
+    
     // 日期选择
     birthDateText: '请选择',
     deathDateText: '请选择',
@@ -56,13 +68,7 @@ Page({
     
     // 组件显示控制
     showPickParentDialog: false,
-    showPickSpouseDialog: false,
-    
-    // 最大世代（用于确定可选世代范围）
-    maxGeneration: 1,
-    
-    // 世代选项数组
-    generationOptions: ['第1代']
+    showPickSpouseDialog: false
   },
 
   /**
@@ -95,19 +101,6 @@ Page({
   },
 
   /**
-   * 更新世代选项数组
-   */
-  _updateGenerationOptions: function(maxGeneration) {
-    const options = [];
-    for (let i = 0; i < maxGeneration; i++) {
-      options.push(`第${i + 1}代`);
-    }
-    this.setData({
-      generationOptions: options
-    });
-  },
-
-  /**
    * 加载所有成员
    */
   _loadAllMembers: function (genealogyId) {
@@ -121,15 +114,8 @@ Page({
           return;
         }
         
-        // 计算最大世代
-        const maxGeneration = Math.max(...members.map(m => m.generation || 1));
-        
-        // 更新世代选项
-        this._updateGenerationOptions(maxGeneration);
-        
         this.setData({
           allMembers: members,
-          maxGeneration,
           isLoading: false
         });
         
@@ -138,8 +124,7 @@ Page({
           const parent = members.find(m => m.id === this.data.formData.parentId);
           if (parent) {
             this.setData({
-              parentMember: parent,
-              'formData.generation': (parent.generation || 1) + 1
+              parentMember: parent
             });
           }
         }
@@ -187,11 +172,11 @@ Page({
   },
 
   /**
-   * 生成选择
+   * 处理居住地选择变更
    */
-  onGenerationChange: function (e) {
+  onResidenceRegionChange: function (e) {
     this.setData({
-      'formData.generation': parseInt(e.detail.value) + 1
+      'formData.residenceRegion': e.detail.value
     });
   },
 
@@ -208,34 +193,41 @@ Page({
   },
 
   /**
-   * 处理日期选择确认
+   * 处理出生日期选择确认
    */
-  onDatePickerConfirm: function (e) {
-    const date = dateUtil.formatDate(e.detail.value);
-    const formattedDate = dateUtil.formatDate(e.detail.value, 'YYYY年MM月DD日');
-    const field = this.data.currentDateField;
+  onBirthDateChange: function (e) {
+    const date = e.detail.value;
+    const formattedDate = dateUtil.formatDate(date, 'YYYY年MM月DD日');
     
-    if (field === 'birthDate') {
-      this.setData({
-        'formData.birthDate': date,
-        birthDateText: formattedDate,
-        showDatePicker: false
-      });
-    } else if (field === 'deathDate') {
-      this.setData({
-        'formData.deathDate': date,
-        deathDateText: formattedDate,
-        showDatePicker: false
-      });
-    }
+    this.setData({
+      'formData.birthDate': date,
+      birthDateText: formattedDate
+    });
   },
 
   /**
-   * 处理日期选择取消
+   * 处理去世日期选择确认
    */
-  onDatePickerCancel: function () {
+  onDeathDateChange: function (e) {
+    const date = e.detail.value;
+    const formattedDate = dateUtil.formatDate(date, 'YYYY年MM月DD日');
+    
     this.setData({
-      showDatePicker: false
+      'formData.deathDate': date,
+      deathDateText: formattedDate
+    });
+  },
+
+  /**
+   * 处理教育选项变更
+   */
+  onEducationChange: function (e) {
+    const index = parseInt(e.detail.value);
+    const education = this.data.educationOptions[index];
+    
+    this.setData({
+      'formData.education': education,
+      educationIndex: index
     });
   },
 
@@ -252,13 +244,12 @@ Page({
    * 选择父母确认
    */
   onPickParentConfirm: function (e) {
-    const { member } = e.detail;
+    const member = e.currentTarget.dataset.member;
     
     if (member) {
       this.setData({
         parentMember: member,
         'formData.parentId': member.id,
-        'formData.generation': (member.generation || 1) + 1,
         showPickParentDialog: false
       });
     } else {
@@ -400,6 +391,11 @@ Page({
     
     // 准备提交数据
     const submitData = { ...this.data.formData };
+    
+    // 转换居住地为字符串
+    if (submitData.residenceRegion && submitData.residenceRegion.filter(Boolean).length > 0) {
+      submitData.residence = submitData.residenceRegion.filter(Boolean).join(' ');
+    }
     
     // 添加成员
     api.memberAPI.addMember(this.data.genealogyId, submitData)

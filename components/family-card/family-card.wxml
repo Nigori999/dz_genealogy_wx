@@ -3,7 +3,7 @@
   <view class="family-card-inner">
     <image
       class="family-cover"
-      src="{{genealogy.coverImage || '/images/genealogy_default_cover.jpg'}}"
+      src="{{genealogy.coverImage || '/assets/images/genealogy_default_cover.jpg'}}"
       mode="aspectFill"
     ></image>
     <view class="family-info">

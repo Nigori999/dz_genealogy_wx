@@ -46,50 +46,38 @@
         </radio-group>
       </view>
 
-      <!-- 世代 -->
-      <view class="form-item">
-        <view class="form-label">世代</view>
-        <picker 
-          mode="selector" 
-          range="{{generationOptions}}" 
-          value="{{formData.generation - 1}}" 
-          bindchange="onGenerationChange"
-        >
-          <view class="picker-value">
-            第{{formData.generation}}代
-            <text class="iconfont icon-arrow-down"></text>
-          </view>
-        </picker>
-      </view>
-
-      <!-- 称谓/排行 -->
-      <view class="form-item">
-        <view class="form-label">称谓/排行</view>
-        <input 
-          class="form-input" 
-          value="{{formData.rank}}" 
-          placeholder="如：长子、次女等" 
-          data-field="rank" 
-          bindinput="onInput"
-        />
-      </view>
-      
       <!-- 出生日期 -->
       <view class="form-item">
         <view class="form-label">出生日期</view>
-        <view class="date-picker" bindtap="showDatePicker" data-field="birthDate">
-          <text>{{birthDateText}}</text>
-          <text class="iconfont icon-calendar"></text>
-        </view>
+        <picker 
+          mode="date" 
+          value="{{formData.birthDate}}" 
+          start="1900-01-01" 
+          end="2100-12-31" 
+          bindchange="onBirthDateChange"
+        >
+          <view class="date-picker">
+            <text>{{birthDateText}}</text>
+            <text class="iconfont icon-calendar"></text>
+          </view>
+        </picker>
       </view>
       
       <!-- 去世日期 -->
       <view class="form-item">
         <view class="form-label">去世日期（如已故）</view>
-        <view class="date-picker" bindtap="showDatePicker" data-field="deathDate">
-          <text>{{deathDateText}}</text>
-          <text class="iconfont icon-calendar"></text>
-        </view>
+        <picker 
+          mode="date" 
+          value="{{formData.deathDate}}" 
+          start="1900-01-01" 
+          end="2100-12-31" 
+          bindchange="onDeathDateChange"
+        >
+          <view class="date-picker">
+            <text>{{deathDateText}}</text>
+            <text class="iconfont icon-calendar"></text>
+          </view>
+        </picker>
       </view>
       
       <!-- 出生地 -->
@@ -102,6 +90,21 @@
           data-field="birthPlace" 
           bindinput="onInput"
         />
+      </view>
+
+      <!-- 目前居住地 -->
+      <view class="form-item">
+        <view class="form-label">目前居住地</view>
+        <picker 
+          mode="region" 
+          value="{{formData.residenceRegion}}" 
+          bindchange="onResidenceRegionChange"
+        >
+          <view class="picker-value">
+            {{formData.residenceRegion[0] || ''}}{{formData.residenceRegion[1] ? ' ' + formData.residenceRegion[1] : ''}}{{formData.residenceRegion[2] ? ' ' + formData.residenceRegion[2] : '' || '请选择省/市/区'}}
+            <text class="iconfont icon-arrow-down"></text>
+          </view>
+        </picker>
       </view>
     </view>
 
@@ -175,13 +178,17 @@
       <!-- 教育 -->
       <view class="form-item">
         <view class="form-label">教育</view>
-        <input 
-          class="form-input" 
-          value="{{formData.education}}" 
-          placeholder="请输入教育背景" 
-          data-field="education" 
-          bindinput="onInput"
-        />
+        <picker 
+          mode="selector" 
+          range="{{educationOptions}}" 
+          value="{{educationIndex}}" 
+          bindchange="onEducationChange"
+        >
+          <view class="picker-value">
+            {{formData.education || '请选择学历'}}
+            <text class="iconfont icon-arrow-down"></text>
+          </view>
+        </picker>
       </view>
       
       <!-- 生平事迹 -->
@@ -203,18 +210,6 @@
     <button class="btn-cancel" bindtap="cancelAdd">取消</button>
     <button class="btn-submit" bindtap="submitForm">添加成员</button>
   </view>
-
-  <!-- 日期选择器 -->
-  <picker 
-    wx:if="{{showDatePicker}}"
-    mode="date" 
-    value="{{formData[currentDateField] || ''}}"
-    start="1900-01-01"
-    end="2100-12-31"
-    bindcancel="onDatePickerCancel"
-    bindchange="onDatePickerConfirm"
-  >
-  </picker>
 
   <!-- 成员选择对话框 - 父母 -->
   <view class="member-picker-modal" wx:if="{{showPickParentDialog}}">

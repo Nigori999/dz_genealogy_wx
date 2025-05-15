@@ -10,7 +10,13 @@ Page({
     isLoading: false,
     userInfo: null,
     canIUseGetUserProfile: false, // 判断是否支持新版用户信息获取方式
-    redirectUrl: '' // 登录成功后重定向的URL
+    redirectUrl: '', // 登录成功后重定向的URL
+    // 添加模拟登录字段
+    username: '13800138000',  // 默认模拟账号
+    password: '123456',        // 默认模拟密码
+    // 输入框焦点控制
+    usernameFocus: false,
+    passwordFocus: false
   },
 
   /**
@@ -35,6 +41,132 @@ Page({
     if (app.globalData.isLogin) {
       this._redirectAfterLogin();
     }
+    
+    // 监听键盘高度变化
+    wx.onKeyboardHeightChange(res => {
+      const height = res.height;
+      // 可以在这里调整页面布局，适应键盘弹出状态
+    });
+  },
+
+  /**
+   * 处理用户名输入框获取焦点
+   */
+  onUsernameFocus: function() {
+    this.setData({
+      usernameFocus: true
+    });
+  },
+  
+  /**
+   * 处理用户名输入框失去焦点
+   */
+  onUsernameBlur: function() {
+    this.setData({
+      usernameFocus: false
+    });
+  },
+  
+  /**
+   * 处理密码输入框获取焦点
+   */
+  onPasswordFocus: function() {
+    this.setData({
+      passwordFocus: true
+    });
+  },
+  
+  /**
+   * 处理密码输入框失去焦点
+   */
+  onPasswordBlur: function() {
+    this.setData({
+      passwordFocus: false
+    });
+  },
+
+  /**
+   * 处理用户名输入
+   */
+  onUsernameInput: function (e) {
+    this.setData({
+      username: e.detail.value
+    });
+  },
+
+  /**
+   * 处理密码输入
+   */
+  onPasswordInput: function (e) {
+    this.setData({
+      password: e.detail.value
+    });
+  },
+  
+  /**
+   * 处理表单提交事件
+   */
+  onFormSubmit: function(e) {
+    this.directLogin();
+  },
+
+  /**
+   * 直接登录（使用输入的用户名和密码）
+   */
+  directLogin: function () {
+    const { username, password } = this.data;
+    
+    if (!username || !password) {
+      wx.showToast({
+        title: '请输入用户名和密码',
+        icon: 'none'
+      });
+      return;
+    }
+    
+    this.setData({ isLoading: true });
+    
+    // 关闭键盘
+    wx.hideKeyboard();
+    
+    // 添加轻微延迟，优化体验
+    setTimeout(() => {
+      // 调用登录接口
+      api.userAPI.login({ username, password })
+        .then(result => {
+          // 存储token
+          wx.setStorageSync('token', result.token);
+          
+          // 更新全局数据
+          app.globalData.userInfo = result.user;
+          app.globalData.isLogin = true;
+          
+          // 加载族谱数据
+          app.loadMyGenealogies();
+          
+          this.setData({ isLoading: false });
+          
+          wx.showToast({
+            title: '登录成功',
+            icon: 'success'
+          });
+          
+          // 延迟跳转
+          setTimeout(() => {
+            this._redirectAfterLogin();
+          }, 1000);
+        })
+        .catch(error => {
+          console.error('Login failed:', error);
+          this.setData({ isLoading: false });
+          
+          wx.showToast({
+            title: error.message || '登录失败，请重试',
+            icon: 'none',
+            duration: 2000
+          });
+        });
+    }, 200);
   },
 
   /**
@@ -61,8 +193,9 @@ Page({
       fail: (error) => {
         console.error('Get user profile failed:', error);
         wx.showToast({
-          title: '授权失败，请重试',
-          icon: 'none'
+          title: '授权失败，请重试或尝试账号登录',
+          icon: 'none',
+          duration: 2000
         });
         this.setData({ isLoading: false });
       }
@@ -107,6 +240,9 @@ Page({
           title: '登录成功',
           icon: 'success'
         });
+        
+        // 加载族谱数据
+        app.loadMyGenealogies();
         
         // 延迟跳转
         setTimeout(() => {

@@ -1,53 +1,99 @@
-<!-- 切换族谱页面 -->
+<!-- 加入族谱页面 -->
 <view class="container">
+  <!-- 页面头部(简化) -->
   <view class="page-header">
-    <view class="header-title">切换族谱</view>
+    <view class="header-title">加入族谱</view>
+    <view class="header-icon">
+      <view class="icon-genealogy"></view>
+    </view>
   </view>
 
+  <!-- 主要内容区域 -->
   <view class="content-panel">
-    <view wx:if="{{isLoading}}" class="loading-container">
-      <loading type="spinner" text="加载中..."></loading>
+    <!-- 加载状态 -->
+    <view wx:if="{{isLoading && !isJoining}}" class="loading-container">
+      <view class="loading-spinner"></view>
+      <view class="loading-text">正在处理您的请求...</view>
     </view>
     
-    <block wx:elif="{{genealogies.length > 0}}">
-      <view class="genealogy-list">
-        <view 
-          wx:for="{{genealogies}}" 
-          wx:key="id"
-          class="genealogy-item {{item.id === currentGenealogyId ? 'current' : ''}}"
-          bindtap="selectGenealogy"
-          data-id="{{item.id}}"
-        >
-          <image 
-            class="genealogy-cover" 
-            src="{{item.coverImage || '/images/genealogy_default_cover.jpg'}}" 
-            mode="aspectFill"
-          ></image>
-          <view class="genealogy-info">
-            <view class="genealogy-name">{{item.name}}</view>
-            <view class="genealogy-meta">
-              <text class="meta-item">{{item.memberCount || 0}}位成员</text>
-              <text class="meta-item">{{item.eventsCount || 0}}个事件</text>
-            </view>
+    <!-- 主要内容 -->
+    <block wx:else>
+      <!-- 表单卡片 -->
+      <view class="join-form {{animationStatus.formReady ? 'animated' : ''}}">
+        <view class="form-header">
+          <view class="form-icon">
+            <view class="icon-invite"></view>
           </view>
-          <view wx:if="{{item.id === currentGenealogyId}}" class="current-badge">当前</view>
-          <view wx:if="{{item.isOwner}}" class="owner-badge">族长</view>
+          <view class="form-title">请输入邀请码</view>
+          <view class="form-desc">通过族谱邀请码加入您的家族族谱</view>
+        </view>
+        
+        <!-- 邀请码输入框 -->
+        <view class="invite-code-input">
+          <view class="input-icon">
+            <view class="icon-key"></view>
+          </view>
+          <input 
+            type="text" 
+            placeholder="请输入邀请码" 
+            value="{{inviteCode}}"
+            bindinput="onInputChange"
+            maxlength="20"
+            class="{{errorMsg ? 'input-error' : ''}}"
+            focus="{{animationStatus.formReady}}"
+          />
+          <view class="input-clear" wx:if="{{inviteCode}}" bindtap="clearInput" hover-class="input-clear-hover">×</view>
+        </view>
+        
+        <!-- 错误提示 -->
+        <view wx:if="{{errorMsg}}" class="error-message">
+          <text>{{errorMsg}}</text>
+        </view>
+        
+        <!-- 成功提示 -->
+        <view wx:if="{{successMsg}}" class="success-message">
+          <view class="success-icon"></view>
+          <text>{{successMsg}}</text>
+        </view>
+        
+        <!-- 按钮区域 -->
+        <view class="action-buttons">
+          <button 
+            class="btn-primary" 
+            bindtap="joinGenealogy" 
+            disabled="{{isJoining || !inviteCode}}"
+            loading="{{isJoining}}"
+            hover-class="btn-primary-hover"
+          >
+            <view class="btn-content">
+              <text>{{isJoining ? '正在加入...' : '立即加入族谱'}}</text>
+              <view wx:if="{{!isJoining}}" class="btn-arrow"></view>
+            </view>
+          </button>
         </view>
       </view>
       
-      <view class="action-buttons">
-        <button class="btn-action" bindtap="navigateToCreate">创建族谱</button>
-        <button class="btn-action" bindtap="navigateToJoin">加入族谱</button>
+      <!-- 提示卡片 -->
+      <view class="cards-container">
+        <!-- 获取邀请码提示 -->
+        <view class="tips-card {{animationStatus.tipsReady ? 'animated' : ''}}">
+          <view class="card-header">
+            <view class="tips-title">如何获取邀请码？</view>
+          </view>
+          <view class="card-content">
+            <view class="tips-item">联系族谱创建者或管理员获取邀请码</view>
+            <view class="tips-item">在族谱邀请信息中查找邀请码</view>
+            <view class="tips-item">扫描族谱分享的二维码自动获取</view>
+          </view>
+        </view>
+        
+        <!-- 帮助提示 -->
+        <view class="help-card {{animationStatus.helpReady ? 'animated' : ''}}">
+          <view class="help-title">遇到问题？</view>
+          <view class="help-text">如果您在加入过程中遇到任何问题，请联系您的族谱管理员或点击下方按钮获取帮助。</view>
+          <view class="help-link" bindtap="getHelp" hover-class="help-link-hover">获取帮助</view>
+        </view>
       </view>
     </block>
-    
-    <view wx:else class="empty-state">
-      <image class="empty-image" src="/assets/images/empty_genealogy.png" mode="aspectFit"></image>
-      <view class="empty-text">您还没有创建或加入任何族谱</view>
-      <view class="empty-actions">
-        <button class="btn-primary" bindtap="navigateToCreate">创建族谱</button>
-        <button class="btn-secondary" bindtap="navigateToJoin">加入族谱</button>
-      </view>
-    </view>
   </view>
 </view>

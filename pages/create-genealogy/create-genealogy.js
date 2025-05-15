@@ -15,7 +15,7 @@ Page({
     errors: {
       name: ''
     },
-    coverImage: '/images/genealogy_default_cover.jpg', // 默认封面
+    coverImage: '/assets/images/genealogy_default_cover.jpg', // 默认封面
     hasChangedCover: false,
     subscription: null,
     hasReachedLimit: false
@@ -60,6 +60,18 @@ Page({
         if (!genealogies) {
           this.setData({ isLoading: false });
           return;
+        }
+        
+        // 确保genealogies是数组
+        if (!Array.isArray(genealogies)) {
+          console.error('Expected genealogies to be an array but got:', typeof genealogies);
+          // 尝试获取genealogies属性（如果response是一个对象）
+          if (genealogies && typeof genealogies === 'object' && Array.isArray(genealogies.genealogies)) {
+            genealogies = genealogies.genealogies;
+          } else {
+            this.setData({ isLoading: false });
+            return;
+          }
         }
         
         // 检查自己创建的族谱数量是否达到上限

@@ -32,6 +32,12 @@ Page({
    * 生命周期函数--监听页面加载
    */
   onLoad: function () {
+    // 检查登录状态
+    if (!app.globalData.isLogin) {
+      app.checkLogin(false);
+      return;
+    }
+    
     // 获取屏幕高度
     const systemInfo = wx.getSystemInfoSync();
     const windowHeight = systemInfo.windowHeight;
@@ -52,6 +58,12 @@ Page({
    * 生命周期函数--监听页面显示
    */
   onShow: function () {
+    // 检查登录状态
+    if (!app.globalData.isLogin) {
+      app.checkLogin(false);
+      return;
+    }
+    
     // 如果有更新，重新加载数据
     if (this.data.currentGenealogy && this.needRefresh) {
       this._loadEvents();
@@ -135,7 +147,7 @@ Page({
     
     // 构建查询参数
     const params = {
-      page,
+      page: loadMore ? page + 1 : 1,
       pageSize,
       orderBy: 'date asc'
     };
@@ -147,11 +159,25 @@ Page({
     
     api.eventsAPI.getEvents(currentGenealogy.id, params)
       .then(newEvents => {
+        // 确保newEvents是数组
+        if (!newEvents) {
+          newEvents = [];
+        } else if (!Array.isArray(newEvents)) {
+          console.error('Expected newEvents to be an array but got:', typeof newEvents);
+          // 尝试获取events属性（如果response是一个对象）
+          if (newEvents && typeof newEvents === 'object' && Array.isArray(newEvents.events)) {
+            newEvents = newEvents.events;
+          } else {
+            newEvents = [];
+          }
+        }
+        
         // 合并事件列表
         const combinedEvents = loadMore ? [...events, ...newEvents] : newEvents;
         
         this.setData({
           events: combinedEvents,
+          page: params.page,
           hasMore: newEvents.length >= pageSize,
           isLoading: false
         });
@@ -161,11 +187,15 @@ Page({
       })
       .catch(error => {
         console.error('Load events failed:', error);
-        this.setData({ isLoading: false });
+        this.setData({ 
+          isLoading: false,
+          hasMore: false
+        });
         
         wx.showToast({
           title: '加载失败，请重试',
-          icon: 'none'
+          icon: 'none',
+          duration: 2000
         });
       });
   },
@@ -174,7 +204,20 @@ Page({
    * 按时间分组事件
    */
   _groupEventsByTime: function (events) {
-    if (!events || events.length === 0) {
+    // 确保events是数组
+    if (!events) {
+      events = [];
+    } else if (!Array.isArray(events)) {
+      console.error('Expected events to be an array in _groupEventsByTime but got:', typeof events);
+      // 尝试获取events属性（如果events是一个对象）
+      if (events && typeof events === 'object' && Array.isArray(events.events)) {
+        events = events.events;
+      } else {
+        events = [];
+      }
+    }
+    
+    if (events.length === 0) {
       this.setData({ groupedEvents: [] });
       return;
     }
@@ -183,10 +226,26 @@ Page({
     const grouped = {};
     
     events.forEach(event => {
-      if (!event.date) return;
+      if (!event.date) {
+        // 没有日期的事件放入"未知时间"分组
+        const groupKey = '未知时间';
+        if (!grouped[groupKey]) {
+          grouped[groupKey] = [];
+        }
+        grouped[groupKey].push({...event});
+        return;
+      }
       
       const date = dateUtil.parseDate(event.date);
-      if (!date) return;
+      if (!date || isNaN(date.getTime())) {
+        // 日期解析失败的事件也放入"未知时间"分组
+        const groupKey = '未知时间';
+        if (!grouped[groupKey]) {
+          grouped[groupKey] = [];
+        }
+        grouped[groupKey].push({...event});
+        return;
+      }
       
       const year = date.getFullYear();
       let groupKey = '';
@@ -208,7 +267,7 @@ Page({
         grouped[groupKey] = [];
       }
       
-      grouped[groupKey].push(event);
+      grouped[groupKey].push({...event});
     });
     
     // 转换为数组并排序
@@ -217,10 +276,13 @@ Page({
       events: grouped[era]
     }));
     
-    // 按时间排序（从旧到新）
+    // 按时间排序（从旧到新，"未知时间"放最后）
     groupedArray.sort((a, b) => {
-      const yearA = parseInt(a.era.replace(/[^0-9]/g, ''));
-      const yearB = parseInt(b.era.replace(/[^0-9]/g, ''));
+      if (a.era === '未知时间') return 1;
+      if (b.era === '未知时间') return -1;
+      
+      const yearA = parseInt(a.era.replace(/[^0-9]/g, '')) || 0;
+      const yearB = parseInt(b.era.replace(/[^0-9]/g, '')) || 0;
       return yearA - yearB;
     });
     

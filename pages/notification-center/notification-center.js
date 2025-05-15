@@ -9,16 +9,11 @@ Page({
   data: {
     isLoading: true,
     notifications: [],
-    currentFilter: 'all', // 当前过滤器：all, unread, system, genealogy
+    currentFilter: 'all', // 当前过滤器：all, unread, read
     filterMapping: {
       'all': '全部',
       'unread': '未读',
-      'system': '系统',
-      'genealogy': '族谱'
-    },
-    typeMapping: {
-      'system': ['系统通知', '系统公告', '订阅提醒'],
-      'genealogy': ['族谱更新', '成员变动', '活动邀请']
+      'read': '已读'
     },
     checkedIds: [],     // 选中的通知ID
     isAllChecked: false, // 是否全选
@@ -35,6 +30,11 @@ Page({
     if (options.filter && this.data.filterMapping[options.filter]) {
       this.setData({
         currentFilter: options.filter
+      });
+    } else {
+      // 默认显示未读通知
+      this.setData({
+        currentFilter: 'unread'
       });
     }
     
@@ -61,9 +61,8 @@ Page({
     // 根据过滤器设置查询参数
     if (currentFilter === 'unread') {
       params.onlyUnread = true;
-    } else if (currentFilter === 'system' || currentFilter === 'genealogy') {
-      // 使用类型映射筛选通知类型
-      params.types = this.data.typeMapping[currentFilter];
+    } else if (currentFilter === 'read') {
+      params.onlyRead = true;
     }
     
     // 获取通知列表

@@ -63,14 +63,26 @@ Component({
      * 格式化日期
      */
     _formatDate(event) {
-      if (event.date) {
-        const date = dateUtil.parseDate(event.date);
-        if (date) {
-          this.setData({
-            formatYear: date.getFullYear(),
-            formatMonthDay: `${date.getMonth() + 1}月${date.getDate()}日`
-          });
-        }
+      if (!event || !event.date) {
+        this.setData({
+          formatYear: '未知',
+          formatMonthDay: '未知'
+        });
+        return;
+      }
+      
+      const date = dateUtil.parseDate(event.date);
+      if (date && !isNaN(date.getTime())) {
+        this.setData({
+          formatYear: date.getFullYear(),
+          formatMonthDay: `${date.getMonth() + 1}月${date.getDate()}日`
+        });
+      } else {
+        console.warn('Invalid date format:', event.date);
+        this.setData({
+          formatYear: '未知',
+          formatMonthDay: '未知'
+        });
       }
     },
 

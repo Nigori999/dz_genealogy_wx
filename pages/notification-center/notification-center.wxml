@@ -7,25 +7,20 @@
     <!-- 通知过滤器 -->
     <view class="filter-bar">
       <view 
-        class="filter-item {{currentFilter === 'all' ? 'active' : ''}}" 
-        bindtap="switchFilter" 
-        data-filter="all"
-      >全部</view>
-      <view 
         class="filter-item {{currentFilter === 'unread' ? 'active' : ''}}" 
         bindtap="switchFilter" 
         data-filter="unread"
       >未读</view>
       <view 
-        class="filter-item {{currentFilter === 'system' ? 'active' : ''}}" 
+        class="filter-item {{currentFilter === 'read' ? 'active' : ''}}" 
         bindtap="switchFilter" 
-        data-filter="system"
-      >系统通知</view>
+        data-filter="read"
+      >已读</view>
       <view 
-        class="filter-item {{currentFilter === 'genealogy' ? 'active' : ''}}" 
+        class="filter-item {{currentFilter === 'all' ? 'active' : ''}}" 
         bindtap="switchFilter" 
-        data-filter="genealogy"
-      >族谱通知</view>
+        data-filter="all"
+      >全部</view>
     </view>
     
     <!-- 通知列表 -->

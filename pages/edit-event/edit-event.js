@@ -431,13 +431,13 @@ Page({
   /**
    * 验证表单
    */
-  validateForm: function () {
+  _validateForm: function () {
     const { formData } = this.data;
     let isValid = true;
     const errors = {};
     
     // 验证标题
-    if (!formData.title || formData.title.trim() === '') {
+    if (!formData.title || !formData.title.trim()) {
       errors.title = '请输入事件标题';
       isValid = false;
     }
@@ -451,6 +451,13 @@ Page({
     // 设置错误信息
     this.setData({ errors });
     
+    if (!isValid) {
+      wx.showToast({
+        title: '请完善表单信息',
+        icon: 'none'
+      });
+    }
+    
     return isValid;
   },
 
@@ -458,15 +465,11 @@ Page({
    * 提交表单
    */
   submitForm: function () {
-    if (!this.validateForm()) {
-      wx.showToast({
-        title: '请完善表单信息',
-        icon: 'none'
-      });
+    if (!this._validateForm()) {
       return;
     }
     
-    this.setData({ isLoading: true });
+    this._showLoading('保存中...');
     
     // 准备提交数据
     const submitData = { ...this.data.formData };
@@ -474,83 +477,127 @@ Page({
     // 更新事件基本信息
     api.eventsAPI.updateEvent(this.data.genealogyId, this.data.eventId, submitData)
       .then(result => {
-        if (result) {
-          // 处理媒体文件变更
-          const uploadPromises = [];
-          
-          // 上传新媒体文件
-          if (this.data.newMedia.length > 0) {
-            this.data.newMedia.forEach(filePath => {
-              uploadPromises.push(
-                api.eventsAPI.uploadEventMedia(this.data.genealogyId, this.data.eventId, filePath)
-              );
-            });
-          }
-          
-          // 删除已移除的媒体文件
-          if (this.data.deletedMedia.length > 0) {
-            // 这里假设 API 提供了删除媒体文件的功能
-            // 如果 API 没有提供该功能，可能需要其他处理方式
-            this.data.deletedMedia.forEach(fileUrl => {
-              uploadPromises.push(
-                api.eventsAPI.deleteEventMedia(this.data.genealogyId, this.data.eventId, fileUrl)
-              );
-            });
-          }
-          
-          // 等待所有媒体文件操作完成
-          if (uploadPromises.length > 0) {
-            Promise.all(uploadPromises)
-              .then(() => {
-                this.setData({ isLoading: false });
-                this._onUpdateSuccess();
-              })
-              .catch(error => {
-                console.error('Media operations failed:', error);
-                this.setData({ isLoading: false });
-                
-                // 即使媒体操作失败，仍然认为更新成功
-                this._onUpdateSuccess();
-              });
-          } else {
-            // 没有媒体文件操作
-            this.setData({ isLoading: false });
-            this._onUpdateSuccess();
-          }
-        } else {
-          this.setData({ isLoading: false });
-          
-          wx.showToast({
-            title: '更新失败，请重试',
-            icon: 'none'
-          });
+        if (!result) {
+          throw new Error('更新事件失败');
         }
+        
+        // 处理媒体文件变更
+        const uploadPromises = [];
+        
+        // 上传新媒体文件
+        if (this.data.newMedia.length > 0) {
+          this._showLoading(`上传新媒体文件 (0/${this.data.newMedia.length})`);
+          
+          // 顺序上传文件，避免并发问题
+          return this._uploadNewMediaFiles(
+            this.data.genealogyId, 
+            this.data.eventId, 
+            this.data.newMedia
+          ).then(() => {
+            // 处理已删除的媒体文件
+            if (this.data.deletedMedia.length > 0) {
+              this._showLoading('更新媒体信息...');
+              // 如果API支持删除媒体，可以在这里添加调用
+              // 例如：return api.eventsAPI.deleteEventMedia(this.data.genealogyId, this.data.eventId, this.data.deletedMedia);
+            }
+            return Promise.resolve();
+          });
+        } else if (this.data.deletedMedia.length > 0) {
+          // 只有已删除的媒体文件，没有新上传的
+          this._showLoading('更新媒体信息...');
+          // 如果API支持删除媒体，可以在这里添加调用
+          // 例如：return api.eventsAPI.deleteEventMedia(this.data.genealogyId, this.data.eventId, this.data.deletedMedia);
+        }
+        
+        return Promise.resolve();
+      })
+      .then(() => {
+        this._hideLoading();
+        this._showSuccess('更新成功');
       })
       .catch(error => {
         console.error('Update event failed:', error);
-        
-        this.setData({ isLoading: false });
-        
-        wx.showToast({
-          title: '更新失败，请重试',
-          icon: 'none'
-        });
+        this._hideLoading();
+        this._showError('更新失败，请重试');
       });
   },
 
   /**
-   * 更新成功处理
+   * 上传新媒体文件
    */
-  _onUpdateSuccess: function () {
+  _uploadNewMediaFiles: function(genealogyId, eventId, mediaFiles) {
+    // 使用Promise链顺序上传所有文件
+    let uploadPromise = Promise.resolve();
+    let uploadedCount = 0;
+    
+    mediaFiles.forEach((filePath, index) => {
+      uploadPromise = uploadPromise
+        .then(() => {
+          // 更新上传进度
+          this._showLoading(`上传媒体文件 (${index + 1}/${mediaFiles.length})`);
+          
+          // 上传单个文件
+          return api.eventsAPI.uploadEventMedia(genealogyId, eventId, filePath);
+        })
+        .then(() => {
+          uploadedCount++;
+        })
+        .catch(err => {
+          console.error(`上传第 ${index + 1} 个文件失败:`, err);
+          // 继续上传下一个文件
+        });
+    });
+    
+    return uploadPromise.then(() => {
+      // 检查是否所有文件都上传成功
+      if (uploadedCount < mediaFiles.length) {
+        console.warn(`部分文件上传失败，${uploadedCount}/${mediaFiles.length} 上传成功`);
+      }
+    });
+  },
+  
+  /**
+   * 显示加载提示
+   */
+  _showLoading: function (text = '处理中...') {
+    this.setData({ isLoading: true });
+    wx.showLoading({ 
+      title: text,
+      mask: true
+    });
+  },
+  
+  /**
+   * 隐藏加载提示
+   */
+  _hideLoading: function () {
+    this.setData({ isLoading: false });
+    wx.hideLoading();
+  },
+  
+  /**
+   * 显示成功提示并返回上一页
+   */
+  _showSuccess: function (text = '操作成功') {
     wx.showToast({
-      title: '更新成功',
+      title: text,
       icon: 'success'
     });
     
-    // 延迟返回上一页
+    // 延迟返回上一页，给用户查看提示的时间
     setTimeout(() => {
       wx.navigateBack();
     }, 1500);
+  },
+  
+  /**
+   * 显示错误提示
+   */
+  _showError: function (text = '操作失败') {
+    wx.showToast({
+      title: text,
+      icon: 'none'
+    });
   },
 
   /**
