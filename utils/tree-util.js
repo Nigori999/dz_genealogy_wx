@@ -502,6 +502,374 @@ const canAddAsSpouse = (member1, member2) => {
   return true;
 };
 
+/**
+ * 检查树形结构中是否存在循环引用
+ * @param {Object} treeNode - 树节点
+ * @returns {Boolean} 是否存在循环引用
+ */
+const checkCyclicReference = (treeNode) => {
+  const visitedIds = new Set();
+  
+  const dfs = (node) => {
+    if (!node) return false;
+    
+    if (visitedIds.has(node.id)) {
+      return true; // 发现循环引用
+    }
+    
+    visitedIds.add(node.id);
+    
+    // 检查子节点
+    if (node.children && node.children.length > 0) {
+      for (const child of node.children) {
+        if (dfs(child)) {
+          return true;
+        }
+      }
+    }
+    
+    // 回溯
+    visitedIds.delete(node.id);
+    
+    return false;
+  };
+  
+  return dfs(treeNode);
+};
+
+/**
+ * 查找最近的共同祖先
+ * @param {String} memberId1 - 成员ID1
+ * @param {String} memberId2 - 成员ID2
+ * @param {Array} allMembers - 所有成员数据
+ * @returns {String|null} 共同祖先ID或null
+ */
+const findLowestCommonAncestor = (memberId1, memberId2, allMembers) => {
+  if (memberId1 === memberId2) return memberId1;
+  
+  // 获取成员1的所有祖先（包括自己）
+  const getAncestorsWithSelf = (memberId) => {
+    const result = [memberId];
+    let currentId = memberId;
+    
+    while (true) {
+      const member = allMembers.find(m => m.id === currentId);
+      if (!member || !member.parentId) break;
+      
+      result.push(member.parentId);
+      currentId = member.parentId;
+    }
+    
+    return result;
+  };
+  
+  const ancestors1 = getAncestorsWithSelf(memberId1);
+  const ancestors2 = getAncestorsWithSelf(memberId2);
+  
+  // 创建祖先映射表（用于O(1)查找）
+  const ancestorMap = {};
+  for (const id of ancestors1) {
+    ancestorMap[id] = true;
+  }
+  
+  // 查找最近的共同祖先
+  for (const id of ancestors2) {
+    if (ancestorMap[id]) {
+      return id;
+    }
+  }
+  
+  return null;
+};
+
+/**
+ * 获取族谱统计信息
+ * @param {Array} members - 成员列表
+ * @returns {Object} 统计信息
+ */
+const getGenealogySummary = (members) => {
+  if (!members || members.length === 0) {
+    return {
+      totalMembers: 0,
+      maleCount: 0,
+      femaleCount: 0,
+      generationCount: 0,
+      oldestBirthYear: null,
+      youngestBirthYear: null,
+      averageAge: 0
+    };
+  }
+  
+  // 计算统计信息
+  const maleCount = members.filter(m => m.gender === 'male').length;
+  const femaleCount = members.filter(m => m.gender === 'female').length;
+  
+  // 计算世代数
+  const generations = new Set(members.map(m => m.generation).filter(Boolean));
+  const generationCount = generations.size;
+  
+  // 计算最早和最晚出生年份
+  const birthYears = members
+    .filter(m => m.birthDate)
+    .map(m => new Date(m.birthDate).getFullYear());
+  
+  const oldestBirthYear = birthYears.length > 0 ? Math.min(...birthYears) : null;
+  const youngestBirthYear = birthYears.length > 0 ? Math.max(...birthYears) : null;
+  
+  // 计算平均年龄
+  const currentYear = new Date().getFullYear();
+  let ageSum = 0;
+  let ageCount = 0;
+  
+  members.forEach(m => {
+    if (m.birthDate) {
+      const birthYear = new Date(m.birthDate).getFullYear();
+      const age = m.deathDate 
+        ? new Date(m.deathDate).getFullYear() - birthYear
+        : currentYear - birthYear;
+      
+      ageSum += age;
+      ageCount++;
+    }
+  });
+  
+  const averageAge = ageCount > 0 ? Math.round(ageSum / ageCount) : 0;
+  
+  return {
+    totalMembers: members.length,
+    maleCount,
+    femaleCount,
+    generationCount,
+    oldestBirthYear,
+    youngestBirthYear,
+    averageAge
+  };
+};
+
+/**
+ * 基于力导向算法优化族谱树布局
+ * @param {Object} treeNode - 树节点
+ * @param {Number} width - 画布宽度
+ * @param {Number} height - 画布高度
+ * @param {Number} nodeWidth - 节点宽度
+ * @param {Number} nodeHeight - 节点高度
+ * @returns {Object} 优化后的树
+ */
+const optimizeTreeLayout = (treeNode, width, height, nodeWidth = 80, nodeHeight = 100) => {
+  if (!treeNode) return null;
+  
+  // 首先使用基本布局算法获取初始位置
+  const initialLayout = layoutFamilyTree(treeNode, nodeWidth, nodeHeight, 20, 50);
+  
+  // 复制节点坐标信息到新对象，以便进行力导向算法优化
+  const nodePositions = {};
+  
+  // 递归收集所有节点的位置信息
+  const collectNodePositions = (node) => {
+    if (!node) return;
+    
+    nodePositions[node.id] = {
+      x: node.x,
+      y: node.y,
+      vx: 0, // x方向速度
+      vy: 0  // y方向速度
+    };
+    
+    // 收集配偶节点
+    if (node.spouses) {
+      node.spouses.forEach(spouse => {
+        nodePositions[spouse.id] = {
+          x: spouse.x,
+          y: spouse.y,
+          vx: 0,
+          vy: 0
+        };
+      });
+    }
+    
+    // 递归收集子节点
+    if (node.children) {
+      node.children.forEach(child => {
+        collectNodePositions(child);
+      });
+    }
+  };
+  
+  collectNodePositions(initialLayout);
+  
+  // 定义节点之间的关系（用于力导向算法）
+  const relationships = [];
+  
+  // 递归收集所有节点之间的关系
+  const collectRelationships = (node) => {
+    if (!node) return;
+    
+    // 父子关系
+    if (node.children) {
+      node.children.forEach(child => {
+        relationships.push({
+          source: node.id,
+          target: child.id,
+          type: 'parent-child',
+          distance: nodeHeight * 1.5 // 理想距离
+        });
+        
+        collectRelationships(child);
+      });
+    }
+    
+    // 配偶关系
+    if (node.spouses) {
+      node.spouses.forEach(spouse => {
+        relationships.push({
+          source: node.id,
+          target: spouse.id,
+          type: 'spouse',
+          distance: nodeWidth * 1.2 // 理想距离
+        });
+      });
+    }
+    
+    // 同级节点之间的关系（兄弟姐妹及其配偶）
+    if (node.parent) {
+      const siblings = node.parent.children.filter(c => c.id !== node.id);
+      
+      siblings.forEach(sibling => {
+        relationships.push({
+          source: node.id,
+          target: sibling.id,
+          type: 'sibling',
+          distance: nodeWidth * 1.5 // 理想距离
+        });
+      });
+    }
+  };
+  
+  collectRelationships(initialLayout);
+  
+  // 力导向算法主函数
+  const runForceDirected = (iterations = 50) => {
+    const dampening = 0.9; // 阻尼系数
+    const k = 0.1; // 弹簧系数
+    const repulsion = 500; // 排斥力系数
+    
+    for (let i = 0; i < iterations; i++) {
+      // 计算节点间的力
+      Object.keys(nodePositions).forEach(nodeId1 => {
+        const pos1 = nodePositions[nodeId1];
+        
+        // 排斥力（所有节点之间）
+        Object.keys(nodePositions).forEach(nodeId2 => {
+          if (nodeId1 === nodeId2) return;
+          
+          const pos2 = nodePositions[nodeId2];
+          
+          const dx = pos1.x - pos2.x;
+          const dy = pos1.y - pos2.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          
+          if (distance < 0.1) return; // 避免除以零
+          
+          // 计算排斥力
+          const force = repulsion / (distance * distance);
+          
+          // 应用力
+          const directionX = dx / distance;
+          const directionY = dy / distance;
+          
+          pos1.vx += directionX * force;
+          pos1.vy += directionY * force;
+        });
+        
+        // 吸引力（与关系对象之间）
+        relationships.forEach(rel => {
+          if (rel.source === nodeId1 || rel.target === nodeId1) {
+            const otherNodeId = rel.source === nodeId1 ? rel.target : rel.source;
+            const pos2 = nodePositions[otherNodeId];
+            
+            const dx = pos1.x - pos2.x;
+            const dy = pos1.y - pos2.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance < 0.1) return; // 避免除以零
+            
+            // 计算弹簧力
+            let force = k * (distance - rel.distance);
+            
+            // 根据关系类型调整力度
+            if (rel.type === 'parent-child') {
+              force *= 2; // 加强父子关系的约束
+            } else if (rel.type === 'spouse') {
+              force *= 3; // 更强调配偶关系的约束
+            }
+            
+            // 应用力
+            const directionX = dx / distance;
+            const directionY = dy / distance;
+            
+            pos1.vx -= directionX * force;
+            pos1.vy -= directionY * force;
+          }
+        });
+      });
+      
+      // 更新位置
+      Object.keys(nodePositions).forEach(nodeId => {
+        const pos = nodePositions[nodeId];
+        pos.vx *= dampening;
+        pos.vy *= dampening;
+        pos.x += pos.vx;
+        pos.y += pos.vy;
+        
+        // 边界约束
+        pos.x = Math.max(nodeWidth / 2, Math.min(width - nodeWidth / 2, pos.x));
+        pos.y = Math.max(nodeHeight / 2, Math.min(height - nodeHeight / 2, pos.y));
+      });
+    }
+  };
+  
+  // 运行力导向算法
+  runForceDirected();
+  
+  // 将优化后的位置应用回树结构
+  const applyOptimizedPositions = (node) => {
+    if (!node) return null;
+    
+    // 更新节点位置
+    const newNode = { ...node };
+    const pos = nodePositions[node.id];
+    
+    if (pos) {
+      newNode.x = pos.x;
+      newNode.y = pos.y;
+    }
+    
+    // 更新配偶位置
+    if (node.spouses) {
+      newNode.spouses = node.spouses.map(spouse => {
+        const spousePos = nodePositions[spouse.id];
+        
+        return {
+          ...spouse,
+          x: spousePos ? spousePos.x : spouse.x,
+          y: spousePos ? spousePos.y : spouse.y
+        };
+      });
+    }
+    
+    // 更新子节点位置
+    if (node.children) {
+      newNode.children = node.children.map(child => 
+        applyOptimizedPositions(child)
+      );
+    }
+    
+    return newNode;
+  };
+  
+  return applyOptimizedPositions(initialLayout);
+};
+
 module.exports = {
   buildFamilyTree,
   groupMembersByGeneration,
@@ -516,5 +884,9 @@ module.exports = {
   importTreeFromJSON,
   findLatestGeneration,
   canAddAsChild,
-  canAddAsSpouse
+  canAddAsSpouse,
+  checkCyclicReference,
+  findLowestCommonAncestor,
+  getGenealogySummary,
+  optimizeTreeLayout
 };

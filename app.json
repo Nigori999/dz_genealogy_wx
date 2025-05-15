@@ -12,7 +12,10 @@
     "pages/login/login",
     "pages/edit-member/edit-member",
     "pages/edit-event/edit-event",
-    "pages/invite/invite"
+    "pages/invite/invite",
+    "pages/join-genealogy/join-genealogy",
+    "pages/switch-genealogy/switch-genealogy",
+    "pages/create-genealogy/create-genealogy"
   ],
   "window": {
     "backgroundTextStyle": "light",

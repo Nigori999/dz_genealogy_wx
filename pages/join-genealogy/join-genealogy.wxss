@@ -1,0 +1,164 @@
+/* 切换族谱页面样式 */
+.container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--color-background);
+}
+
+/* 页面标题 */
+.page-header {
+  background-image: var(--gradient-header);
+  padding: 16px;
+  color: #FFFFFF;
+}
+
+.header-title {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+/* 内容面板 */
+.content-panel {
+  flex: 1;
+  padding: 16px;
+}
+
+/* 加载容器 */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+}
+
+/* 族谱列表 */
+.genealogy-list {
+  margin-bottom: 24px;
+}
+
+.genealogy-item {
+  display: flex;
+  background-color: #FFFFFF;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  padding: 16px;
+  position: relative;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.genealogy-item.current {
+  border: 2px solid var(--color-accent);
+  padding: 14px; /* 减去边框的2px */
+}
+
+.genealogy-cover {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  margin-right: 16px;
+  flex-shrink: 0;
+}
+
+.genealogy-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.genealogy-name {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--color-text-dark);
+  margin-bottom: 8px;
+}
+
+.genealogy-meta {
+  font-size: 14px;
+  color: var(--color-text-light);
+}
+
+.meta-item {
+  margin-right: 16px;
+}
+
+.current-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background-color: var(--color-accent);
+  color: #FFFFFF;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.owner-badge {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  background-color: var(--color-primary);
+  color: #FFFFFF;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+/* 操作按钮 */
+.action-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 16px;
+}
+
+.btn-action {
+  width: 48%;
+  height: 40px;
+  line-height: 40px;
+  border-radius: 20px;
+  font-size: 14px;
+}
+
+.btn-action:first-child {
+  background-image: var(--gradient-button);
+  color: #FFFFFF;
+}
+
+.btn-action:last-child {
+  background-color: #FFFFFF;
+  color: var(--color-text-medium);
+  border: 1px solid var(--color-border);
+}
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 0;
+  text-align: center;
+}
+
+.empty-image {
+  width: 120px;
+  height: 120px;
+  margin-bottom: 16px;
+  opacity: 0.7;
+}
+
+.empty-text {
+  font-size: 14px;
+  color: var(--color-text-light);
+  margin-bottom: 24px;
+}
+
+.empty-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.empty-actions button {
+  margin: 0 8px;
+}

@@ -402,6 +402,187 @@ const compareDate = (date1, date2) => {
   return 0;
 };
 
+/**
+ * 检查两个日期是否冲突
+ * @param {Date|String} start1 - 第一个日期范围的开始日期
+ * @param {Date|String} end1 - 第一个日期范围的结束日期
+ * @param {Date|String} start2 - 第二个日期范围的开始日期
+ * @param {Date|String} end2 - 第二个日期范围的结束日期
+ * @returns {Boolean} 是否冲突
+ */
+const datesOverlap = (start1, end1, start2, end2) => {
+  const s1 = typeof start1 === 'string' ? parseDate(start1) : start1;
+  const e1 = end1 ? (typeof end1 === 'string' ? parseDate(end1) : end1) : s1;
+  const s2 = typeof start2 === 'string' ? parseDate(start2) : start2;
+  const e2 = end2 ? (typeof end2 === 'string' ? parseDate(end2) : end2) : s2;
+  
+  if (!s1 || !s2) return false;
+  
+  return Math.max(s1, s2) <= Math.min(e1, e2);
+};
+
+/**
+ * 分组日期（按年、月、日等）
+ * @param {Array} dates - 日期数组
+ * @param {String} groupBy - 分组方式（'year', 'month', 'day'）
+ * @returns {Object} 分组结果
+ */
+const groupDates = (dates, groupBy = 'year') => {
+  if (!dates || dates.length === 0) {
+    return {};
+  }
+  
+  const result = {};
+  
+  dates.forEach(date => {
+    if (!date) return;
+    
+    const d = typeof date === 'string' ? parseDate(date) : date;
+    if (!d || isNaN(d.getTime())) return;
+    
+    let key;
+    switch (groupBy) {
+      case 'year':
+        key = d.getFullYear().toString();
+        break;
+      case 'month':
+        key = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+        break;
+      case 'day':
+        key = formatDate(d, 'YYYY-MM-DD');
+        break;
+      case 'decade':
+        const decade = Math.floor(d.getFullYear() / 10) * 10;
+        key = `${decade}年代`;
+        break;
+      default:
+        key = d.getFullYear().toString();
+    }
+    
+    if (!result[key]) {
+      result[key] = [];
+    }
+    
+    result[key].push(date);
+  });
+  
+  return result;
+};
+
+/**
+ * 根据生日计算生肖
+ * @param {Date|String} birthDate - 出生日期
+ * @returns {String} 生肖
+ */
+const getChineseZodiac = (birthDate) => {
+  const zodiacSigns = [
+    '鼠', '牛', '虎', '兔', '龙', '蛇',
+    '马', '羊', '猴', '鸡', '狗', '猪'
+  ];
+  
+  const d = typeof birthDate === 'string' ? parseDate(birthDate) : birthDate;
+  if (!d || isNaN(d.getTime())) return '';
+  
+  const year = d.getFullYear();
+  const zodiacIndex = (year - 1900) % 12;
+  
+  return zodiacSigns[zodiacIndex < 0 ? zodiacIndex + 12 : zodiacIndex];
+};
+
+/**
+ * 根据生日计算星座
+ * @param {Date|String} birthDate - 出生日期
+ * @returns {String} 星座
+ */
+const getZodiacSign = (birthDate) => {
+  const zodiacSigns = [
+    {name: '水瓶座', startMonth: 1, startDay: 20, endMonth: 2, endDay: 18},
+    {name: '双鱼座', startMonth: 2, startDay: 19, endMonth: 3, endDay: 20},
+    {name: '白羊座', startMonth: 3, startDay: 21, endMonth: 4, endDay: 19},
+    {name: '金牛座', startMonth: 4, startDay: 20, endMonth: 5, endDay: 20},
+    {name: '双子座', startMonth: 5, startDay: 21, endMonth: 6, endDay: 21},
+    {name: '巨蟹座', startMonth: 6, startDay: 22, endMonth: 7, endDay: 22},
+    {name: '狮子座', startMonth: 7, startDay: 23, endMonth: 8, endDay: 22},
+    {name: '处女座', startMonth: 8, startDay: 23, endMonth: 9, endDay: 22},
+    {name: '天秤座', startMonth: 9, startDay: 23, endMonth: 10, endDay: 23},
+    {name: '天蝎座', startMonth: 10, startDay: 24, endMonth: 11, endDay: 22},
+    {name: '射手座', startMonth: 11, startDay: 23, endMonth: 12, endDay: 21},
+    {name: '摩羯座', startMonth: 12, startDay: 22, endMonth: 1, endDay: 19}
+  ];
+  
+  const d = typeof birthDate === 'string' ? parseDate(birthDate) : birthDate;
+  if (!d || isNaN(d.getTime())) return '';
+  
+  const month = d.getMonth() + 1;
+  const day = d.getDate();
+  
+  for (const sign of zodiacSigns) {
+    if (
+      (month === sign.startMonth && day >= sign.startDay) || 
+      (month === sign.endMonth && day <= sign.endDay)
+    ) {
+      return sign.name;
+    }
+  }
+  
+  return '';
+};
+
+/**
+ * 计算两个日期之间的时间差
+ * @param {Date|String} date1 - 第一个日期
+ * @param {Date|String} date2 - 第二个日期
+ * @returns {Object} 时间差（年、月、日、小时、分钟）
+ */
+const getTimeDifference = (date1, date2) => {
+  const d1 = typeof date1 === 'string' ? parseDate(date1) : date1;
+  const d2 = typeof date2 === 'string' ? parseDate(date2) : date2;
+  
+  if (!d1 || !d2 || isNaN(d1.getTime()) || isNaN(d2.getTime())) {
+    return {
+      years: 0,
+      months: 0,
+      days: 0,
+      hours: 0,
+      minutes: 0,
+      totalDays: 0
+    };
+  }
+  
+  const diffMs = Math.abs(d2 - d1);
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  
+  // 计算年月日时分
+  let years = Math.abs(d2.getFullYear() - d1.getFullYear());
+  let months = Math.abs(d2.getMonth() - d1.getMonth());
+  let days = Math.abs(d2.getDate() - d1.getDate());
+  
+  // 调整月和年
+  if (d2.getDate() < d1.getDate()) {
+    months--;
+    // 获取上个月的天数
+    const prevMonth = new Date(d2.getFullYear(), d2.getMonth(), 0);
+    days = prevMonth.getDate() - d1.getDate() + d2.getDate();
+  }
+  
+  if (months < 0) {
+    years--;
+    months += 12;
+  }
+  
+  const hours = Math.abs(d2.getHours() - d1.getHours());
+  const minutes = Math.abs(d2.getMinutes() - d1.getMinutes());
+  
+  return {
+    years,
+    months,
+    days,
+    hours,
+    minutes,
+    totalDays: diffDays
+  };
+};
+
 module.exports = {
   parseDate,
   formatDate,
@@ -422,5 +603,10 @@ module.exports = {
   getTimestamp,
   createDateFromTimestamp,
   calculateAge,
-  compareDate
+  compareDate,
+  datesOverlap,
+  groupDates,
+  getChineseZodiac,
+  getZodiacSign,
+  getTimeDifference
 };

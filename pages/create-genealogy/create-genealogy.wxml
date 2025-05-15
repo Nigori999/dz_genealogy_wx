@@ -1,0 +1,77 @@
+<!-- 创建族谱页面 -->
+<view class="container">
+  <view class="page-header">
+    <view class="header-title">创建族谱</view>
+  </view>
+
+  <view wx:if="{{hasReachedLimit}}" class="limit-panel">
+    <view class="limit-title">您已达到族谱创建上限</view>
+    <view class="limit-desc">
+      您当前的订阅计划 {{subscription.name}} 最多可创建 {{subscription.genealogyLimit}} 个族谱。
+      您已创建达到上限，请升级订阅计划以创建更多族谱。
+    </view>
+    <button class="btn-upgrade" bindtap="navigateToSubscription">升级订阅</button>
+  </view>
+
+  <view wx:else class="form-panel">
+    <!-- 族谱封面 -->
+    <view class="cover-section">
+      <view class="section-title">族谱封面</view>
+      <view class="cover-upload" bindtap="uploadCoverImage">
+        <image class="cover-image" src="{{coverImage}}" mode="aspectFill"></image>
+        <view class="cover-upload-text">点击更换封面</view>
+      </view>
+    </view>
+    
+    <!-- 族谱信息 -->
+    <view class="info-section">
+      <view class="section-title">族谱信息</view>
+      
+      <!-- 族谱名称 -->
+      <view class="form-item {{errors.name ? 'has-error' : ''}}">
+        <view class="form-label">族谱名称 <text class="required">*</text></view>
+        <input 
+          class="form-input" 
+          value="{{formData.name}}" 
+          placeholder="请输入族谱名称，如：张氏家族" 
+          data-field="name" 
+          bindinput="onInput"
+        />
+        <view wx:if="{{errors.name}}" class="error-message">{{errors.name}}</view>
+      </view>
+      
+      <!-- 族谱描述 -->
+      <view class="form-item">
+        <view class="form-label">族谱描述</view>
+        <textarea 
+          class="form-textarea" 
+          value="{{formData.description}}" 
+          placeholder="请输入族谱简介，如：起源、历史等" 
+          data-field="description" 
+          bindinput="onInput"
+        ></textarea>
+      </view>
+    </view>
+    
+    <!-- 创建提示 -->
+    <view class="tip-section">
+      <view class="tip-icon">
+        <text class="iconfont icon-help"></text>
+      </view>
+      <view class="tip-content">
+        <text>创建族谱后，您将成为族谱管理员，可以添加家族成员、编辑族谱信息，也可以邀请其他家族成员加入共同编辑。</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部操作栏 -->
+  <view class="action-bar">
+    <button class="btn-cancel" bindtap="cancelCreate">取消</button>
+    <button class="btn-submit" bindtap="createGenealogy">
+      {{hasReachedLimit ? '升级订阅' : '创建族谱'}}
+    </button>
+  </view>
+
+<!-- Loading 状态 -->
+<loading wx:if="{{isLoading}}" type="spinner" text="处理中..."></loading>
+</view>

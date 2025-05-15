@@ -1,0 +1,53 @@
+<!-- 切换族谱页面 -->
+<view class="container">
+  <view class="page-header">
+    <view class="header-title">切换族谱</view>
+  </view>
+
+  <view class="content-panel">
+    <view wx:if="{{isLoading}}" class="loading-container">
+      <loading type="spinner" text="加载中..."></loading>
+    </view>
+    
+    <block wx:elif="{{genealogies.length > 0}}">
+      <view class="genealogy-list">
+        <view 
+          wx:for="{{genealogies}}" 
+          wx:key="id"
+          class="genealogy-item {{item.id === currentGenealogyId ? 'current' : ''}}"
+          bindtap="selectGenealogy"
+          data-id="{{item.id}}"
+        >
+          <image 
+            class="genealogy-cover" 
+            src="{{item.coverImage || '/images/genealogy_default_cover.jpg'}}" 
+            mode="aspectFill"
+          ></image>
+          <view class="genealogy-info">
+            <view class="genealogy-name">{{item.name}}</view>
+            <view class="genealogy-meta">
+              <text class="meta-item">{{item.memberCount || 0}}位成员</text>
+              <text class="meta-item">{{item.eventsCount || 0}}个事件</text>
+            </view>
+          </view>
+          <view wx:if="{{item.id === currentGenealogyId}}" class="current-badge">当前</view>
+          <view wx:if="{{item.isOwner}}" class="owner-badge">族长</view>
+        </view>
+      </view>
+      
+      <view class="action-buttons">
+        <button class="btn-action" bindtap="navigateToCreate">创建族谱</button>
+        <button class="btn-action" bindtap="navigateToJoin">加入族谱</button>
+      </view>
+    </block>
+    
+    <view wx:else class="empty-state">
+      <image class="empty-image" src="/images/empty_genealogy.png" mode="aspectFit"></image>
+      <view class="empty-text">您还没有创建或加入任何族谱</view>
+      <view class="empty-actions">
+        <button class="btn-primary" bindtap="navigateToCreate">创建族谱</button>
+        <button class="btn-secondary" bindtap="navigateToJoin">加入族谱</button>
+      </view>
+    </view>
+  </view>
+</view>
