@@ -1,0 +1,105 @@
+/* 登录页面样式 */
+.login-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--color-background);
+  position: relative;
+}
+
+/* Logo区域 */
+.logo-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 80rpx 0 60rpx;
+}
+
+.logo-image {
+  width: 160rpx;
+  height: 160rpx;
+  margin-bottom: 24rpx;
+  border-radius: 40rpx;
+}
+
+.app-name {
+  font-size: 48rpx;
+  font-weight: bold;
+  color: var(--color-primary);
+  margin-bottom: 16rpx;
+}
+
+.app-slogan {
+  font-size: 28rpx;
+  color: var(--color-text-medium);
+}
+
+/* 登录内容区 */
+.login-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 80rpx 60rpx;
+}
+
+.welcome-text {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: var(--color-text-dark);
+  margin-bottom: 24rpx;
+}
+
+.login-description {
+  font-size: 28rpx;
+  color: var(--color-text-medium);
+  text-align: center;
+  line-height: 1.6;
+  margin-bottom: 80rpx;
+}
+
+/* 登录按钮区域 */
+.login-button-area {
+  width: 100%;
+  padding: 0 40rpx;
+}
+
+.login-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 88rpx;
+  background-image: linear-gradient(to right, #07C160, #10D570);
+  color: #FFFFFF;
+  font-size: 32rpx;
+  border-radius: 44rpx;
+  box-shadow: 0 6rpx 12rpx rgba(7, 193, 96, 0.3);
+}
+
+.login-button .iconfont {
+  margin-right: 12rpx;
+  font-size: 36rpx;
+}
+
+.login-button:active {
+  opacity: 0.9;
+}
+
+.login-button[disabled] {
+  opacity: 0.7;
+  background-image: linear-gradient(to right, #07C160, #10D570);
+  color: #FFFFFF;
+}
+
+/* 协议文本 */
+.policy-text {
+  font-size: 24rpx;
+  color: var(--color-text-light);
+  text-align: center;
+  margin-bottom: 60rpx;
+}
+
+.policy-text text {
+  color: var(--color-primary);
+}

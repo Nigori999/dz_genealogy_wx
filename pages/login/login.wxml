@@ -1,0 +1,45 @@
+<!-- 登录页面 -->
+<view class="login-container">
+  <view class="logo-area">
+    <image class="logo-image" src="/images/app_logo.png" mode="aspectFit"></image>
+    <view class="app-name">云族谱</view>
+    <view class="app-slogan">记录家族历史，传承家族文化</view>
+  </view>
+
+  <view class="login-content">
+    <view class="welcome-text">欢迎使用云族谱</view>
+    <view class="login-description">
+      请授权微信登录，开始记录您的家族历史
+    </view>
+
+    <!-- 微信登录按钮 -->
+    <view class="login-button-area">
+      <button 
+        wx:if="{{canIUseGetUserProfile}}" 
+        class="login-button" 
+        bindtap="getUserProfile"
+        disabled="{{isLoading}}"
+      >
+        <text class="iconfont icon-wechat"></text>
+        <text>微信一键登录</text>
+      </button>
+      <button 
+        wx:else 
+        class="login-button" 
+        open-type="getUserInfo" 
+        bindgetuserinfo="getUserInfo"
+        disabled="{{isLoading}}"
+      >
+        <text class="iconfont icon-wechat"></text>
+        <text>微信一键登录</text>
+      </button>
+    </view>
+  </view>
+
+  <view class="policy-text">
+    登录即表示您同意《用户协议》和《隐私政策》
+  </view>
+
+  <!-- 加载状态 -->
+  <loading wx:if="{{isLoading}}" type="spinner" text="登录中..."></loading>
+</view>

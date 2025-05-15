@@ -8,7 +8,11 @@
     "pages/event-detail/event-detail",
     "pages/add-member/add-member",
     "pages/add-event/add-event",
-    "pages/edit-history/edit-history"
+    "pages/edit-history/edit-history",
+    "pages/login/login",
+    "pages/edit-member/edit-member",
+    "pages/edit-event/edit-event",
+    "pages/invite/invite"
   ],
   "window": {
     "backgroundTextStyle": "light",

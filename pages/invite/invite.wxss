@@ -1,0 +1,436 @@
+/* 邀请页面样式 */
+.container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--color-background);
+}
+
+/* 页面标题 */
+.page-header {
+  background-image: var(--gradient-header);
+  padding: 16px;
+  color: #FFFFFF;
+}
+
+.header-title {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+/* 内容面板 */
+.content-panel {
+  padding: 16px;
+}
+
+/* 卡片通用样式 */
+.card {
+  background-color: #FFFFFF;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* 族谱信息 */
+.genealogy-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.genealogy-name {
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--color-text-dark);
+  margin-bottom: 8px;
+}
+
+.genealogy-desc {
+  font-size: 14px;
+  color: var(--color-text-medium);
+}
+
+/* 标题通用样式 */
+.section-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--color-text-dark);
+  margin-bottom: 16px;
+  position: relative;
+  padding-left: 12px;
+}
+
+.section-title::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 4px;
+  background-color: var(--color-primary);
+  border-radius: 2px;
+}
+
+/* 邀请操作 */
+.invite-desc {
+  font-size: 14px;
+  color: var(--color-text-medium);
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.btn-generate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 44px;
+  background-image: var(--gradient-button);
+  color: #FFFFFF;
+  font-size: 16px;
+  border-radius: 22px;
+  box-shadow: var(--shadow-button);
+}
+
+.btn-generate .iconfont {
+  margin-right: 8px;
+  font-size: 18px;
+}
+
+/* 邀请记录 */
+.records-list {
+  margin-top: 8px;
+}
+
+.record-item {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+}
+
+.record-item:last-child {
+  border-bottom: none;
+}
+
+.record-code {
+  flex: 1;
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--color-text-dark);
+}
+
+.record-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin-right: 12px;
+}
+
+.record-date {
+  font-size: 12px;
+  color: var(--color-text-light);
+  margin-bottom: 4px;
+}
+
+.record-usage {
+  font-size: 12px;
+  color: var(--color-text-light);
+}
+
+.record-status {
+  width: 48px;
+  height: 24px;
+  border-radius: 12px;
+  background-color: rgba(40, 167, 69, 0.1);
+  color: #28A745;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.record-status.expired {
+  background-color: rgba(220, 53, 69, 0.1);
+  color: #DC3545;
+}
+
+/* 邀请说明 */
+.tip-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--color-text-dark);
+  margin-bottom: 12px;
+}
+
+.tip-content {
+  font-size: 14px;
+  color: var(--color-text-medium);
+  line-height: 1.6;
+  display: flex;
+  flex-direction: column;
+}
+
+.tip-content text {
+  margin-bottom: 6px;
+}
+
+/* 对话框样式 */
+.dialog-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+}
+
+.dialog-container {
+  position: fixed;
+  left: 40rpx;
+  right: 40rpx;
+  bottom: 40rpx;
+  background-color: #FFFFFF;
+  border-radius: 12px;
+  overflow: hidden;
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+}
+
+.dialog-header {
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.dialog-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--color-text-dark);
+}
+
+.dialog-close {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-light);
+}
+
+.dialog-content {
+  padding: 16px;
+}
+
+.invite-code-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background-color: var(--color-background);
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.invite-code {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--color-text-dark);
+  font-family: monospace;
+}
+
+.code-copy {
+  display: flex;
+  align-items: center;
+  color: var(--color-primary);
+  font-size: 14px;
+}
+
+.code-copy .iconfont {
+  margin-right: 4px;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  margin: 16px 0;
+}
+
+.divider-line {
+  flex: 1;
+  height: 1px;
+  background-color: var(--color-border);
+}
+
+.divider-text {
+  padding: 0 12px;
+  font-size: 14px;
+  color: var(--color-text-light);
+}
+
+.invite-url-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background-color: var(--color-background);
+  border-radius: 8px;
+}
+
+.invite-url {
+  flex: 1;
+  font-size: 14px;
+  color: var(--color-text-medium);
+  margin-right: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.url-copy {
+  display: flex;
+  align-items: center;
+  color: var(--color-primary);
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.url-copy .iconfont {
+  margin-right: 4px;
+}
+
+.dialog-footer {
+  display: flex;
+  padding: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.btn-share {
+  flex: 1;
+  height: 44px;
+  border-radius: 22px;
+  background-color: #07C160;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  margin-right: 12px;
+}
+
+.btn-share .iconfont {
+  margin-right: 4px;
+  font-size: 16px;
+}
+
+.btn-qrcode {
+  flex: 1;
+  height: 44px;
+  border-radius: 22px;
+  background-color: var(--color-primary);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.btn-qrcode .iconfont {
+  margin-right: 4px;
+  font-size: 16px;
+}
+
+/* 二维码样式 */
+.qrcode-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1010;
+}
+
+.qrcode-container {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 80vw;
+  background-color: #FFFFFF;
+  border-radius: 12px;
+  overflow: hidden;
+  z-index: 1011;
+  display: flex;
+  flex-direction: column;
+}
+
+.qrcode-header {
+  padding: 16px;
+  text-align: center;
+  position: relative;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.qrcode-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--color-text-dark);
+}
+
+.qrcode-close {
+  position: absolute;
+  right: 16px;
+  top: 16px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-light);
+}
+
+.qrcode-content {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.qrcode-image {
+  width: 200px;
+  height: 200px;
+  margin-bottom: 16px;
+}
+
+.qrcode-tip {
+  font-size: 14px;
+  color: var(--color-text-medium);
+}
+
+.qrcode-footer {
+  padding: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.btn-save {
+  height: 44px;
+  border-radius: 22px;
+  background-color: var(--color-primary);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.btn-save .iconfont {
+  margin-right: 4px;
+  font-size: 16px;
+}

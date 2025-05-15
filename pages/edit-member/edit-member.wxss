@@ -1,0 +1,381 @@
+/* 编辑成员页面样式 */
+.container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--color-background);
+  padding-bottom: 90px; /* 为底部操作栏留出空间 */
+}
+
+/* 页面标题 */
+.page-header {
+  background-image: var(--gradient-header);
+  padding: 16px;
+  color: #FFFFFF;
+}
+
+.header-title {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+/* 表单区域 */
+.form-panel {
+  padding: 16px;
+}
+
+.form-section {
+  background-color: #FFFFFF;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--color-text-dark);
+  margin-bottom: 16px;
+  position: relative;
+  padding-left: 12px;
+}
+
+.section-title::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 4px;
+  background-color: var(--color-primary);
+  border-radius: 2px;
+}
+
+.form-item {
+  margin-bottom: 16px;
+}
+
+.form-item:last-child {
+  margin-bottom: 0;
+}
+
+.form-label {
+  font-size: 14px;
+  color: var(--color-text-medium);
+  margin-bottom: 8px;
+}
+
+.required {
+  color: #F44336;
+  margin-left: 4px;
+}
+
+.form-input {
+  width: 100%;
+  height: 44px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 0 12px;
+  font-size: 14px;
+  color: var(--color-text-dark);
+  background-color: #FFFFFF;
+}
+
+.form-textarea {
+  width: 100%;
+  height: 100px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 14px;
+  color: var(--color-text-dark);
+  background-color: #FFFFFF;
+}
+
+.picker-value {
+  height: 44px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 0 12px;
+  font-size: 14px;
+  color: var(--color-text-dark);
+  background-color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.date-picker {
+  height: 44px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 0 12px;
+  font-size: 14px;
+  color: var(--color-text-dark);
+  background-color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.radio-group {
+  display: flex;
+}
+
+.radio {
+  display: flex;
+  align-items: center;
+  margin-right: 24px;
+}
+
+.has-error .form-input,
+.has-error .form-textarea {
+  border-color: #F44336;
+}
+
+.error-message {
+  font-size: 12px;
+  color: #F44336;
+  margin-top: 4px;
+}
+
+/* 头像上传 */
+.avatar-upload {
+  width: 100px;
+  height: 100px;
+  border-radius: 50px;
+  margin: 0 auto 16px;
+  position: relative;
+  overflow: hidden;
+  border: 2px solid var(--color-primary-light);
+}
+
+.avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-upload-text {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: #FFFFFF;
+  font-size: 12px;
+  text-align: center;
+  padding: 4px 0;
+  transform: translateY(100%);
+  transition: transform 0.2s;
+}
+
+.avatar-upload:active .avatar-upload-text {
+  transform: translateY(0);
+}
+
+/* 关系选择 */
+.relation-picker {
+  height: 44px;
+  border: 1px dashed var(--color-border);
+  border-radius: 8px;
+  padding: 0 12px;
+  font-size: 14px;
+  color: var(--color-text-light);
+  background-color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.relation-list {
+  margin-top: 8px;
+}
+
+.relation-item {
+  height: 44px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 0 12px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+}
+
+.relation-item:last-child {
+  margin-bottom: 0;
+}
+
+.relation-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 15px;
+  margin-right: 10px;
+}
+
+.relation-name {
+  flex: 1;
+  font-size: 14px;
+  color: var(--color-text-medium);
+}
+
+.relation-remove {
+  width: 24px;
+  height: 24px;
+  border-radius: 12px;
+  background-color: var(--color-background);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-light);
+}
+
+/* 底部操作栏 */
+.action-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 74px;
+  background-color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+  z-index: 10;
+}
+
+.btn-cancel {
+  flex: 1;
+  height: 48px;
+  border-radius: 24px;
+  border: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: var(--color-text-medium);
+  background-color: #FFFFFF;
+  margin-right: 16px;
+}
+
+.btn-submit {
+  flex: 1;
+  height: 48px;
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: #FFFFFF;
+  background-image: var(--gradient-button);
+  box-shadow: var(--shadow-button);
+}
+
+/* 模态框样式 */
+.modal-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+}
+
+.modal-content {
+  position: fixed;
+  left: 40rpx;
+  right: 40rpx;
+  bottom: 40rpx;
+  background-color: #FFFFFF;
+  border-radius: 12px;
+  overflow: hidden;
+  z-index: 1001;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  padding: 16px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--color-text-dark);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.modal-footer {
+  padding: 16px;
+  display: flex;
+  border-top: 1px solid var(--color-border);
+}
+
+.modal-footer .btn-cancel {
+  margin-right: 16px;
+}
+
+.modal-footer .btn-confirm {
+  background-image: var(--gradient-button);
+  color: #FFFFFF;
+}
+
+/* 成员选择器样式 */
+.member-picker-modal .modal-content {
+  bottom: auto;
+  top: 50%;
+  transform: translateY(-50%);
+  max-height: 80vh;
+}
+
+.member-list {
+  max-height: 50vh;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.member-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.member-item:last-child {
+  border-bottom: none;
+}
+
+.member-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  margin-right: 12px;
+}
+
+.member-info {
+  flex: 1;
+}
+
+.member-name {
+  font-size: 14px;
+  color: var(--color-text-medium);
+  margin-bottom: 4px;
+}
+
+.member-generation {
+  font-size: 12px;
+  color: var(--color-text-light);
+}
+
+.member-checkbox {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.member-checkbox checkbox {
+  margin-right: 12px;
+}
