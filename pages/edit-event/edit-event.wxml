@@ -29,11 +29,11 @@
           mode="selector" 
           range="{{typeOptions}}" 
           range-key="name"
-          value="{{typeOptions.findIndex(item => item.value === formData.type)}}" 
+          value="{{typeIndex}}" 
           bindchange="onTypeChange"
         >
           <view class="picker-value">
-            {{typeOptions.find(item => item.value === formData.type).name}}
+            {{typeName}}
             <text class="iconfont icon-arrow-down"></text>
           </view>
         </picker>

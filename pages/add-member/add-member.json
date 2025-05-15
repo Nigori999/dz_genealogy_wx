@@ -1,4 +1,6 @@
 {
   "navigationBarTitleText": "添加成员",
-  "usingComponents": {}
+  "usingComponents": {
+    "loading": "../../components/loading/loading"
+  }
 }

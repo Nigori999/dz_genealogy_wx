@@ -51,6 +51,9 @@ Page({
       { name: '其他', value: 'other' }
     ],
     
+    // 当前选中的类型索引
+    typeIndex: 6, // 默认为"其他"选项的索引
+    
     // 选择关联成员
     relatedMembersList: [],
     
@@ -90,8 +93,23 @@ Page({
       });
     }
     
+    // 初始化类型索引
+    this._updateTypeIndex('other');
+    
     // 加载所有成员（用于选择关联成员）
     this._loadAllMembers(genealogyId);
+  },
+
+  /**
+   * 更新类型索引
+   */
+  _updateTypeIndex: function(typeValue) {
+    const index = this.data.typeOptions.findIndex(item => item.value === typeValue);
+    if (index !== -1) {
+      this.setData({
+        typeIndex: index
+      });
+    }
   },
 
   /**
@@ -152,8 +170,12 @@ Page({
    * 处理事件类型变更
    */
   onTypeChange: function (e) {
+    const index = e.detail.value;
+    const typeValue = this.data.typeOptions[index].value;
+    
     this.setData({
-      'formData.type': e.detail.value
+      'formData.type': typeValue,
+      typeIndex: index
     });
   },
 

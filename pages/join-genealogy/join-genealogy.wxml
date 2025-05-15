@@ -42,7 +42,7 @@
     </block>
     
     <view wx:else class="empty-state">
-      <image class="empty-image" src="/images/empty_genealogy.png" mode="aspectFit"></image>
+      <image class="empty-image" src="/assets/images/empty_genealogy.png" mode="aspectFit"></image>
       <view class="empty-text">您还没有创建或加入任何族谱</view>
       <view class="empty-actions">
         <button class="btn-primary" bindtap="navigateToCreate">创建族谱</button>

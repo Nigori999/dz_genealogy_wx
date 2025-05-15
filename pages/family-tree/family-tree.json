@@ -1,4 +1,9 @@
 {
   "navigationBarTitleText": "族谱",
-  "usingComponents": {}
+  "usingComponents": {
+    "loading": "../../components/loading/loading",
+    "tree-node": "../../components/tree-node/tree-node",
+    "tree-connector": "../../components/tree-connector/tree-connector",
+    "member-card": "../../components/member-card/member-card"
+  }
 }

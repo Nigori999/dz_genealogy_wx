@@ -59,7 +59,10 @@ Page({
     showPickSpouseDialog: false,
     
     // 最大世代（用于确定可选世代范围）
-    maxGeneration: 1
+    maxGeneration: 1,
+    
+    // 世代选项数组
+    generationOptions: ['第1代']
   },
 
   /**
@@ -92,6 +95,19 @@ Page({
   },
 
   /**
+   * 更新世代选项数组
+   */
+  _updateGenerationOptions: function(maxGeneration) {
+    const options = [];
+    for (let i = 0; i < maxGeneration; i++) {
+      options.push(`第${i + 1}代`);
+    }
+    this.setData({
+      generationOptions: options
+    });
+  },
+
+  /**
    * 加载所有成员
    */
   _loadAllMembers: function (genealogyId) {
@@ -107,6 +123,9 @@ Page({
         
         // 计算最大世代
         const maxGeneration = Math.max(...members.map(m => m.generation || 1));
+        
+        // 更新世代选项
+        this._updateGenerationOptions(maxGeneration);
         
         this.setData({
           allMembers: members,
@@ -280,22 +299,23 @@ Page({
   },
 
   /**
-   * 选择配偶确认
+   * 处理配偶复选框变更
    */
-  onPickSpouseConfirm: function (e) {
-    const { members } = e.detail;
+  onPickSpouseChange: function (e) {
+    const selectedId = e.detail.value[0];
+    let spouseIds = [...this.data.formData.spouseIds];
     
-    if (members && members.length > 0) {
+    // 切换选中状态
+    if (selectedId) {
+      if (!spouseIds.includes(selectedId)) {
+        spouseIds.push(selectedId);
+      } else {
+        spouseIds = spouseIds.filter(id => id !== selectedId);
+      }
+      
+      // 更新表单数据
       this.setData({
-        spouseMembers: members,
-        'formData.spouseIds': members.map(m => m.id),
-        showPickSpouseDialog: false
-      });
-    } else {
-      this.setData({
-        spouseMembers: [],
-        'formData.spouseIds': [],
-        showPickSpouseDialog: false
+        'formData.spouseIds': spouseIds
       });
     }
   },

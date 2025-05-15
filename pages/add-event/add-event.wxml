@@ -1,4 +1,7 @@
 <!-- 添加事件页面 -->
+<!-- 引入wxs工具模块 -->
+<wxs module="tools" src="/wxs/includes.wxs"></wxs>
+
 <view class="container">
   <view class="page-header">
     <view class="header-title">添加家族大事记</view>
@@ -29,11 +32,11 @@
           mode="selector" 
           range="{{typeOptions}}" 
           range-key="name"
-          value="{{typeOptions.findIndex(item => item.value === formData.type)}}" 
+          value="{{typeIndex}}" 
           bindchange="onTypeChange"
         >
           <view class="picker-value">
-            {{typeOptions.find(item => item.value === formData.type).name}}
+            {{typeOptions[typeIndex].name}}
             <text class="iconfont icon-arrow-down"></text>
           </view>
         </picker>
@@ -92,7 +95,7 @@
           >
             <image 
               class="relation-avatar" 
-              src="{{item.avatar || (item.gender === 'male' ? '/images/avatar_male_default.png' : '/images/avatar_female_default.png')}}" 
+              src="{{item.avatar || (item.gender === 'male' ? '/assets/images/avatar_male_default.png' : '/assets/images/avatar_female_default.png')}}" 
               mode="aspectFill"
             ></image>
             <text class="relation-name">{{item.name}}</text>
@@ -169,10 +172,10 @@
             class="member-item"
           >
             <label class="member-checkbox">
-              <checkbox value="{{item.id}}" checked="{{formData.relatedMembers.includes(item.id)}}" />
+              <checkbox value="{{item.id}}" checked="{{tools.includes(formData.relatedMembers, item.id)}}" />
               <image 
                 class="member-avatar" 
-                src="{{item.avatar || (item.gender === 'male' ? '/images/avatar_male_default.png' : '/images/avatar_female_default.png')}}" 
+                src="{{item.avatar || (item.gender === 'male' ? '/assets/images/avatar_male_default.png' : '/assets/images/avatar_female_default.png')}}" 
                 mode="aspectFill"
               ></image>
               <view class="member-info">

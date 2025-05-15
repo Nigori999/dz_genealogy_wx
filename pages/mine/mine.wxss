@@ -266,6 +266,7 @@
 .menu-item-left {
   display: flex;
   align-items: center;
+  position: relative;
 }
 
 .menu-icon {
@@ -277,6 +278,22 @@
 .menu-name {
   font-size: 14px;
   color: var(--color-text-dark);
+}
+
+/* 未读通知数量徽章 */
+.unread-badge {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #F44336;
+  color: #FFFFFF;
+  font-size: 10px;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  padding: 0 4px;
+  margin-left: 8px;
 }
 
 .menu-item .icon-arrow-right {

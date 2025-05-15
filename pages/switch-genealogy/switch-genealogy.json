@@ -1,3 +1,7 @@
 {
-  "usingComponents": {}
+  "navigationBarTitleText": "我的族谱",
+  "usingComponents": {
+    "loading": "../../components/loading/loading",
+    "family-card": "../../components/family-card/family-card"
+  }
 }

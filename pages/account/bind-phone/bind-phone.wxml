@@ -1,0 +1,75 @@
+<!-- 绑定手机号页面 -->
+<view class="container">
+  <view class="form-container">
+    <view class="form-header">
+      <text>绑定手机号</text>
+    </view>
+    
+    <view class="form-group">
+      <!-- 手机号 -->
+      <view class="form-item">
+        <view class="form-label">手机号</view>
+        <view class="form-input">
+          <input 
+            type="number" 
+            placeholder="请输入手机号码" 
+            value="{{phoneNumber}}"
+            bindinput="inputPhoneNumber"
+            maxlength="11"
+          />
+        </view>
+      </view>
+      
+      <!-- 验证码 -->
+      <view class="form-item">
+        <view class="form-label">验证码</view>
+        <view class="form-input with-code">
+          <input 
+            type="number" 
+            placeholder="请输入验证码" 
+            value="{{verifyCode}}"
+            bindinput="inputVerifyCode"
+            maxlength="6"
+          />
+          <view 
+            class="send-code {{codeSending ? 'disabled' : ''}}" 
+            bindtap="sendVerifyCode"
+          >
+            <text wx:if="{{!codeSending}}">获取验证码</text>
+            <text wx:else>{{countdown}}秒后重发</text>
+          </view>
+        </view>
+      </view>
+      
+      <!-- 错误信息 -->
+      <view class="error-message" wx:if="{{errorMsg}}">
+        <text>{{errorMsg}}</text>
+      </view>
+    </view>
+    
+    <!-- 提交按钮 -->
+    <view class="form-actions">
+      <button 
+        class="btn-submit {{buttonDisabled ? 'btn-disabled' : ''}}" 
+        disabled="{{buttonDisabled}}"
+        bindtap="submitForm"
+      >确认绑定</button>
+    </view>
+    
+    <!-- 安全提示 -->
+    <view class="form-tips">
+      <view class="tip-item">
+        <text class="tip-title">温馨提示：</text>
+      </view>
+      <view class="tip-item">
+        <text>· 绑定手机号可用于登录、密码找回等操作</text>
+      </view>
+      <view class="tip-item">
+        <text>· 请确保填写的手机号真实有效</text>
+      </view>
+      <view class="tip-item">
+        <text>· 手机号将用于接收账户安全消息，请及时关注</text>
+      </view>
+    </view>
+  </view>
+</view> 

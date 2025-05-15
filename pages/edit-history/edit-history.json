@@ -1,4 +1,6 @@
 {
   "navigationBarTitleText": "编辑家族史",
-  "usingComponents": {}
+  "usingComponents": {
+    "loading": "../../components/loading/loading"
+  }
 }

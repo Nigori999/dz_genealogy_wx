@@ -1,0 +1,104 @@
+<!-- 通知中心页面 -->
+<view class="container">
+  <view wx:if="{{isLoading}}" class="loading-container">
+    <loading type="spinner" text="加载中..."></loading>
+  </view>
+  <block wx:else>
+    <!-- 通知过滤器 -->
+    <view class="filter-bar">
+      <view 
+        class="filter-item {{currentFilter === 'all' ? 'active' : ''}}" 
+        bindtap="switchFilter" 
+        data-filter="all"
+      >全部</view>
+      <view 
+        class="filter-item {{currentFilter === 'unread' ? 'active' : ''}}" 
+        bindtap="switchFilter" 
+        data-filter="unread"
+      >未读</view>
+      <view 
+        class="filter-item {{currentFilter === 'system' ? 'active' : ''}}" 
+        bindtap="switchFilter" 
+        data-filter="system"
+      >系统通知</view>
+      <view 
+        class="filter-item {{currentFilter === 'genealogy' ? 'active' : ''}}" 
+        bindtap="switchFilter" 
+        data-filter="genealogy"
+      >族谱通知</view>
+    </view>
+    
+    <!-- 通知列表 -->
+    <view class="notification-list">
+      <block wx:if="{{notifications.length > 0}}">
+        <view 
+          wx:for="{{notifications}}" 
+          wx:key="id"
+          class="notification-item {{!item.read ? 'unread' : ''}}"
+          bindtap="viewNotificationDetail"
+          data-id="{{item.id}}"
+        >
+          <view class="notification-dot" wx:if="{{!item.read}}"></view>
+          <view class="notification-content">
+            <view class="notification-header">
+              <text class="notification-title">{{item.title}}</text>
+              <text class="notification-time">{{item.time}}</text>
+            </view>
+            <view class="notification-body">{{item.content}}</view>
+            <view class="notification-footer">
+              <text class="notification-tag">{{item.type}}</text>
+              <view class="notification-actions">
+                <view 
+                  class="action-btn mark-btn {{item.read ? 'disabled' : ''}}" 
+                  catchtap="markAsRead" 
+                  data-id="{{item.id}}"
+                  wx:if="{{!item.read}}"
+                >
+                  标为已读
+                </view>
+                <view 
+                  class="action-btn delete-btn" 
+                  catchtap="deleteNotification" 
+                  data-id="{{item.id}}"
+                >
+                  删除
+                </view>
+              </view>
+            </view>
+          </view>
+        </view>
+        
+        <!-- 加载更多 -->
+        <view wx:if="{{hasMore}}" class="load-more" bindtap="loadMore">
+          <text>加载更多</text>
+        </view>
+        <view wx:else class="no-more">
+          <text>已加载全部通知</text>
+        </view>
+      </block>
+      
+      <!-- 空状态 -->
+      <view wx:else class="empty-state">
+        <image class="empty-icon" src="../../assets/images/empty-notification.png" mode="aspectFit"></image>
+        <view class="empty-text">暂无{{currentFilter !== 'all' ? filterMapping[currentFilter] : ''}}通知</view>
+        <view class="empty-tip">有新的通知时，将会在这里显示</view>
+      </view>
+    </view>
+    
+    <!-- 底部工具栏 -->
+    <view class="toolbar" wx:if="{{notifications.length > 0}}">
+      <view class="toolbar-left">
+        <checkbox-group bindchange="checkAllChange">
+          <label class="checkbox-label">
+            <checkbox value="all" checked="{{isAllChecked}}" />
+            <text>全选</text>
+          </label>
+        </checkbox-group>
+      </view>
+      <view class="toolbar-right">
+        <view class="toolbar-btn mark-all-btn" bindtap="markAllAsRead">全部已读</view>
+        <view class="toolbar-btn delete-all-btn" bindtap="deleteChecked">删除</view>
+      </view>
+    </view>
+  </block>
+</view> 

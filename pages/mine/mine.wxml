@@ -4,7 +4,7 @@
   <view class="user-info">
     <view class="user-avatar" bindtap="uploadAvatar">
       <image 
-        src="{{userInfo.avatar || '/images/avatar_default.png'}}" 
+        src="{{userInfo.avatar || '/assets/images/avatar_default.png'}}" 
         mode="aspectFill"
       ></image>
       <view class="avatar-edit-hint">点击更换</view>
@@ -48,7 +48,7 @@
         </view>
       </block>
       <view wx:else class="empty-genealogy">
-        <image class="empty-image" src="/images/empty_genealogy.png" mode="aspectFit"></image>
+        <image class="empty-image" src="/assets/images/empty_genealogy.png" mode="aspectFit"></image>
         <view class="empty-text">您还没有创建或加入任何族谱</view>
         <view class="empty-actions">
           <button class="btn-primary" bindtap="navigateToCreateGenealogy">创建族谱</button>
@@ -112,10 +112,13 @@
           </view>
           <text class="iconfont icon-arrow-right"></text>
         </view>
+        <!-- 通知设置菜单项 -->
         <view class="menu-item" bindtap="navigateToNotificationSetting">
           <view class="menu-item-left">
             <text class="menu-icon iconfont icon-notification"></text>
             <text class="menu-name">通知设置</text>
+            <!-- 未读通知数量 -->
+            <view wx:if="{{unreadCount > 0}}" class="unread-badge">{{unreadCount > 99 ? '99+' : unreadCount}}</view>
           </view>
           <text class="iconfont icon-arrow-right"></text>
         </view>

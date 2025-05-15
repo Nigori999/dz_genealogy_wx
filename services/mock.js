@@ -9,7 +9,7 @@ let mockData = {
   user: {
     id: 'user_001',
     nickname: '张三',
-    avatar: '/images/avatar_default.png',
+    avatar: '/assets/images/avatar_default.png',
     phone: '13800138000',
     email: 'zhangsan@example.com',
     createdAt: '2023-01-01T00:00:00Z'

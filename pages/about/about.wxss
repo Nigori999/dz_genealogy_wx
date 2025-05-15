@@ -1,0 +1,184 @@
+/* 关于我们页面样式 */
+.container {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-background);
+  min-height: 100vh;
+  padding-bottom: 32px;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+/* 头部 */
+.header {
+  background-image: var(--gradient-header);
+  padding: 40px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #FFFFFF;
+}
+
+.app-logo {
+  width: 80px;
+  height: 80px;
+  margin-bottom: 16px;
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.app-name {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.app-version {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+/* 部分样式 */
+.section {
+  background-color: #FFFFFF;
+  margin: 16px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.section-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--color-text-dark);
+  position: relative;
+  padding-left: 12px;
+}
+
+.section-title::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 4px;
+  background-color: var(--color-primary);
+  border-radius: 2px;
+}
+
+.section-content {
+  padding: 16px;
+}
+
+/* 应用简介 */
+.description {
+  font-size: 14px;
+  color: var(--color-text-medium);
+  line-height: 1.6;
+}
+
+/* 功能特点 */
+.feature-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.feature-item {
+  display: flex;
+  margin-bottom: 8px;
+}
+
+.feature-dot {
+  color: var(--color-primary);
+  font-size: 18px;
+  margin-right: 8px;
+  line-height: 1.4;
+}
+
+.feature-text {
+  font-size: 14px;
+  color: var(--color-text-medium);
+  line-height: 1.6;
+}
+
+/* 联系我们 */
+.contact-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.contact-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.contact-item:last-child {
+  border-bottom: none;
+}
+
+.contact-icon {
+  font-size: 20px;
+  color: var(--color-primary);
+  margin-right: 12px;
+}
+
+.contact-info {
+  flex: 1;
+}
+
+.contact-type {
+  font-size: 14px;
+  color: var(--color-text-medium);
+  margin-bottom: 4px;
+}
+
+.contact-value {
+  font-size: 14px;
+  color: var(--color-text-dark);
+}
+
+.contact-copy {
+  font-size: 12px;
+  color: var(--color-primary);
+  padding: 4px 8px;
+  border: 1px solid var(--color-primary);
+  border-radius: 4px;
+}
+
+/* 操作按钮 */
+.action-buttons {
+  display: flex;
+  justify-content: space-around;
+  padding: 16px;
+}
+
+.action-btn {
+  font-size: 14px;
+  color: var(--color-primary);
+  background-color: #FFFFFF;
+  padding: 8px 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  width: 45%;
+}
+
+/* 版权信息 */
+.copyright {
+  text-align: center;
+  font-size: 12px;
+  color: var(--color-text-light);
+  margin-top: 16px;
+  padding: 16px;
+} 

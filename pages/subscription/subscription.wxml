@@ -1,0 +1,173 @@
+<!-- 订阅服务页面 -->
+<view class="container">
+  <view wx:if="{{isLoading}}" class="loading-container">
+    <loading type="spinner" text="加载中..."></loading>
+  </view>
+  <block wx:else>
+    <!-- 当前订阅信息 -->
+    <view class="current-plan card">
+      <view class="card-header">
+        <view class="card-title">当前订阅</view>
+      </view>
+      <view class="card-content">
+        <view class="plan-features">
+          <view class="plan-feature">
+            <text class="feature-label">族谱数量：</text>
+            <text class="feature-value">{{currentPlan.genealogyCount || 1}}个</text>
+          </view>
+          <view class="plan-feature">
+            <text class="feature-label">席位数量：</text>
+            <text class="feature-value">{{currentPlan.memberCount || 50}}人</text>
+          </view>
+          <view class="plan-feature">
+            <text class="feature-label">存储空间：</text>
+            <text class="feature-value">{{formatStorage(currentPlan.storageSize || 100 * 1024 * 1024)}}</text>
+          </view>
+          <view class="plan-feature">
+            <text class="feature-label">到期时间：</text>
+            <text class="feature-value">{{currentPlan.expireDate || '永久'}}</text>
+          </view>
+          <view class="plan-feature">
+            <text class="feature-label">当前费用：</text>
+            <text class="feature-value">¥{{currentPlan.totalPrice || 0}}/月</text>
+          </view>
+        </view>
+      </view>
+    </view>
+    
+    <!-- 自定义订阅 -->
+    <view class="custom-subscription card">
+      <view class="card-header">
+        <view class="card-title">自定义订阅</view>
+      </view>
+      <view class="card-content">
+        <!-- 族谱数量 -->
+        <view class="subscription-item">
+          <view class="item-header">
+            <text class="item-title">族谱数量</text>
+            <text class="item-price">¥{{priceRates.genealogy}}/个/月</text>
+          </view>
+          <view class="item-content">
+            <slider 
+              min="1" 
+              max="50" 
+              step="1" 
+              value="{{customPlan.genealogyCount}}"
+              activeColor="#6D4C41"
+              backgroundColor="#E0E0E0"
+              block-size="24"
+              bindchange="onGenealogyCountChange"
+              show-value="{{false}}"
+            />
+            <view class="count-selector">
+              <view class="count-btn" bindtap="decreaseGenealogyCount">-</view>
+              <input class="count-input" type="number" value="{{customPlan.genealogyCount}}" bindinput="onGenealogyCountInput" />
+              <view class="count-btn" bindtap="increaseGenealogyCount">+</view>
+            </view>
+          </view>
+          <view class="item-subtotal">
+            小计：¥{{priceStrings.genealogyTotal}}
+          </view>
+        </view>
+        
+        <!-- 席位数量 -->
+        <view class="subscription-item">
+          <view class="item-header">
+            <text class="item-title">席位数量</text>
+            <text class="item-price">¥{{priceRates.member}}/人/月</text>
+          </view>
+          <view class="item-content">
+            <slider 
+              min="30" 
+              max="5000" 
+              step="1" 
+              value="{{customPlan.memberCount}}"
+              activeColor="#6D4C41"
+              backgroundColor="#E0E0E0"
+              block-size="24"
+              bindchange="onMemberCountChange"
+              show-value="{{false}}"
+            />
+            <view class="count-selector">
+              <view class="count-btn" bindtap="decreaseMemberCount">-</view>
+              <input class="count-input" type="number" value="{{customPlan.memberCount}}" bindinput="onMemberCountInput" />
+              <view class="count-btn" bindtap="increaseMemberCount">+</view>
+            </view>
+            <view class="quick-options">
+              <view class="quick-option {{customPlan.memberCount === 30 ? 'active' : ''}}" data-value="30" bindtap="setQuickMemberCount">30人</view>
+              <view class="quick-option {{customPlan.memberCount === 50 ? 'active' : ''}}" data-value="50" bindtap="setQuickMemberCount">50人</view>
+              <view class="quick-option {{customPlan.memberCount === 100 ? 'active' : ''}}" data-value="100" bindtap="setQuickMemberCount">100人</view>
+            </view>
+          </view>
+          <view class="item-subtotal">
+            小计：¥{{priceStrings.memberTotal}}
+          </view>
+        </view>
+        
+        <!-- 存储空间 -->
+        <view class="subscription-item">
+          <view class="item-header">
+            <text class="item-title">存储空间</text>
+            <text class="item-price">¥{{priceRates.storage}}/GB/月</text>
+          </view>
+          <view class="item-content">
+            <slider 
+              min="1" 
+              max="100" 
+              step="1" 
+              value="{{customPlan.storageSize / (1024 * 1024 * 1024)}}"
+              activeColor="#6D4C41"
+              backgroundColor="#E0E0E0"
+              block-size="24"
+              bindchange="onStorageSizeChange"
+              show-value="{{false}}"
+            />
+            <view class="count-selector">
+              <view class="count-btn" bindtap="decreaseStorageSize">-</view>
+              <input class="count-input" type="number" value="{{customPlan.storageSize / (1024 * 1024 * 1024)}}" bindinput="onStorageSizeInput" />
+              <view class="count-btn" bindtap="increaseStorageSize">+</view>
+              <text class="unit">GB</text>
+            </view>
+          </view>
+          <view class="item-subtotal">
+            小计：¥{{priceStrings.storageTotal}}
+          </view>
+        </view>
+      </view>
+    </view>
+    
+    <!-- 订阅总计 -->
+    <view class="subscription-total card">
+      <view class="total-price">
+        <text class="total-label">总计金额：</text>
+        <text class="total-value">¥{{priceStrings.totalPrice}}/月</text>
+      </view>
+      <view class="discount" wx:if="{{customPlan.discount > 0}}">
+        <text class="discount-label">优惠：</text>
+        <text class="discount-value">-¥{{priceStrings.discount}}</text>
+      </view>
+      <view class="final-price">
+        <text class="final-label">支付金额：</text>
+        <text class="final-value">¥{{priceStrings.finalPrice}}/月</text>
+      </view>
+    </view>
+    
+    <!-- 支付按钮 -->
+    <view class="subscribe-actions">
+      <button class="btn-subscribe" bindtap="subscribe" disabled="{{!hasChanged}}">
+        {{hasChanged ? '立即订阅' : '请调整订阅内容'}}
+      </button>
+    </view>
+    
+    <!-- 说明信息 -->
+    <view class="subscription-info">
+      <view class="info-title">订阅说明</view>
+      <view class="info-item">1. 订阅成功后立即生效，可用资源将按新设置调整；</view>
+      <view class="info-item">2. 如有未到期的旧订阅，剩余时间将自动折算；</view>
+      <view class="info-item">3. 订阅到期后，将自动降级为免费版（1个族谱，50人席位，100MB存储空间）；</view>
+      <view class="info-item">4. 族谱数量是指可创建的族谱数量上限；</view>
+      <view class="info-item">5. 席位数量是指每个族谱中可添加的最大成员数；</view>
+      <view class="info-item">6. 存储空间用于储存照片、视频等媒体文件。</view>
+    </view>
+  </block>
+</view> 

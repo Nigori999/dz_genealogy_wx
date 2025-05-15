@@ -1,2 +1,33 @@
 <!--pages/switch-genealogy/switch-genealogy.wxml-->
-<text>pages/switch-genealogy/switch-genealogy.wxml</text>
+<view class="container">
+  <view class="page-title">我的族谱</view>
+  
+  <view class="genealogy-list">
+    <view wx:if="{{isLoading}}" class="list-loading">
+      <loading type="spinner" text="加载中..."></loading>
+    </view>
+    <block wx:elif="{{genealogies.length > 0}}">
+      <family-card 
+        wx:for="{{genealogies}}" 
+        wx:key="id"
+        genealogy="{{item}}"
+        bind:select="onGenealogySelect"
+        bind:edit="onGenealogyEdit"
+        bind:delete="onGenealogyDelete"
+        showActions="{{true}}"
+      ></family-card>
+      <view wx:if="{{!hasReachedGenealogyLimit}}" class="add-genealogy" bindtap="navigateToCreateGenealogy">
+        <text class="iconfont icon-add"></text>
+        <text>创建新族谱</text>
+      </view>
+    </block>
+    <view wx:else class="empty-genealogy">
+      <image class="empty-image" src="/assets/images/empty_genealogy.png" mode="aspectFit"></image>
+      <view class="empty-text">您还没有创建或加入任何族谱</view>
+      <view class="empty-actions">
+        <button class="btn-primary" bindtap="navigateToCreateGenealogy">创建族谱</button>
+        <button class="btn-secondary" bindtap="navigateToJoinGenealogy">加入族谱</button>
+      </view>
+    </view>
+  </view>
+</view>

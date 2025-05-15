@@ -61,6 +61,12 @@ Page({
     // 最大世代（用于确定可选世代范围）
     maxGeneration: 1,
     
+    // 世代选项数组
+    generationOptions: ['第1代'],
+    
+    // 配偶选择过滤数组
+    filteredSpouseMembers: [],
+    
     // 头像相关
     avatarUrl: '',
     hasChangedAvatar: false
@@ -96,6 +102,31 @@ Page({
     
     // 加载所有成员（用于选择父母和配偶）
     this._loadAllMembers(genealogyId);
+  },
+
+  /**
+   * 更新世代选项数组
+   */
+  _updateGenerationOptions: function(maxGeneration) {
+    const options = [];
+    for (let i = 0; i < maxGeneration; i++) {
+      options.push(`第${i + 1}代`);
+    }
+    this.setData({
+      generationOptions: options
+    });
+  },
+
+  /**
+   * 更新配偶选择列表
+   */
+  _updateFilteredSpouseMembers: function() {
+    const filteredMembers = this.data.allMembers.filter(m => 
+      !this.data.formData.spouseIds.includes(m.id)
+    );
+    this.setData({
+      filteredSpouseMembers: filteredMembers
+    });
   },
 
   /**
@@ -172,6 +203,9 @@ Page({
         // 计算最大世代
         const maxGeneration = Math.max(...filteredMembers.map(m => m.generation || 1));
         
+        // 更新世代选项
+        this._updateGenerationOptions(maxGeneration);
+        
         this.setData({
           allMembers: filteredMembers,
           maxGeneration,
@@ -180,6 +214,9 @@ Page({
         
         // 更新父母和配偶信息
         this._updateRelationships();
+        
+        // 更新配偶选择列表
+        this._updateFilteredSpouseMembers();
       })
       .catch(error => {
         console.error('Load members failed:', error);
@@ -559,5 +596,27 @@ Page({
    */
   cancelEdit: function () {
     wx.navigateBack();
+  },
+
+  /**
+   * 处理配偶复选框变更
+   */
+  onPickSpouseChange: function (e) {
+    const selectedId = e.detail.value[0];
+    let spouseIds = [...this.data.formData.spouseIds];
+    
+    // 切换选中状态
+    if (selectedId) {
+      if (!spouseIds.includes(selectedId)) {
+        spouseIds.push(selectedId);
+      } else {
+        spouseIds = spouseIds.filter(id => id !== selectedId);
+      }
+      
+      // 更新表单数据
+      this.setData({
+        'formData.spouseIds': spouseIds
+      });
+    }
   }
 });

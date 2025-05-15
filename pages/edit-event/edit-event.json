@@ -1,6 +1,7 @@
 {
   "navigationBarTitleText": "编辑事件",
   "usingComponents": {
-    "member-picker": "/components/member-picker/member-picker"
+    "member-picker": "/components/member-picker/member-picker",
+    "loading": "../../components/loading/loading"
   }
 }

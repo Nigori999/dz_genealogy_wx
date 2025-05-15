@@ -35,7 +35,7 @@
 
   <!-- 创建族谱引导 -->
   <view wx:else class="create-genealogy-guide">
-    <image class="guide-image" src="/images/create_genealogy.png" mode="aspectFit"></image>
+    <image class="guide-image" src="/assets/images/create_genealogy.png" mode="aspectFit"></image>
     <view class="guide-text">创建或加入一个族谱，记录您的家族历史</view>
     <view class="guide-actions">
       <button class="btn-primary" bindtap="createGenealogy">创建族谱</button>

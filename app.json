@@ -15,7 +15,14 @@
     "pages/invite/invite",
     "pages/join-genealogy/join-genealogy",
     "pages/switch-genealogy/switch-genealogy",
-    "pages/create-genealogy/create-genealogy"
+    "pages/create-genealogy/create-genealogy",
+    "pages/subscription/subscription",
+    "pages/edit-genealogy/edit-genealogy",
+    "pages/account/account",
+    "pages/account/bind-phone/bind-phone",
+    "pages/notification-setting/notification-setting",
+    "pages/notification-center/notification-center",
+    "pages/about/about"
   ],
   "window": {
     "backgroundTextStyle": "light",

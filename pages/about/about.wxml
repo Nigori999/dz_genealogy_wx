@@ -1,0 +1,85 @@
+<!-- 关于我们页面 -->
+<view class="container">
+  <view wx:if="{{isLoading}}" class="loading-container">
+    <loading type="spinner" text="加载中..."></loading>
+  </view>
+  <block wx:else>
+    <!-- 头部 -->
+    <view class="header">
+      <image class="app-logo" src="/assets/images/logo.png" mode="aspectFit"></image>
+      <view class="app-name">{{appInfo.name}}</view>
+      <view class="app-version">{{appInfo.version}}</view>
+    </view>
+    
+    <!-- 简介 -->
+    <view class="section">
+      <view class="section-header">
+        <text class="section-title">应用简介</text>
+      </view>
+      <view class="section-content">
+        <view class="description">{{appInfo.description}}</view>
+      </view>
+    </view>
+    
+    <!-- 功能特点 -->
+    <view class="section">
+      <view class="section-header">
+        <text class="section-title">功能特点</text>
+      </view>
+      <view class="section-content">
+        <view class="feature-list">
+          <view class="feature-item" wx:for="{{appInfo.features}}" wx:key="*this">
+            <text class="feature-dot">•</text>
+            <text class="feature-text">{{item}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+    
+    <!-- 联系我们 -->
+    <view class="section">
+      <view class="section-header">
+        <text class="section-title">联系我们</text>
+      </view>
+      <view class="section-content">
+        <view class="contact-list">
+          <view class="contact-item" bindtap="copyContact" data-type="email">
+            <text class="contact-icon iconfont icon-email"></text>
+            <view class="contact-info">
+              <view class="contact-type">电子邮箱</view>
+              <view class="contact-value">{{appInfo.contact.email}}</view>
+            </view>
+            <text class="contact-copy">复制</text>
+          </view>
+          <view class="contact-item" bindtap="copyContact" data-type="website">
+            <text class="contact-icon iconfont icon-website"></text>
+            <view class="contact-info">
+              <view class="contact-type">官方网站</view>
+              <view class="contact-value">{{appInfo.contact.website}}</view>
+            </view>
+            <text class="contact-copy">复制</text>
+          </view>
+          <view class="contact-item" bindtap="copyContact" data-type="weixin">
+            <text class="contact-icon iconfont icon-weixin"></text>
+            <view class="contact-info">
+              <view class="contact-type">微信公众号</view>
+              <view class="contact-value">{{appInfo.contact.weixin}}</view>
+            </view>
+            <text class="contact-copy">复制</text>
+          </view>
+        </view>
+      </view>
+    </view>
+    
+    <!-- 操作按钮 -->
+    <view class="action-buttons">
+      <button class="action-btn" bindtap="openUserAgreement">用户协议</button>
+      <button class="action-btn" bindtap="openPrivacyPolicy">隐私政策</button>
+    </view>
+    
+    <!-- 版权信息 -->
+    <view class="copyright">
+      <text>{{appInfo.copyright}}</text>
+    </view>
+  </block>
+</view> 

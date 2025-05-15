@@ -1,4 +1,6 @@
 {
   "navigationBarTitleText": "成员详情",
-  "usingComponents": {}
+  "usingComponents": {
+    "timeline-item": "../../components/timeline-item/timeline-item"
+  }
 }

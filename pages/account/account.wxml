@@ -1,0 +1,153 @@
+<!-- 账户与安全设置页面 -->
+<view class="container">
+  <view wx:if="{{isLoading}}" class="loading-container">
+    <loading type="spinner" text="加载中..."></loading>
+  </view>
+  <block wx:else>
+    <!-- 账户安全 -->
+    <view class="section">
+      <view class="section-header">
+        <text class="section-title">账户安全</text>
+      </view>
+      <view class="section-content">
+        <!-- 微信信息 -->
+        <view class="setting-item">
+          <view class="item-left">
+            <text class="item-icon iconfont icon-wechat"></text>
+            <text class="item-name">微信账号</text>
+          </view>
+          <view class="item-right">
+            <text class="item-value">已关联</text>
+          </view>
+        </view>
+        
+        <!-- 手机绑定 -->
+        <view class="setting-item" bindtap="bindPhoneNumber">
+          <view class="item-left">
+            <text class="item-icon iconfont icon-phone"></text>
+            <text class="item-name">手机绑定</text>
+          </view>
+          <view class="item-right">
+            <text class="item-value">{{hasBoundPhone ? phoneNumberHidden : '未绑定'}}</text>
+            <text class="iconfont icon-arrow-right"></text>
+          </view>
+        </view>
+      </view>
+    </view>
+    
+    <!-- 隐私授权 -->
+    <view class="section">
+      <view class="section-header">
+        <text class="section-title">隐私授权</text>
+      </view>
+      <view class="section-content">
+        <view class="auth-summary">
+          <text>已授权{{authCount}}/{{totalAuthCount}}项</text>
+          <text class="auth-manage" bindtap="openAuthSetting">管理</text>
+        </view>
+        
+        <view class="auth-items">
+          <view class="auth-item {{authSettings.userInfo ? 'authorized' : ''}}">
+            <text class="auth-name">用户信息</text>
+          </view>
+          <view class="auth-item {{authSettings.userLocation ? 'authorized' : ''}}">
+            <text class="auth-name">地理位置</text>
+          </view>
+          <view class="auth-item {{authSettings.address ? 'authorized' : ''}}">
+            <text class="auth-name">通讯地址</text>
+          </view>
+          <view class="auth-item {{authSettings.album ? 'authorized' : ''}}">
+            <text class="auth-name">相册</text>
+          </view>
+          <view class="auth-item {{authSettings.camera ? 'authorized' : ''}}">
+            <text class="auth-name">摄像头</text>
+          </view>
+        </view>
+      </view>
+    </view>
+    
+    <!-- 账户信息 -->
+    <view class="section">
+      <view class="section-header">
+        <text class="section-title">账户信息</text>
+      </view>
+      <view class="section-content">
+        <!-- 昵称 -->
+        <view class="setting-item">
+          <view class="item-left">
+            <text class="item-name">昵称</text>
+          </view>
+          <view class="item-right">
+            <text class="item-value">{{userInfo.nickname || '未设置'}}</text>
+          </view>
+        </view>
+        
+        <!-- 用户ID -->
+        <view class="setting-item">
+          <view class="item-left">
+            <text class="item-name">用户ID</text>
+          </view>
+          <view class="item-right">
+            <text class="item-value">{{userInfo.uid || '-'}}</text>
+            <text class="item-copy" catchtap="copyUserId">复制</text>
+          </view>
+        </view>
+        
+        <!-- 注册时间 -->
+        <view class="setting-item">
+          <view class="item-left">
+            <text class="item-name">注册时间</text>
+          </view>
+          <view class="item-right">
+            <text class="item-value">{{userInfo.createTime || '-'}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+    
+    <!-- 数据管理 -->
+    <view class="section">
+      <view class="section-header">
+        <text class="section-title">数据管理</text>
+      </view>
+      <view class="section-content">
+        <!-- 数据导出 -->
+        <view class="setting-item" bindtap="exportData">
+          <view class="item-left">
+            <text class="item-icon iconfont icon-export"></text>
+            <text class="item-name">数据导出</text>
+          </view>
+          <view class="item-right">
+            <text class="iconfont icon-arrow-right"></text>
+          </view>
+        </view>
+        
+        <!-- 清除缓存 -->
+        <view class="setting-item" bindtap="clearCache">
+          <view class="item-left">
+            <text class="item-icon iconfont icon-clear"></text>
+            <text class="item-name">清除缓存</text>
+          </view>
+          <view class="item-right">
+            <text class="iconfont icon-arrow-right"></text>
+          </view>
+        </view>
+      </view>
+    </view>
+    
+    <!-- 账号注销 -->
+    <view class="section">
+      <view class="section-header">
+        <text class="section-title">账号注销</text>
+      </view>
+      <view class="section-content">
+        <view class="delete-account" bindtap="deleteAccount">
+          <text>注销账号</text>
+        </view>
+        <view class="delete-hint">
+          <text>注销后，账号关联的所有数据将被永久删除且无法恢复</text>
+        </view>
+      </view>
+    </view>
+  </block>
+</view> 

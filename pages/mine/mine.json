@@ -1,4 +1,7 @@
 {
   "navigationBarTitleText": "我的",
-  "usingComponents": {}
+  "usingComponents": {
+    "loading": "../../components/loading/loading",
+    "family-card": "../../components/family-card/family-card"
+  }
 }

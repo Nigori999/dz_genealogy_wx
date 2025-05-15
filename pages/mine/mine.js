@@ -1,6 +1,7 @@
 // 个人中心页面
 const app = getApp();
 const api = require('../../services/api');
+const notificationService = require('../../services/notification');
 
 Page({
   /**
@@ -17,7 +18,8 @@ Page({
       memberLimit: 10,
       storageLimit: 100 // MB
     },
-    hasReachedGenealogyLimit: false
+    hasReachedGenealogyLimit: false,
+    unreadCount: 0 // 未读通知数量
   },
 
   /**
@@ -36,6 +38,9 @@ Page({
     this.setData({
       currentGenealogy: app.getCurrentGenealogy()
     });
+    
+    // 获取未读通知数量
+    this._loadUnreadNotificationCount();
     
     // 如果有更新，重新加载数据
     if (this.needRefresh) {
@@ -82,8 +87,14 @@ Page({
     // 加载族谱列表
     api.genealogyAPI.getMyGenealogies()
       .then(genealogies => {
+        // 确保genealogies是数组
+        if (!Array.isArray(genealogies)) {
+          console.warn('API返回的genealogies不是数组，已转换为空数组:', genealogies);
+          genealogies = [];
+        }
+        
         this.setData({
-          genealogies: genealogies || [],
+          genealogies: genealogies,
           isLoading: false
         });
         
@@ -92,11 +103,31 @@ Page({
       })
       .catch(error => {
         console.error('Load genealogies failed:', error);
-        this.setData({ isLoading: false });
+        this.setData({ 
+          isLoading: false,
+          genealogies: [] 
+        });
       });
     
     // 加载订阅信息
     this._loadSubscriptionInfo();
+  },
+
+  /**
+   * 加载未读通知数量
+   */
+  _loadUnreadNotificationCount: function() {
+    notificationService.getUnreadCount()
+      .then(res => {
+        if (res.success) {
+          this.setData({
+            unreadCount: res.data.count || 0
+          });
+        }
+      })
+      .catch(err => {
+        console.error('Load unread notification count failed:', err);
+      });
   },
 
   /**
@@ -126,6 +157,15 @@ Page({
     const { genealogies, subscriptionPlan } = this.data;
     
     if (genealogies && subscriptionPlan) {
+      // 确保genealogies是数组
+      if (!Array.isArray(genealogies)) {
+        console.warn('genealogies is not an array:', genealogies);
+        this.setData({
+          hasReachedGenealogyLimit: false
+        });
+        return;
+      }
+      
       // 检查自己创建的族谱数量是否达到上限
       const ownGenealogies = genealogies.filter(g => g.isOwner);
       const hasReachedLimit = ownGenealogies.length >= subscriptionPlan.genealogyLimit;
@@ -282,8 +322,11 @@ Page({
       return;
     }
     
-    wx.navigateTo({
-      url: `/pages/family-manager/family-manager?genealogyId=${this.data.currentGenealogy.id}`
+    wx.showModal({
+      title: '族谱席位管理',
+      content: '您可以在这里管理族谱的成员席位，包括添加、移除和设置成员权限。\n\n本功能开发中，敬请期待！',
+      showCancel: false,
+      confirmText: '我知道了'
     });
   },
 
@@ -299,8 +342,11 @@ Page({
       return;
     }
     
-    wx.navigateTo({
-      url: `/pages/invite-manager/invite-manager?genealogyId=${this.data.currentGenealogy.id}`
+    wx.showModal({
+      title: '邀请管理',
+      content: '您可以在这里查看和管理发出的邀请，包括生成新的邀请码、撤销邀请等操作。\n\n本功能开发中，敬请期待！',
+      showCancel: false,
+      confirmText: '我知道了'
     });
   },
 
@@ -316,17 +362,20 @@ Page({
       return;
     }
     
-    wx.navigateTo({
-      url: `/pages/data-export/data-export?genealogyId=${this.data.currentGenealogy.id}`
+    wx.showModal({
+      title: '数据导出',
+      content: '您可以将族谱数据导出为多种格式，包括Excel、PDF和GEDCOM格式，方便打印或与其他族谱软件共享。\n\n本功能开发中，敬请期待！',
+      showCancel: false,
+      confirmText: '我知道了'
     });
   },
 
   /**
-   * 导航到账户设置页面
+   * 导航到账户与安全页面
    */
   navigateToAccountSetting: function () {
     wx.navigateTo({
-      url: '/pages/account-setting/account-setting'
+      url: '/pages/account/account'
     });
   },
 
@@ -343,8 +392,11 @@ Page({
    * 导航到帮助中心页面
    */
   navigateToHelp: function () {
-    wx.navigateTo({
-      url: '/pages/help/help'
+    wx.showModal({
+      title: '帮助中心',
+      content: '如需帮助，请通过以下方式联系我们：\n1. 微信公众号：yunzupu666\n2. 电子邮箱：contact@yunzupu.com\n3. 官方网站：https://www.yunzupu.com',
+      showCancel: false,
+      confirmText: '我知道了'
     });
   },
 
@@ -361,8 +413,11 @@ Page({
    * 导航到意见反馈页面
    */
   navigateToFeedback: function () {
-    wx.navigateTo({
-      url: '/pages/feedback/feedback'
+    wx.showModal({
+      title: '意见反馈',
+      content: '感谢您使用云族谱！我们非常重视您的体验和建议。\n\n请通过以下方式向我们提供反馈：\n- 微信公众号：yunzupu666\n- 电子邮箱：feedback@yunzupu.com',
+      showCancel: false,
+      confirmText: '我知道了'
     });
   },
 
@@ -386,6 +441,7 @@ Page({
    */
   onPullDownRefresh: function () {
     this._loadUserData();
+    this._loadUnreadNotificationCount();
     
     setTimeout(() => {
       wx.stopPullDownRefresh();

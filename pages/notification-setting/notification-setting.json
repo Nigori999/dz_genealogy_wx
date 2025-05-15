@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "通知设置",
+  "usingComponents": {
+    "loading": "../../components/loading/loading"
+  }
+} 

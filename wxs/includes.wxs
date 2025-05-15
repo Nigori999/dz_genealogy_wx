@@ -1,0 +1,11 @@
+/**
+ * 提供includes方法供WXML使用
+ * 因为WXML中不能直接使用Array.includes方法
+ */
+var includes = function (array, searchElement) {
+  return array.indexOf(searchElement) !== -1;
+}
+
+module.exports = {
+  includes: includes
+}; 

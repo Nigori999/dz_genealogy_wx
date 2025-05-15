@@ -111,8 +111,23 @@ Page({
           filteredMembers: members
         });
         
+        // 获取当前族谱，确保存在且有rootMemberId
+        const currentGenealogy = this.data.currentGenealogy;
+        if (!currentGenealogy) {
+          console.warn('构建族谱树失败: 当前族谱为null');
+          this.setData({ isLoading: false });
+          return;
+        }
+        
+        // 检查rootMemberId是否存在，如果不存在则使用第一个成员的ID
+        let rootMemberId = currentGenealogy.rootMemberId;
+        if (!rootMemberId && members.length > 0) {
+          rootMemberId = members[0].id;
+          console.log('使用第一个成员ID作为根节点:', rootMemberId);
+        }
+        
         // 构建族谱树
-        this._buildFamilyTree(members, this.data.currentGenealogy.rootMemberId);
+        this._buildFamilyTree(members, rootMemberId);
       })
       .catch(error => {
         console.error('Load members failed:', error);
@@ -129,6 +144,32 @@ Page({
    * 构建族谱树
    */
   _buildFamilyTree: function (members, rootMemberId) {
+    // 添加参数验证
+    if (!members || !members.length) {
+      console.warn('构建族谱树失败: 成员列表为空');
+      this.setData({
+        familyTree: null,
+        isLoading: false
+      });
+      return;
+    }
+    
+    if (!rootMemberId) {
+      console.warn('构建族谱树失败: 根成员ID为空');
+      // 尝试从成员列表中找到一个作为根节点
+      const firstMember = members[0];
+      if (firstMember) {
+        rootMemberId = firstMember.id;
+        console.log('使用第一个成员作为根节点:', rootMemberId);
+      } else {
+        this.setData({
+          familyTree: null,
+          isLoading: false
+        });
+        return;
+      }
+    }
+    
     // 使用树形结构工具构建族谱树
     const familyTree = treeUtil.buildFamilyTree(members, rootMemberId);
     
@@ -318,6 +359,12 @@ Page({
     
     // 重新构建族谱树布局
     setTimeout(() => {
+      // 添加检查，确保currentGenealogy不为null
+      if (!this.data.currentGenealogy) {
+        console.warn('切换方向失败: currentGenealogy为null');
+        this.setData({ isLoading: false });
+        return;
+      }
       this._buildFamilyTree(this.data.allMembers, this.data.currentGenealogy.rootMemberId);
     }, 100);
   },

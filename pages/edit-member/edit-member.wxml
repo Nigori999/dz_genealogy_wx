@@ -1,4 +1,7 @@
 <!-- 编辑成员页面 -->
+<!-- 引入wxs工具模块 -->
+<wxs module="tools" src="/wxs/includes.wxs"></wxs>
+
 <view class="container">
   <view class="page-header">
     <view class="header-title">编辑家族成员</view>
@@ -13,7 +16,7 @@
       <view class="avatar-upload" bindtap="uploadAvatar">
         <image 
           class="avatar-image" 
-          src="{{avatarUrl || (formData.gender === 'male' ? '/images/avatar_male_default.png' : '/images/avatar_female_default.png')}}" 
+          src="{{avatarUrl || (formData.gender === 'male' ? '/assets/images/avatar_male_default.png' : '/assets/images/avatar_female_default.png')}}" 
           mode="aspectFill"
         ></image>
         <view class="avatar-upload-text">点击更换头像</view>
@@ -48,7 +51,7 @@
         <view class="form-label">世代</view>
         <picker 
           mode="selector" 
-          range="{{[...Array(maxGeneration).keys()].map(i => '第' + (i+1) + '代')}}" 
+          range="{{generationOptions}}" 
           value="{{formData.generation - 1}}" 
           bindchange="onGenerationChange"
         >
@@ -116,7 +119,7 @@
         <view wx:else class="relation-item">
           <image 
             class="relation-avatar" 
-            src="{{parentMember.avatar || (parentMember.gender === 'male' ? '/images/avatar_male_default.png' : '/images/avatar_female_default.png')}}" 
+            src="{{parentMember.avatar || (parentMember.gender === 'male' ? '/assets/images/avatar_male_default.png' : '/assets/images/avatar_female_default.png')}}" 
             mode="aspectFill"
           ></image>
           <text class="relation-name">{{parentMember.name}}</text>
@@ -141,7 +144,7 @@
           >
             <image 
               class="relation-avatar" 
-              src="{{item.avatar || (item.gender === 'male' ? '/images/avatar_male_default.png' : '/images/avatar_female_default.png')}}" 
+              src="{{item.avatar || (item.gender === 'male' ? '/assets/images/avatar_male_default.png' : '/assets/images/avatar_female_default.png')}}" 
               mode="aspectFill"
             ></image>
             <text class="relation-name">{{item.name}}</text>
@@ -230,7 +233,7 @@
         >
           <image 
             class="member-avatar" 
-            src="{{item.avatar || (item.gender === 'male' ? '/images/avatar_male_default.png' : '/images/avatar_female_default.png')}}" 
+            src="{{item.avatar || (item.gender === 'male' ? '/assets/images/avatar_male_default.png' : '/assets/images/avatar_female_default.png')}}" 
             mode="aspectFill"
           ></image>
           <view class="member-info">
@@ -254,16 +257,16 @@
       </view>
       <scroll-view scroll-y class="member-list">
         <view 
-          wx:for="{{allMembers.filter(m => !formData.spouseIds.includes(m.id))}}" 
+          wx:for="{{filteredSpouseMembers}}" 
           wx:key="id" 
           class="member-item"
         >
           <checkbox-group bindchange="onPickSpouseChange">
             <label class="member-checkbox">
-              <checkbox value="{{item.id}}" checked="{{formData.spouseIds.includes(item.id)}}" />
+              <checkbox value="{{item.id}}" checked="{{tools.includes(formData.spouseIds, item.id)}}" />
               <image 
                 class="member-avatar" 
-                src="{{item.avatar || (item.gender === 'male' ? '/images/avatar_male_default.png' : '/images/avatar_female_default.png')}}" 
+                src="{{item.avatar || (item.gender === 'male' ? '/assets/images/avatar_male_default.png' : '/assets/images/avatar_female_default.png')}}" 
                 mode="aspectFill"
               ></image>
               <view class="member-info">

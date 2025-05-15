@@ -1,4 +1,7 @@
 <!-- 成员选择器组件 -->
+<!-- 引入wxs工具模块 -->
+<wxs module="tools" src="/wxs/includes.wxs"></wxs>
+
 <view class="member-picker-modal" wx:if="{{visible}}">
   <view class="modal-mask" bindtap="onCancel"></view>
   <view class="modal-content">
@@ -24,21 +27,21 @@
       <block wx:if="{{mode === 'single'}}">
         <view 
           wx:for="{{filteredMembers}}" 
-          wx:key="id" 
-          class="member-item {{internalSelectedIds.includes(item.id) ? 'selected' : ''}}"
+          wx:key="id"
+          class="member-item {{tools.includes(internalSelectedIds, item.id) ? 'selected' : ''}}"
           bindtap="onItemClick"
           data-id="{{item.id}}"
         >
           <image 
             class="member-avatar" 
-            src="{{item.avatar || (item.gender === 'male' ? '/images/avatar_male_default.png' : '/images/avatar_female_default.png')}}" 
+            src="{{item.avatar || (item.gender === 'male' ? '/assets/images/avatar_male_default.png' : '/assets/images/avatar_female_default.png')}}" 
             mode="aspectFill"
           ></image>
           <view class="member-info">
             <text class="member-name">{{item.name}}</text>
             <text class="member-meta">{{item.gender === 'male' ? '男' : '女'}} · 第{{item.generation || 1}}代</text>
           </view>
-          <view class="member-select-icon" wx:if="{{internalSelectedIds.includes(item.id)}}">
+          <view class="member-select-icon" wx:if="{{tools.includes(internalSelectedIds, item.id)}}">
             <text class="iconfont icon-check"></text>
           </view>
         </view>
@@ -49,14 +52,14 @@
         <checkbox-group bindchange="onCheckboxChange">
           <view 
             wx:for="{{filteredMembers}}" 
-            wx:key="id" 
-            class="member-item {{internalSelectedIds.includes(item.id) ? 'selected' : ''}}"
+            wx:key="id"
+            class="member-item {{tools.includes(internalSelectedIds, item.id) ? 'selected' : ''}}"
           >
             <label class="member-checkbox">
-              <checkbox value="{{item.id}}" checked="{{internalSelectedIds.includes(item.id)}}" />
+              <checkbox value="{{item.id}}" checked="{{tools.includes(internalSelectedIds, item.id)}}" />
               <image 
                 class="member-avatar" 
-                src="{{item.avatar || (item.gender === 'male' ? '/images/avatar_male_default.png' : '/images/avatar_female_default.png')}}" 
+                src="{{item.avatar || (item.gender === 'male' ? '/assets/images/avatar_male_default.png' : '/assets/images/avatar_female_default.png')}}" 
                 mode="aspectFill"
               ></image>
               <view class="member-info">

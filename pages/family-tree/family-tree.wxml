@@ -111,7 +111,7 @@
         ></tree-connector>
       </block>
       <view wx:else class="tree-empty">
-        <image class="empty-image" src="/images/empty_tree.png" mode="aspectFit"></image>
+        <image class="empty-image" src="/assets/images/empty_tree.png" mode="aspectFit"></image>
         <view class="empty-text">暂无家族成员，开始添加第一位成员吧</view>
         <button class="btn-primary" bindtap="navigateToAddMember">添加成员</button>
       </view>
@@ -142,7 +142,7 @@
       </view>
     </block>
     <view wx:else class="list-empty">
-      <image class="empty-image" src="/images/empty_members.png" mode="aspectFit"></image>
+      <image class="empty-image" src="/assets/images/empty_members.png" mode="aspectFit"></image>
       <view class="empty-text">暂无家族成员，开始添加第一位成员吧</view>
       <button class="btn-primary" bindtap="navigateToAddMember">添加成员</button>
     </view>

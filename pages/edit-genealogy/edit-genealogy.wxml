@@ -1,0 +1,147 @@
+<!-- 编辑族谱页面 -->
+<view class="container">
+  <view wx:if="{{isLoading}}" class="loading-container">
+    <loading type="spinner" text="加载中..."></loading>
+  </view>
+  <block wx:else>
+    <form bindsubmit="submitForm">
+      <!-- 基本信息 -->
+      <view class="form-group">
+        <view class="form-title">基本信息</view>
+        
+        <!-- 族谱名称 -->
+        <view class="form-item">
+          <view class="form-label">
+            <text class="required">*</text>族谱名称
+          </view>
+          <input 
+            class="form-input" 
+            name="name" 
+            value="{{formData.name}}"
+            placeholder="请输入族谱名称" 
+            maxlength="30"
+          />
+          <view class="input-counter">{{formData.name.length}}/30</view>
+        </view>
+        
+        <!-- 姓氏 -->
+        <view class="form-item">
+          <view class="form-label">
+            <text class="required">*</text>姓氏
+          </view>
+          <input 
+            class="form-input" 
+            name="surname" 
+            value="{{formData.surname}}"
+            placeholder="请输入姓氏" 
+            maxlength="10"
+          />
+        </view>
+        
+        <!-- 描述 -->
+        <view class="form-item">
+          <view class="form-label">描述</view>
+          <textarea 
+            class="form-textarea" 
+            name="description" 
+            value="{{formData.description}}"
+            placeholder="请输入族谱描述" 
+            maxlength="200"
+          ></textarea>
+          <view class="input-counter">{{formData.description.length || 0}}/200</view>
+        </view>
+      </view>
+      
+      <!-- 高级设置 -->
+      <view class="form-group">
+        <view class="form-title">高级设置</view>
+        
+        <!-- 是否公开 -->
+        <view class="form-item switch-item">
+          <view class="switch-label">公开族谱</view>
+          <switch 
+            name="isPublic" 
+            checked="{{formData.isPublic}}" 
+            color="#6D4C41"
+          />
+        </view>
+        <view class="switch-tips">
+          公开后，其他用户可以通过搜索或邀请码查找并申请加入此族谱
+        </view>
+        
+        <!-- 加入方式 -->
+        <view class="form-item">
+          <view class="form-label">加入方式</view>
+          <radio-group name="joinMethod" class="join-method-group">
+            <label class="radio-item">
+              <radio 
+                value="approval" 
+                checked="{{formData.joinMethod === 'approval'}}" 
+                color="#6D4C41"
+              />需审核
+            </label>
+            <label class="radio-item">
+              <radio 
+                value="direct" 
+                checked="{{formData.joinMethod === 'direct'}}" 
+                color="#6D4C41"
+              />直接加入
+            </label>
+          </radio-group>
+        </view>
+        
+        <!-- 邀请码 -->
+        <view class="form-item">
+          <view class="form-label">邀请码</view>
+          <view class="invite-code-container">
+            <input 
+              class="form-input invite-code" 
+              disabled 
+              value="{{formData.inviteCode}}" 
+            />
+            <button class="btn-generate" bindtap="generateInviteCode">重新生成</button>
+          </view>
+        </view>
+      </view>
+      
+      <!-- 封面图片 -->
+      <view class="form-group">
+        <view class="form-title">封面图片</view>
+        <view class="cover-preview">
+          <image 
+            wx:if="{{formData.coverImage}}" 
+            src="{{formData.coverImage}}" 
+            mode="aspectFill" 
+            class="cover-image"
+            bindtap="previewCover"
+          ></image>
+          <view 
+            wx:else 
+            class="cover-placeholder"
+            bindtap="uploadCover"
+          >
+            <text class="iconfont icon-image"></text>
+            <text class="upload-text">上传封面</text>
+          </view>
+        </view>
+        <view class="form-tips">建议上传高清图片作为族谱封面</view>
+        <button 
+          wx:if="{{formData.coverImage}}" 
+          class="btn-upload" 
+          bindtap="uploadCover"
+        >更换封面</button>
+      </view>
+      
+      <!-- 提交按钮 -->
+      <view class="form-actions">
+        <button class="btn-cancel" bindtap="navigateBack">取消</button>
+        <button 
+          class="btn-submit" 
+          form-type="submit" 
+          loading="{{isSubmitting}}"
+          disabled="{{isSubmitting}}"
+        >保存</button>
+      </view>
+    </form>
+  </block>
+</view>
