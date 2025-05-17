@@ -1,39 +1,33 @@
 /**
  * 图像缓存管理器
- * 负责图像加载、缓存和管理
+ * 管理族谱树中的图像纹理和缓存
  */
 
 class ImageCacheManager {
   /**
    * 构造函数
-   * @param {Object} options - 配置项
+   * @param {Object} options - 配置选项
    * @param {Number} options.maxCacheSize - 最大缓存数量
    * @param {Function} options.onImageLoaded - 图像加载完成回调
    */
   constructor(options = {}) {
-    // 配置选项
     this.maxCacheSize = options.maxCacheSize || 100;
     this.onImageLoaded = options.onImageLoaded || (() => {});
     
     // 图像缓存
-    this._cache = new Map();
+    this.imageCache = {};
+    // 纹理缓存
+    this.textureCache = {};
     // 加载队列
-    this._loadQueue = [];
-    // 正在加载的URL集合
-    this._loadingUrls = new Set();
-    // 缓存使用计数
-    this._usageCount = new Map();
-    // 加载失败计数
-    this._failureCount = new Map();
-    // 加载失败阈值
-    this.maxFailures = 3;
-    // Canvas实例（用于创建Image对象）
-    this._canvas = null;
-    
-    // 精灵图缓存
-    this._spriteCache = new Map();
-    // 精灵图URL集合
-    this._spriteUrls = new Set();
+    this.loadQueue = [];
+    // 优先加载队列 - 新增优先队列提高关键图像的加载优先级
+    this.priorityQueue = [];
+    // 是否正在加载
+    this.isLoading = false;
+    // WebGL上下文
+    this.gl = null;
+    // Canvas元素
+    this.canvas = null;
     
     // 加载统计
     this._stats = {
@@ -41,7 +35,8 @@ class ImageCacheManager {
       misses: 0,
       errors: 0,
       loads: 0,
-      evictions: 0
+      evictions: 0,
+      priority: 0
     };
     
     // 标志位
@@ -50,72 +45,66 @@ class ImageCacheManager {
     
     // 绑定方法
     this._processQueue = this._processQueue.bind(this);
+    
+    // 精灵图支持
+    this._sprite = {
+      enabled: false,
+      map: {},
+      textures: {}
+    };
   }
   
   /**
    * 初始化
-   * @param {Object} canvas - Canvas实例
+   * @param {Object} canvas - Canvas元素
    */
   init(canvas) {
     if (this._initialized) return;
     
-    this._canvas = canvas;
+    this.canvas = canvas;
     this._initialized = true;
     console.log('[ImageCacheManager] 初始化完成');
-  }
-  
-  /**
-   * 将图像加入加载队列
-   * @param {String} url - 图像URL
-   * @param {Boolean} isPriority - 是否优先加载
-   * @param {Boolean} isSprite - 是否为精灵图
-   */
-  queueImageLoad(url, isPriority = false, isSprite = false) {
-    if (!url) return;
     
-    // 已缓存或正在加载，不重复处理
-    if (this._cache.has(url) || this._loadingUrls.has(url)) {
-      // 更新使用计数
-      this._updateUsageCount(url);
-      return;
-    }
-    
-    // 检查失败计数，超过阈值则不再尝试加载
-    if (this._failureCount.has(url) && this._failureCount.get(url) >= this.maxFailures) {
-      return;
-    }
-    
-    // 添加加载项
-    const loadItem = { url, isPriority, isSprite };
-    
-    // 根据优先级加入队列
-    if (isPriority) {
-      // 优先加载项添加到队列头部
-      this._loadQueue.unshift(loadItem);
-    } else {
-      // 普通加载项添加到队列尾部
-      this._loadQueue.push(loadItem);
-    }
-    
-    // 如果未在加载中，启动加载过程
-    if (!this._isProcessing) {
-      this._processQueue();
+    // 尝试获取WebGL上下文
+    try {
+      this.gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    } catch (e) {
+      console.warn('[图像缓存] 获取WebGL上下文失败:', e.message);
     }
   }
   
   /**
-   * 批量添加图像到加载队列
-   * @param {Array<String>} urls - 图像URL数组
-   * @param {Boolean} isPriority - 是否优先加载
-   * @param {Boolean} isSprite - 是否为精灵图
+   * 队列加载图像
+   * @param {String} src - 图像URL
+   * @param {Boolean} isRequired - 是否必需
+   * @param {Boolean} isSprite - 是否是精灵图
    */
-  queueBatchLoad(urls, isPriority = false, isSprite = false) {
-    if (!urls || !urls.length) return;
+  queueImageLoad(src, isRequired = false, isSprite = false) {
+    if (!src) return;
     
-    // 遍历URLs，添加到队列
-    urls.forEach(url => {
-      this.queueImageLoad(url, isPriority, isSprite);
-    });
+    // 图像已在缓存中，无需重新加载
+    if (this.imageCache[src]) {
+      this._stats.hits++;
+      return;
+    }
+    
+    this._stats.misses++;
+    
+    // 添加到加载队列
+    const queue = isRequired ? this.priorityQueue : this.loadQueue;
+    if (!queue.some(item => item.src === src)) {
+      queue.push({
+        src,
+        isRequired,
+        isSprite,
+        timestamp: Date.now()
+      });
+      
+      // 如果当前没有加载任务，开始加载
+      if (!this.isLoading) {
+        this._processQueue();
+      }
+    }
   }
   
   /**
@@ -123,315 +112,456 @@ class ImageCacheManager {
    * @private
    */
   _processQueue() {
-    if (this._loadQueue.length === 0) {
-      this._isProcessing = false;
-      return;
-    }
+    // 优先处理优先队列中的项目
+    const queue = this.priorityQueue.length > 0 ? this.priorityQueue : this.loadQueue;
     
-    this._isProcessing = true;
-    
-    // 同时处理多个加载请求（最多4个）
-    const batchSize = 4;
-    const batch = [];
-    
-    // 从队列中取出最多batchSize个加载项
-    while (batch.length < batchSize && this._loadQueue.length > 0) {
-      const item = this._loadQueue.shift();
-      
-      // 如果URL不在加载中，则添加到批次
-      if (!this._loadingUrls.has(item.url)) {
-        batch.push(item);
-        this._loadingUrls.add(item.url);
-      }
-    }
-    
-    // 批量加载
-    batch.forEach(item => {
-      this._loadImage(item.url, item.isSprite);
-    });
-  }
-  
-  /**
-   * 加载图像
-   * @param {String} url - 图像URL
-   * @param {Boolean} isSprite - 是否为精灵图
-   * @private
-   */
-  _loadImage(url, isSprite = false) {
-    if (!this._canvas || !this._initialized) {
-      console.warn('[ImageCacheManager] 尚未初始化，无法加载图像');
-      this._loadingUrls.delete(url);
-      return;
-    }
-    
-    try {
-      // 创建Image对象
-      const img = this._canvas.createImage();
-      
-      // 加载成功处理
-      img.onload = () => {
-        // 将图像添加到缓存
-        this._cache.set(url, img);
-        
-        // 更新使用计数
-        this._updateUsageCount(url);
-        
-        // 如果是精灵图，设置特殊标记
-        if (isSprite) {
-          this._spriteCache.set(url, true);
-        }
-        
-        // 清除加载中标志
-        this._loadingUrls.delete(url);
-        
-        // 更新统计数据
-        this._stats.loads++;
-        
-        // 执行回调
-        this.onImageLoaded(url, img, isSprite);
-        
-        // 检查缓存大小并清理
-        this._checkAndCleanCache();
-        
-        // 继续处理队列
-        this._processQueue();
-      };
-      
-      // 加载失败处理
-      img.onerror = (err) => {
-        console.error('[ImageCacheManager] 图像加载失败:', url, err);
-        
-        // 更新失败计数
-        if (!this._failureCount.has(url)) {
-          this._failureCount.set(url, 1);
-        } else {
-          this._failureCount.set(url, this._failureCount.get(url) + 1);
-        }
-        
-        // 清除加载中标志
-        this._loadingUrls.delete(url);
-        
-        // 更新统计数据
-        this._stats.errors++;
-        
-        // 继续处理队列
-        this._processQueue();
-      };
-      
-      // 开始加载图像
-      img.src = url;
-    } catch (error) {
-      console.error('[ImageCacheManager] 创建图像对象失败:', url, error);
-      
-      // 清除加载中标志
-      this._loadingUrls.delete(url);
-      
-      // 更新统计数据
-      this._stats.errors++;
-      
-      // 继续处理队列
-      this._processQueue();
-    }
-  }
-  
-  /**
-   * 更新使用计数
-   * @param {String} url - 图像URL
-   * @private
-   */
-  _updateUsageCount(url) {
-    if (!this._usageCount.has(url)) {
-      this._usageCount.set(url, 1);
-    } else {
-      this._usageCount.set(url, this._usageCount.get(url) + 1);
-    }
-  }
-  
-  /**
-   * 检查并清理缓存
-   * @private
-   */
-  _checkAndCleanCache() {
-    // 如果缓存大小未超过限制，不需要清理
-    if (this._cache.size <= this.maxCacheSize) {
-      return;
-    }
-    
-    // 计算需要清除的数量
-    const toRemove = this._cache.size - this.maxCacheSize;
-    
-    // 将缓存项按使用计数排序，移除使用频率最低的项
-    const items = [];
-    this._cache.forEach((value, key) => {
-      // 精灵图不参与清理
-      if (this._spriteCache.has(key)) {
+    if (queue.length === 0) {
+      // 两个队列都为空
+      if (this.priorityQueue.length === 0 && this.loadQueue.length === 0) {
+        this.isLoading = false;
         return;
       }
       
-      items.push({
-        url: key,
-        count: this._usageCount.get(key) || 0
+      // 优先队列为空，但普通队列有内容
+      this._processQueue();
+      return;
+    }
+    
+    this.isLoading = true;
+    const item = queue.shift();
+    
+    if (item.isRequired) {
+      this._stats.priority++;
+    }
+    
+    wx.getImageInfo({
+      src: item.src,
+      success: (res) => {
+        // 缓存图像信息
+        this.imageCache[item.src] = res;
+        this._stats.loads++;
+        
+        // 如果是WebGL模式且有上下文，创建纹理
+        if (this.gl && !this.textureCache[item.src]) {
+          this._createTexture(item.src, res);
+        }
+        
+        // 回调通知
+        this.onImageLoaded(item.src, res);
+        
+        // 继续处理队列
+        this._processQueue();
+      },
+      fail: (err) => {
+        console.warn(`[图像缓存] 加载图像失败: ${item.src}`, err);
+        this._stats.errors++;
+        // 继续处理队列
+        this._processQueue();
+      }
+    });
+  }
+  
+  /**
+   * 创建WebGL纹理
+   * @param {String} key - 缓存键
+   * @param {Object} imageInfo - 图像信息
+   * @private
+   */
+  _createTexture(key, imageInfo) {
+    if (!this.gl) return;
+    
+    try {
+      const gl = this.gl;
+      const texture = gl.createTexture();
+      
+      // 创建离屏Canvas并绘制图像
+      const tempCanvas = wx.createOffscreenCanvas({
+        type: '2d',
+        width: imageInfo.width,
+        height: imageInfo.height
       });
+      
+      const tempCtx = tempCanvas.getContext('2d');
+      const img = tempCanvas.createImage();
+      
+      img.onload = () => {
+        tempCtx.drawImage(img, 0, 0, imageInfo.width, imageInfo.height);
+        
+        // 绑定纹理
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, tempCanvas);
+        
+        // 设置纹理参数
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        
+        // 缓存纹理
+        this.textureCache[key] = texture;
+      };
+      
+      img.src = imageInfo.path;
+    } catch (error) {
+      console.error('[图像缓存] 创建纹理失败:', error.message);
+    }
+  }
+  
+  /**
+   * 获取节点纹理集合
+   * @param {Array} nodes - 节点数组
+   * @returns {Object} 节点ID到纹理的映射
+   */
+  getTexturesForNodes(nodes) {
+    // 如果没有WebGL上下文，返回空映射
+    if (!this.gl) {
+      return {};
+    }
+    
+    // 提前预加载节点图像，提高渲染质量
+    nodes.forEach(node => {
+      if (node.imageUrl && !this.textureCache[node.imageUrl]) {
+        // 立即加入优先队列，确保关键节点图像优先加载
+        this.queueImageLoad(node.imageUrl, true);
+      }
     });
     
-    // 按使用计数升序排序
-    items.sort((a, b) => a.count - b.count);
+    // 构建节点ID到纹理的映射
+    const nodeTextureMap = {};
     
-    // 移除使用频率最低的项
-    for (let i = 0; i < toRemove && i < items.length; i++) {
-      const item = items[i];
-      this._cache.delete(item.url);
-      this._usageCount.delete(item.url);
-      
-      // 更新统计数据
-      this._stats.evictions++;
-    }
+    nodes.forEach(node => {
+      if (node.imageUrl) {
+        // 尝试获取现有纹理
+        const texture = this._getOrCreateTexture(node.imageUrl, node.gender);
+        if (texture) {
+          nodeTextureMap[node.id] = texture;
+        } else {
+          // 如果没有纹理，使用默认纹理
+          nodeTextureMap[node.id] = this._getDefaultTexture(node.gender);
+        }
+      } else {
+        // 没有图像URL的节点使用默认纹理
+        nodeTextureMap[node.id] = this._getDefaultTexture(node.gender);
+      }
+    });
     
-    console.log(`[ImageCacheManager] 缓存清理：移除了${toRemove}项，当前缓存大小：${this._cache.size}`);
+    return nodeTextureMap;
   }
   
   /**
-   * 获取缓存的图像
+   * 获取或创建纹理
    * @param {String} url - 图像URL
-   * @returns {Image|null} 图像对象
+   * @param {String} gender - 性别
+   * @returns {WebGLTexture} 纹理对象
+   * @private
    */
-  get(url) {
-    if (!url) return null;
-    
-    if (this._cache.has(url)) {
-      // 更新使用计数
-      this._updateUsageCount(url);
-      // 更新命中率统计
-      this._stats.hits++;
-      return this._cache.get(url);
+  _getOrCreateTexture(url, gender) {
+    if (this.textureCache[url]) {
+      return this.textureCache[url];
     }
     
-    // 未命中，尝试加入加载队列
-    this._stats.misses++;
-    this.queueImageLoad(url);
-    return null;
+    // 如果是精灵图中的一部分，使用精灵图纹理
+    if (this._sprite.enabled && this._sprite.map[url]) {
+      const spriteInfo = this._sprite.map[url];
+      return this._sprite.textures[spriteInfo.spriteId] || null;
+    }
+    
+    // 启动加载
+    this.queueImageLoad(url, true);
+    
+    // 返回默认纹理
+    return this._getDefaultTexture(gender);
   }
   
   /**
-   * 预加载图像集合
-   * @param {Array<String>} urls - 图像URL数组
-   * @param {Boolean} isPriority - 是否优先加载
+   * 创建默认纹理
+   * @param {String} gender - 性别
+   * @returns {WebGLTexture} 纹理对象
+   * @private
    */
-  preload(urls, isPriority = false) {
-    if (!urls || !urls.length) return;
+  _createDefaultTexture(gender) {
+    if (!this.gl) return null;
     
-    // 批量添加到加载队列
-    this.queueBatchLoad(urls, isPriority);
+    const gl = this.gl;
+    const texture = gl.createTexture();
+    if (!texture) return null;
+    
+    // 根据性别选择默认颜色
+    const color = gender === 'male' ? [100, 149, 237, 255] : 
+                 (gender === 'female' ? [255, 182, 193, 255] : [200, 200, 200, 255]);
+    
+    // 绑定纹理
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(
+      gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0,
+      gl.RGBA, gl.UNSIGNED_BYTE,
+      new Uint8Array(color)
+    );
+    
+    // 设置纹理参数
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    
+    return texture;
+  }
+  
+  /**
+   * 获取默认纹理
+   * @param {String} gender - 性别
+   * @returns {WebGLTexture} 纹理对象
+   * @private
+   */
+  _getDefaultTexture(gender) {
+    // 使用性别作为缓存键
+    const key = `default_${gender || 'unknown'}`;
+    
+    // 如果已存在相应性别的默认纹理，则直接返回
+    if (this.textureCache[key]) {
+      return this.textureCache[key];
+    }
+    
+    // 创建新的默认纹理
+    const texture = this._createDefaultTexture(gender);
+    
+    // 缓存并返回
+    if (texture) {
+      this.textureCache[key] = texture;
+    }
+    
+    return texture;
+  }
+  
+  /**
+   * 预加载节点图像
+   * @param {Array} nodes - 节点数组
+   * @param {Number} [batchSize=10] - 批处理大小
+   * @returns {Promise<Number>} 预加载的图像数量
+   */
+  async preloadNodeImages(nodes, batchSize = 10) {
+    if (!nodes || !nodes.length) return 0;
+    
+    // 收集需要预加载的URL
+    const urls = nodes
+      .filter(node => node.imageUrl && !this.imageCache[node.imageUrl])
+      .map(node => node.imageUrl);
+    
+    if (!urls.length) return 0;
+    
+    // 分批预加载
+    const batches = [];
+    for (let i = 0; i < urls.length; i += batchSize) {
+      batches.push(urls.slice(i, i + batchSize));
+    }
+    
+    let loadedCount = 0;
+    
+    // 顺序加载批次，避免并发加载过多导致微信小程序网络请求限制
+    for (const batch of batches) {
+      // 创建批次中所有图像的加载Promise
+      const loadPromises = batch.map(url => 
+        new Promise(resolve => {
+          this.queueImageLoad(url, true);
+          // 标记为已处理，不需要等待实际加载完成
+          resolve();
+          loadedCount++;
+        })
+      );
+      
+      // 等待当前批次完成
+      await Promise.all(loadPromises);
+      
+      // 添加小延迟，避免请求过于密集
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    
+    return loadedCount;
+  }
+  
+  /**
+   * 注册精灵图
+   * @param {String} spriteUrl - 精灵图URL
+   * @param {Object} spriteMap - 精灵图映射信息
+   */
+  registerSprite(spriteUrl, spriteMap = {}) {
+    if (!spriteUrl) return;
+    
+    this._sprite.enabled = true;
+    this._sprite.map = { ...this._sprite.map, ...spriteMap };
+    
+    // 加载精灵图
+    this.queueImageLoad(spriteUrl, true, true);
   }
   
   /**
    * 预加载精灵图
-   * @param {String} url - 精灵图URL
+   * @param {String} spriteUrl - 精灵图URL
+   * @returns {Promise<Boolean>} 加载是否成功
    */
-  preloadSprite(url) {
-    if (!url) return;
-    
-    // 精灵图优先级最高
-    this.queueImageLoad(url, true, true);
+  async preloadSprite(spriteUrl) {
+    return new Promise(resolve => {
+      if (!spriteUrl) {
+        resolve(false);
+        return;
+      }
+      
+      // 如果已存在，直接返回成功
+      if (this.imageCache[spriteUrl]) {
+        resolve(true);
+        return;
+      }
+      
+      // 设置回调以检测加载完成
+      const originalCallback = this.onImageLoaded;
+      
+      // 临时替换回调
+      this.onImageLoaded = (url, info) => {
+        // 调用原始回调
+        if (originalCallback) originalCallback(url, info);
+        
+        // 如果当前加载的是目标精灵图，完成Promise
+        if (url === spriteUrl) {
+          // 恢复原始回调
+          this.onImageLoaded = originalCallback;
+          resolve(true);
+        }
+      };
+      
+      // 启动加载
+      this.queueImageLoad(spriteUrl, true, true);
+    });
   }
   
   /**
-   * 清除特定URL的缓存
+   * 清理缓存
+   * 当缓存超出最大容量时，删除最老的项目
+   * @private
+   */
+  _cleanCache() {
+    // 检查是否超出缓存限制
+    const cacheSize = Object.keys(this.imageCache).length;
+    if (cacheSize <= this.maxCacheSize) return;
+    
+    // 超出限制，清理一部分缓存
+    const keysToRemove = Object.keys(this.imageCache)
+      .filter(key => !key.startsWith('default_')) // 不清理默认纹理
+      .sort((a, b) => {
+        // 按最后访问时间排序
+        const timeA = this.imageCache[a].lastAccessed || 0;
+        const timeB = this.imageCache[b].lastAccessed || 0;
+        return timeA - timeB;
+      })
+      .slice(0, Math.ceil(cacheSize * 0.2)); // 删除最老的20%缓存
+    
+    // 移除选定的缓存项
+    keysToRemove.forEach(key => {
+      delete this.imageCache[key];
+      
+      // 如果有纹理，也释放它
+      if (this.textureCache[key] && this.gl) {
+        this.gl.deleteTexture(this.textureCache[key]);
+        delete this.textureCache[key];
+      }
+      
+      this._stats.evictions++;
+    });
+    
+    console.log(`[图像缓存] 清理完成，移除了${keysToRemove.length}个项目`);
+  }
+  
+  /**
+   * 获取图像
    * @param {String} url - 图像URL
+   * @returns {Object} 图像信息
    */
-  invalidate(url) {
-    if (!url) return;
+  get(url) {
+    if (!url) return null;
     
-    this._cache.delete(url);
-    this._usageCount.delete(url);
-    this._failureCount.delete(url);
-    
-    // 如果是精灵图，也清除精灵图缓存
-    if (this._spriteCache.has(url)) {
-      this._spriteCache.delete(url);
+    // 如果有缓存，更新最后访问时间并返回
+    if (this.imageCache[url]) {
+      this.imageCache[url].lastAccessed = Date.now();
+      this._stats.hits++;
+      return this.imageCache[url];
     }
+    
+    // 如果没有找到，加入加载队列
+    this._stats.misses++;
+    this.queueImageLoad(url, false);
+    return null;
   }
   
   /**
-   * 清空全部缓存
-   */
-  clear() {
-    this._cache.clear();
-    this._usageCount.clear();
-    this._failureCount.clear();
-    this._loadQueue = [];
-    this._loadingUrls.clear();
-    
-    // 保留精灵图缓存标记，但清除实际图像
-    const spriteUrls = Array.from(this._spriteCache.keys());
-    this._spriteCache.clear();
-    
-    // 重置统计数据
-    this._stats = {
-      hits: 0,
-      misses: 0,
-      errors: 0,
-      loads: 0,
-      evictions: 0
-    };
-    
-    console.log('[ImageCacheManager] 缓存已清空');
-  }
-  
-  /**
-   * 检查URL是否为精灵图
+   * 获取图像
    * @param {String} url - 图像URL
-   * @returns {Boolean} 是否为精灵图
+   * @returns {Object} 图像信息
    */
-  isSprite(url) {
-    return this._spriteCache.has(url);
+  getImage(url) {
+    return this.get(url);
   }
   
   /**
-   * 注册精灵图URL
-   * @param {String} url - 精灵图URL 
+   * 清除缓存
+   * @param {Boolean} clearAll - 是否清除所有缓存，包括默认纹理
    */
-  registerSprite(url) {
-    if (!url) return;
+  clear(clearAll = false) {
+    // 清除图像缓存
+    const keysToRemove = Object.keys(this.imageCache).filter(key => 
+      clearAll || !key.startsWith('default_')
+    );
     
-    this._spriteCache.set(url, true);
+    keysToRemove.forEach(key => {
+      delete this.imageCache[key];
+    });
     
-    // 如果已经在缓存中，确保不会被清理
-    if (this._cache.has(url)) {
-      // 设置极高的使用计数以防被清理
-      this._usageCount.set(url, Number.MAX_SAFE_INTEGER);
-    } else {
-      // 不在缓存中，优先加载
-      this.queueImageLoad(url, true, true);
+    // 如果有WebGL上下文，清除纹理
+    if (this.gl) {
+      Object.keys(this.textureCache)
+        .filter(key => clearAll || !key.startsWith('default_'))
+        .forEach(key => {
+          this.gl.deleteTexture(this.textureCache[key]);
+          delete this.textureCache[key];
+        });
     }
-  }
-  
-  /**
-   * 获取缓存统计信息
-   * @returns {Object} 缓存统计
-   */
-  getStats() {
-    const hitRate = this._stats.hits + this._stats.misses > 0 
-      ? (this._stats.hits / (this._stats.hits + this._stats.misses) * 100).toFixed(2)
-      : 0;
     
-    return {
-      ...this._stats,
-      cacheSize: this._cache.size,
-      queueSize: this._loadQueue.length,
-      loading: this._loadingUrls.size,
-      spriteCount: this._spriteCache.size,
-      hitRate: `${hitRate}%`
-    };
+    console.log(`[图像缓存] 清除完成，移除了${keysToRemove.length}个缓存项`);
   }
   
   /**
    * 释放资源
    */
   dispose() {
-    this.clear();
-    this._canvas = null;
+    // 清除图像缓存
+    this.clear(true);
+    
+    // 重置队列
+    this.loadQueue = [];
+    this.priorityQueue = [];
+    this.isLoading = false;
+    
+    // 重置标志位
+    this._isProcessing = false;
     this._initialized = false;
+    
+    // 解除引用
+    this.canvas = null;
+    this.gl = null;
+    
+    console.log('[图像缓存] 资源已释放');
+  }
+  
+  /**
+   * 获取缓存统计信息
+   * @returns {Object} 统计信息
+   */
+  getStats() {
+    return { 
+      ...this._stats,
+      cacheSize: Object.keys(this.imageCache).length,
+      textureSize: Object.keys(this.textureCache).length,
+      queueSize: this.loadQueue.length,
+      priorityQueueSize: this.priorityQueue.length
+    };
   }
 }
 

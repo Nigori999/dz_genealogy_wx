@@ -3,6 +3,12 @@
  * 包含WebGL渲染器和WebGL树渲染器的实现
  */
 
+// 导入渲染管线模块
+const {
+  RenderState,
+  RenderPipelineFactory
+} = require('./webgl-pipeline');
+
 /**
  * WebGL树渲染器
  * 负责WebGL渲染的底层实现
@@ -360,626 +366,70 @@ class WebGLTreeRenderer {
       Object.assign(this.textures, nodeTextureMap);
     }
 
-    // 清除画布
-    this.clear();
-
-    // 设置着色器程序
-    this.gl.useProgram(this.program);
-    
-    // 启用混合模式，支持透明度
-    this.gl.enable(this.gl.BLEND);
-    this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
-    
-    // 禁用深度测试，使用画家算法进行渲染排序
-    this.gl.disable(this.gl.DEPTH_TEST);
-    
-    // 设置视口尺寸
-    this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
-
-    // 分层渲染或标准渲染
-    if (layeredRendering && layeredRendering.enabled) {
-      this._renderLayers(params);
-    } else {
-      this._renderStandard(params);
-    }
-
-    // 如果使用的是离屏Canvas，需要将结果复制到主Canvas
-    if (this._isUsingOffscreenCanvas && this._offscreenCanvas) {
-      try {
-        // 完成渲染后将离屏Canvas内容绘制到主Canvas上
-        const ctx = this.canvas.getContext('2d');
-        if (ctx) {
-          console.log('[WebGL渲染] 从离屏Canvas复制到主Canvas');
-          ctx.drawImage(this._offscreenCanvas, 0, 0);
-        } else {
-          console.warn('[WebGL渲染] 无法获取2D上下文复制离屏内容');
-        }
-      } catch (err) {
-        console.error('[WebGL渲染] 从离屏Canvas复制到主Canvas失败:', err.message);
-        return false;
-      }
-    }
-    
-    return true;
-  }
-
-  /**
-   * 标准渲染（非分层）
-   * @param {Object} params - 渲染参数
-   * @private
-   */
-  _renderStandard(params) {
-    const {
-      nodes,
-      connectors,
-      visibleArea,
-      currentMemberId
-    } = params;
-
-    if (!nodes || !connectors || !visibleArea) {
-      console.error('[WebGL标准渲染] 渲染参数不完整:', {
-        有节点数据: !!nodes,
-        有连接线数据: !!connectors,
-        有可视区域: !!visibleArea
-      });
-      return;
-    }
-
-    // 详细记录渲染参数
-    console.log('[WebGL标准渲染] 渲染参数详情:', {
-      节点数量: nodes.length,
-      连接线数量: connectors.length,
-      变换参数: {
-        offsetX: this.transformUniforms.offsetX,
-        offsetY: this.transformUniforms.offsetY,
-        scale: this.transformUniforms.scale
-      },
-      可视区域: {
-        left: visibleArea.left.toFixed(2),
-        top: visibleArea.top.toFixed(2),
-        right: visibleArea.right.toFixed(2),
-        bottom: visibleArea.bottom.toFixed(2),
-        buffer: visibleArea.buffer
-      }
-    });
-
-    // 检查节点数据结构
-    if (nodes.length > 0) {
-      const sampleNode = nodes[0];
-      console.log('[WebGL标准渲染] 节点数据样例:', {
-        id: sampleNode.id,
-        memberId: sampleNode.memberId,
-        x: sampleNode.x,
-        y: sampleNode.y,
-        width: sampleNode.width,
-        height: sampleNode.height,
-        avatarUrl: sampleNode.avatarUrl ? '有头像' : '无头像'
-      });
-    }
-
-    // 检查连接线数据结构
-    if (connectors.length > 0) {
-      const sampleConnector = connectors[0];
-      console.log('[WebGL标准渲染] 连接线数据样例:', {
-        type: sampleConnector.type,
-        fromId: sampleConnector.fromId,
-        toId: sampleConnector.toId,
-        fromX: sampleConnector.fromX,
-        fromY: sampleConnector.fromY,
-        toX: sampleConnector.toX,
-        toY: sampleConnector.toY
-      });
-    }
-
-    // 过滤可见节点和连接线
-    const visibleNodes = this._filterVisibleNodes(nodes, visibleArea);
-    const visibleConnectors = this._filterVisibleConnectors(connectors, visibleArea);
-
-    console.log('[WebGL标准渲染] 过滤后:', visibleNodes.length, '个可见节点,', visibleConnectors.length, '条可见连接线');
-
-    // 先渲染连接线
-    this._renderConnectors(visibleConnectors);
-    
-    // 再渲染节点
-    this._renderNodes(visibleNodes, currentMemberId);
-  }
-
-  /**
-   * 分层渲染
-   * @param {Object} params - 渲染参数
-   * @private
-   */
-  _renderLayers(params) {
-    const {
-      visibleArea,
-      layeredRendering,
-      currentMemberId
-    } = params;
-    const {
-      layerCount,
-      layerNodes,
-      layerConnectors,
-      currentLayer
-    } = layeredRendering;
-
-    if (layerCount === 0) return;
-
-    console.log('WebGL分层渲染:', layerCount, '层, 当前层:', currentLayer);
-
-    // 构建层级渲染顺序 - 按距离排序
-    const renderOrder = [];
-    for (let i = 0; i < layerCount; i++) {
-      const distance = Math.abs(i - currentLayer);
-      renderOrder.push({
-        layer: i,
-        distance: distance,
-        isCurrent: i === currentLayer
-      });
-    }
-    
-    // 按距离排序，远的层先渲染
-    renderOrder.sort((a, b) => {
-      if (!a.isCurrent && !b.isCurrent) {
-        return b.distance - a.distance;
-      }
-      // 当前层最后渲染（置于最上层）
-      return a.isCurrent ? 1 : -1;
-    });
-    
-    // 按顺序渲染各层
-    for (const item of renderOrder) {
-      const layer = item.layer;
-      const isCurrentLayer = layer === currentLayer;
-      
-      // 跳过没有内容的层
-      if (!layerNodes[layer] || !layerConnectors[layer]) continue;
-      
-      // 设置透明度 - 根据距离计算
-      const alpha = isCurrentLayer ? 1.0 : Math.max(0.3, 1 - (item.distance * 0.15));
-      
-      // 渲染当前层的内容
-      const nodes = this._filterVisibleNodes(layerNodes[layer] || [], visibleArea);
-      const connectors = this._filterVisibleConnectors(layerConnectors[layer] || [], visibleArea);
-      
-      // 先渲染连接线
-      this._renderConnectors(connectors, alpha);
-      
-      // 再渲染节点
-      this._renderNodes(nodes, currentMemberId, alpha);
-    }
-  }
-
-  /**
-   * 过滤可见节点
-   * @param {Array} nodes - 节点数组
-   * @param {Object} visibleArea - 可视区域
-   * @returns {Array} 可见节点数组
-   * @private
-   */
-  _filterVisibleNodes(nodes, visibleArea) {
-    if (!visibleArea) return [];
-    
-    return nodes.filter(node => {
-      // 基本边界框检查
-      const right = node.x + (node.width || 120);
-      const bottom = node.y + (node.height || 150);
-      
-      return (
-        right >= visibleArea.left - visibleArea.buffer &&
-        node.x <= visibleArea.right + visibleArea.buffer &&
-        bottom >= visibleArea.top - visibleArea.buffer &&
-        node.y <= visibleArea.bottom + visibleArea.buffer
-      );
-    });
-  }
-
-  /**
-   * 过滤可见连接线
-   * @param {Array} connectors - 连接线数组
-   * @param {Object} visibleArea - 可视区域
-   * @returns {Array} 可见连接线数组
-   * @private
-   */
-  _filterVisibleConnectors(connectors, visibleArea) {
-    if (!visibleArea) return [];
-    
-    return connectors.filter(connector => {
-      // 边界框检查 - 包含连接线的起点和终点
-      const minX = Math.min(connector.fromX, connector.toX);
-      const maxX = Math.max(connector.fromX, connector.toX);
-      const minY = Math.min(connector.fromY, connector.toY);
-      const maxY = Math.max(connector.fromY, connector.toY);
-      
-      return (
-        maxX >= visibleArea.left - visibleArea.buffer &&
-        minX <= visibleArea.right + visibleArea.buffer &&
-        maxY >= visibleArea.top - visibleArea.buffer &&
-        minY <= visibleArea.bottom + visibleArea.buffer
-      );
-    });
-  }
-
-  /**
-   * 渲染节点
-   * @param {Array} nodes - 节点数组
-   * @param {String} currentMemberId - 当前成员ID
-   * @param {Number} alpha - 透明度
-   * @private
-   */
-  _renderNodes(nodes, currentMemberId, alpha = 1.0) {
-    if (!nodes || nodes.length === 0 || !this.gl || !this.program) {
-      console.warn('[WebGL节点渲染] 无法渲染节点:', {
-        节点数量: nodes ? nodes.length : 0,
-        GL上下文: !!this.gl,
-        着色器程序: !!this.program
-      });
-      return;
-    }
-    
-    // 记录渲染状态
-    console.log('[WebGL节点渲染] 开始渲染节点:', {
-      节点数量: nodes.length,
-      Canvas尺寸: `${this.gl.canvas.width}x${this.gl.canvas.height}`,
-      变换状态: {
-        offsetX: this.transformUniforms.offsetX.toFixed(2),
-        offsetY: this.transformUniforms.offsetY.toFixed(2),
-        scale: this.transformUniforms.scale.toFixed(2)
-      }
-    });
-    
-    const gl = this.gl;
-    
     try {
-      // 使用着色器程序
-      gl.useProgram(this.program);
+      // 创建渲染管线选项
+      const pipelineOptions = {
+        program: this.program,
+        buffers: this.buffers,
+        textures: this.textures || {}
+      };
       
-      // 获取着色器中的属性位置
-      const vertexPosition = gl.getAttribLocation(this.program, 'aVertexPosition');
-      const textureCoord = gl.getAttribLocation(this.program, 'aTextureCoord');
-      
-      // 获取着色器中的统一变量位置
-      const projectionMatrix = gl.getUniformLocation(this.program, 'uProjectionMatrix');
-      const modelViewMatrix = gl.getUniformLocation(this.program, 'uModelViewMatrix');
-      const uSampler = gl.getUniformLocation(this.program, 'uSampler');
-      const uAlpha = gl.getUniformLocation(this.program, 'uAlpha');
-      
-      // 检查着色器变量
-      if (vertexPosition === -1 || textureCoord === -1 || 
-          !projectionMatrix || !modelViewMatrix || !uSampler || !uAlpha) {
-        console.error('[WebGL节点渲染] 着色器变量获取失败:', {
-          aVertexPosition: vertexPosition !== -1,
-          aTextureCoord: textureCoord !== -1,
-          uProjectionMatrix: !!projectionMatrix,
-          uModelViewMatrix: !!modelViewMatrix,
-          uSampler: !!uSampler,
-          uAlpha: !!uAlpha
-        });
-      }
-      
-      // 创建正交投影矩阵
-      // 使用像素坐标系统，原点在左上角
-      const left = 0;
-      const right = gl.canvas.width;
-      const bottom = gl.canvas.height;
-      const top = 0;
-      const near = -1;
-      const far = 1;
-      
-      // 记录投影参数
-      console.log('[WebGL节点渲染] 投影参数:', {
-        left, right, top, bottom, near, far
+      // 创建渲染状态
+      const renderState = new RenderState({
+        nodes: nodes || [],
+        connectors: connectors || [],
+        visibleArea: visibleArea,
+        transform: {
+          offsetX: this.transformUniforms.offsetX,
+          offsetY: this.transformUniforms.offsetY,
+          scale: this.transformUniforms.scale
+        },
+        currentMemberId: currentMemberId,
+        layeredRendering: layeredRendering,
+        nodeTextureMap: this.textures
       });
       
-      // 正交投影矩阵
-      const projMatrix = new Float32Array([
-        2/(right-left), 0, 0, 0,
-        0, 2/(top-bottom), 0, 0,
-        0, 0, 2/(near-far), 0,
-        -(right+left)/(right-left), -(top+bottom)/(top-bottom), -(far+near)/(far-near), 1
-      ]);
+      // 使用渲染管线工厂创建适合的渲染管线
+      const renderPipeline = RenderPipelineFactory.createMainPipeline(
+        this.gl, 
+        pipelineOptions
+      );
       
-      // 设置投影矩阵
-      gl.uniformMatrix4fv(projectionMatrix, false, projMatrix);
+      // 执行渲染管线
+      const finalState = renderPipeline.execute(renderState);
       
-      // 生成默认纹理
-      const defaultTexture = this._createDefaultTexture();
-      
-      // 检查缓冲区状态
-      if (!this.buffers.position || !this.buffers.textureCoord || !this.buffers.indices) {
-        console.error('[WebGL节点渲染] 缓冲区未正确初始化:', {
-          position: !!this.buffers.position,
-          textureCoord: !!this.buffers.textureCoord,
-          indices: !!this.buffers.indices
-        });
-        return;
-      }
-      
-      // 设置位置缓冲区
-      gl.bindBuffer(gl.ARRAY_BUFFER, this.buffers.position);
-      gl.vertexAttribPointer(vertexPosition, 2, gl.FLOAT, false, 0, 0);
-      gl.enableVertexAttribArray(vertexPosition);
-      
-      // 设置纹理坐标缓冲区
-      gl.bindBuffer(gl.ARRAY_BUFFER, this.buffers.textureCoord);
-      gl.vertexAttribPointer(textureCoord, 2, gl.FLOAT, false, 0, 0);
-      gl.enableVertexAttribArray(textureCoord);
-      
-      // 设置索引缓冲区
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.buffers.indices);
-      
-      // 设置纹理活动单元
-      gl.activeTexture(gl.TEXTURE0);
-      gl.uniform1i(uSampler, 0);
-      
-      // 获取WebGL错误状态
-      let glError = gl.getError();
-      if (glError !== gl.NO_ERROR) {
-        console.error('[WebGL节点渲染] 准备阶段WebGL错误:', glError);
-      }
-      
-      // 遍历节点进行渲染
-      for (let i = 0; i < nodes.length; i++) {
-        const node = nodes[i];
-        
-        // 尝试从节点中获取成员数据
-        let nodeData = {
-          id: node.id,
-          memberId: node.memberId || (node.member ? node.member.id : node.id),
-          x: parseFloat(node.x || 0),
-          y: parseFloat(node.y || 0),
-          width: parseFloat(node.width || 120),
-          height: parseFloat(node.height || 150)
-        };
-        
-        // 检查坐标和尺寸是否是有效数字
-        if (isNaN(nodeData.x) || isNaN(nodeData.y) || 
-            isNaN(nodeData.width) || isNaN(nodeData.height)) {
-          console.error(`[WebGL节点渲染] 节点[${i}]包含无效坐标或尺寸，跳过渲染`, node);
-          continue;
-        }
-        
-        // 获取节点中心位置（应用全局偏移和缩放）
-        const px = (nodeData.x + this.transformUniforms.offsetX) * this.transformUniforms.scale;
-        const py = (nodeData.y + this.transformUniforms.offsetY) * this.transformUniforms.scale;
-        
-        // 应用全局缩放到节点大小
-        const scaleWidth = nodeData.width * this.transformUniforms.scale;
-        const scaleHeight = nodeData.height * this.transformUniforms.scale;
-        
-        // 打印前几个节点的详细信息用于调试
-        if (i < 2) {
-          console.log(`[WebGL节点渲染] 节点[${i}] 渲染详情:`, {
-            id: nodeData.id,
-            memberId: nodeData.memberId,
-            原始坐标: {x: nodeData.x, y: nodeData.y},
-            变换后坐标: {x: px, y: py},
-            原始尺寸: {width: nodeData.width, height: nodeData.height},
-            变换后尺寸: {width: scaleWidth, height: scaleHeight}
-          });
-        }
-        
-        // 模型视图矩阵
-        const modelMatrix = new Float32Array([
-          scaleWidth, 0, 0, 0,
-          0, scaleHeight, 0, 0,
-          0, 0, 1, 0,
-          px, py, 0, 1
-        ]);
-        
-        // 设置模型视图矩阵
-        gl.uniformMatrix4fv(modelViewMatrix, false, modelMatrix);
-        
-        // 检查节点是否需要高亮显示
-        const isHighlighted = nodeData.memberId === currentMemberId;
-        const nodeAlpha = isHighlighted ? Math.min(1.0, alpha * 1.2) : alpha;
-        
-        // 设置透明度
-        gl.uniform1f(uAlpha, nodeAlpha);
-        
-                        // 绑定纹理 - 使用默认纹理或节点特定纹理        const avatarUrl = node.imageUrl || node.avatarUrl || (node.member ? node.member.avatar : null);                try {          let texture = null;                    // 首先检查是否存在预先加载的纹理映射          if (this.textures && this.textures[nodeData.id]) {            texture = this.textures[nodeData.id];            console.log(`[WebGL纹理] 节点[${nodeData.id}]使用缓存纹理`);          }           // 然后尝试加载新纹理          else if (avatarUrl && nodeData.id) {            texture = this._getNodeTexture(node);                        // 将新纹理保存到缓存中            if (texture && this.textures) {              this.textures[nodeData.id] = texture;            }          }                    // 如果有纹理使用它，否则使用默认纹理          if (texture) {            gl.bindTexture(gl.TEXTURE_2D, texture);          } else {            gl.bindTexture(gl.TEXTURE_2D, defaultTexture);          }        } catch (textureError) {          console.error(`[WebGL纹理] 节点[${nodeData.id}]纹理绑定错误:`, textureError.message);          gl.bindTexture(gl.TEXTURE_2D, defaultTexture);        }
-        
-        // 绘制节点矩形（6个顶点 = 2个三角形）
-        gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
-        
-        // 检查WebGL错误
-        glError = gl.getError();
-        if (glError !== gl.NO_ERROR && i < 2) {
-          console.error(`[WebGL节点渲染] 节点[${i}]渲染错误:`, glError);
-        }
-      }
-      
-      console.log('[WebGL节点渲染] 节点渲染完成');
-      
-    } catch (error) {
-      console.error('[WebGL节点渲染] 异常:', error.message, '\n堆栈:', error.stack);
-    }
-  }
-
-  /**
-   * 渲染连接线
-   * @param {Array} connectors - 连接线数组
-   * @param {Number} alpha - 透明度
-   * @private
-   */
-  _renderConnectors(connectors, alpha = 1.0) {
-    if (!connectors || connectors.length === 0 || !this.gl || !this.program) {
-      console.warn('[WebGL连接线渲染] 无法渲染连接线:', {
-        连接线数量: connectors ? connectors.length : 0,
-        GL上下文: !!this.gl,
-        着色器程序: !!this.program
-      });
-      return;
-    }
-    
-    console.log('[WebGL连接线渲染] 开始渲染连接线:', {
-      连接线数量: connectors.length,
-      透明度: alpha
-    });
-    
-    const gl = this.gl;
-    
-    try {
-      // 使用着色器程序
-      gl.useProgram(this.program);
-      
-      // 获取着色器中的属性位置
-      const vertexPosition = gl.getAttribLocation(this.program, 'aVertexPosition');
-      
-      // 获取着色器中的统一变量位置
-      const projectionMatrix = gl.getUniformLocation(this.program, 'uProjectionMatrix');
-      const modelViewMatrix = gl.getUniformLocation(this.program, 'uModelViewMatrix');
-      const uAlpha = gl.getUniformLocation(this.program, 'uAlpha');
-      
-      // 检查着色器变量
-      if (vertexPosition === -1 || !projectionMatrix || !modelViewMatrix || !uAlpha) {
-        console.error('[WebGL连接线渲染] 着色器变量获取失败:', {
-          aVertexPosition: vertexPosition !== -1,
-          uProjectionMatrix: !!projectionMatrix,
-          uModelViewMatrix: !!modelViewMatrix,
-          uAlpha: !!uAlpha
-        });
-        return;
-      }
-      
-      // 创建正交投影矩阵
-      const left = 0;
-      const right = gl.canvas.width;
-      const bottom = gl.canvas.height;
-      const top = 0;
-      const near = -1;
-      const far = 1;
-      
-      const projMatrix = new Float32Array([
-        2/(right-left), 0, 0, 0,
-        0, 2/(top-bottom), 0, 0,
-        0, 0, 2/(near-far), 0,
-        -(right+left)/(right-left), -(top+bottom)/(top-bottom), -(far+near)/(far-near), 1
-      ]);
-      
-      // 设置投影矩阵
-      gl.uniformMatrix4fv(projectionMatrix, false, projMatrix);
-      
-      // 设置线条连接器的透明度
-      gl.uniform1f(uAlpha, alpha * 0.8); // 线条稍微透明一些
-      
-      // 创建模型视图矩阵 - 只应用全局变换
-      const modelMatrix = new Float32Array([
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 1, 0,
-        0, 0, 0, 1  // 单位矩阵
-      ]);
-      
-      // 设置模型视图矩阵
-      gl.uniformMatrix4fv(modelViewMatrix, false, modelMatrix);
-      
-      // 检查线条缓冲区
-      if (!this.buffers.line) {
-        console.error('[WebGL连接线渲染] 线条缓冲区未初始化');
-        return;
-      }
-      
-      // 设置线宽 - 注意：WebGL中线宽限制为1.0
-      gl.lineWidth(1.0);
-      
-      // 获取WebGL错误状态
-      let glError = gl.getError();
-      if (glError !== gl.NO_ERROR) {
-        console.error('[WebGL连接线渲染] 准备阶段WebGL错误:', glError);
-      }
-      
-      // 跟踪有效和无效的连接线
-      let validCount = 0;
-      let invalidCount = 0;
-      
-      // 为每条连接线创建顶点数据
-      for (let i = 0; i < connectors.length; i++) {
-        const connector = connectors[i];
-        
-        // 验证连接线坐标
-        const fromX = parseFloat(connector.fromX);
-        const fromY = parseFloat(connector.fromY);
-        const toX = parseFloat(connector.toX);
-        const toY = parseFloat(connector.toY);
-        
-        // 检查坐标是否有效
-        if (isNaN(fromX) || isNaN(fromY) || isNaN(toX) || isNaN(toY)) {
-          invalidCount++;
-          if (invalidCount < 5) {
-            console.error(`[WebGL连接线渲染] 连接线[${i}]包含无效坐标，跳过渲染`, {
-              fromX: connector.fromX,
-              fromY: connector.fromY,
-              toX: connector.toX,
-              toY: connector.toY
-            });
+      // 处理渲染结果和错误
+      if (finalState.errors.length > 0) {
+        console.warn(`[WebGL渲染] 渲染过程中出现${finalState.errors.length}个错误`);
+        finalState.errors.forEach((error, index) => {
+          if (index < 3) { // 只显示前3个错误
+            console.error(`[WebGL渲染] 错误 #${index+1} (${error.stage}): ${error.message}`);
           }
-          continue;
-        }
-        
-        // 应用全局变换到连接线坐标
-        const transformedFromX = (fromX + this.transformUniforms.offsetX) * this.transformUniforms.scale;
-        const transformedFromY = (fromY + this.transformUniforms.offsetY) * this.transformUniforms.scale;
-        const transformedToX = (toX + this.transformUniforms.offsetX) * this.transformUniforms.scale;
-        const transformedToY = (toY + this.transformUniforms.offsetY) * this.transformUniforms.scale;
-        
-        // 打印前几条连接线的详细信息用于调试
-        if (i < 2) {
-          console.log(`[WebGL连接线渲染] 连接线[${i}] 渲染详情:`, {
-            原始坐标: {
-              fromX,
-              fromY,
-              toX,
-              toY
-            },
-            变换后坐标: {
-              fromX: transformedFromX,
-              fromY: transformedFromY,
-              toX: transformedToX,
-              toY: transformedToY
-            },
-            类型: connector.type,
-            fromId: connector.fromId,
-            toId: connector.toId
-          });
-        }
-        
-        // 创建线条顶点数据
-        const lineVertices = new Float32Array([
-          transformedFromX, transformedFromY,
-          transformedToX, transformedToY
-        ]);
-        
-        // 使用预先创建的线条缓冲区
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.buffers.line);
-        gl.bufferData(gl.ARRAY_BUFFER, lineVertices, gl.DYNAMIC_DRAW);
-        
-        // 设置顶点属性指针
-        gl.vertexAttribPointer(vertexPosition, 2, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(vertexPosition);
-        
-        // 绘制线条
-        gl.drawArrays(gl.LINES, 0, 2);
-        
-        // 计数有效连接线
-        validCount++;
-        
-        // 检查WebGL错误
-        glError = gl.getError();
-        if (glError !== gl.NO_ERROR && i < 2) {
-          console.error(`[WebGL连接线渲染] 连接线[${i}]渲染错误:`, glError);
+        });
+      }
+      
+      // 如果使用的是离屏Canvas，需要将结果复制到主Canvas
+      if (this._isUsingOffscreenCanvas && this._offscreenCanvas) {
+        try {
+          // 完成渲染后将离屏Canvas内容绘制到主Canvas上
+          const ctx = this.canvas.getContext('2d');
+          if (ctx) {
+            console.log('[WebGL渲染] 从离屏Canvas复制到主Canvas');
+            ctx.drawImage(this._offscreenCanvas, 0, 0);
+          } else {
+            console.warn('[WebGL渲染] 无法获取2D上下文复制离屏内容');
+          }
+        } catch (err) {
+          console.error('[WebGL渲染] 从离屏Canvas复制到主Canvas失败:', err.message);
+          return false;
         }
       }
       
-      console.log('[WebGL连接线渲染] 连接线渲染完成:', {
-        总计: connectors.length,
-        有效: validCount,
-        无效: invalidCount
-      });
-      
-      // 重置线宽
-      gl.lineWidth(1.0);
+      return finalState.errors.length === 0;
     } catch (error) {
-      console.error('[WebGL连接线渲染] 异常:', error.message, '\n堆栈:', error.stack);
+      console.error('[WebGL渲染] 渲染过程中发生未捕获异常:', error.message);
+      console.error('[WebGL渲染] 错误堆栈:', error.stack);
+      return false;
     }
   }
 
@@ -1564,54 +1014,54 @@ class WebGLRenderer {
       nodeTextureMap
     } = options;
 
-    if (!this.treeRenderer) return false;
-
-    // 设置变换
-    if (this.component) {
-      // 从组件获取变换参数
-      this.treeRenderer.setTransform(
-        this.component.data.offsetX,
-        this.component.data.offsetY,
-        this.component.data.currentScale
-      );
-    } else if (offsetX !== undefined && offsetY !== undefined && scale !== undefined) {
-      // 使用传入的变换参数
-      this.treeRenderer.setTransform(offsetX, offsetY, scale);
+    if (!this.treeRenderer) {
+      console.warn('[WebGL渲染器] 无法渲染：树渲染器未初始化');
+      return false;
     }
 
-    // 设置当前层级（如果启用分层渲染）
-    if (layeredRendering && layeredRendering.enabled) {
-      this.treeRenderer.setCurrentLayer(layeredRendering.currentLayer);
+    try {
+      // 设置变换参数
+      if (this.component) {
+        // 从组件获取变换参数
+        this.treeRenderer.setTransform(
+          this.component.data.offsetX,
+          this.component.data.offsetY,
+          this.component.data.currentScale
+        );
+      } else if (offsetX !== undefined && offsetY !== undefined && scale !== undefined) {
+        // 使用传入的变换参数
+        this.treeRenderer.setTransform(offsetX, offsetY, scale);
+      }
+
+      // 设置当前层级（如果启用分层渲染）
+      if (layeredRendering && layeredRendering.enabled) {
+        this.treeRenderer.setCurrentLayer(layeredRendering.currentLayer);
+      }
+
+      // 记录渲染参数
+      console.log('[WebGL渲染器] 渲染参数:', {
+        节点数量: nodes?.length || 0,
+        连接线数量: connectors?.length || 0,
+        纹理数量: nodeTextureMap ? Object.keys(nodeTextureMap).length : 0,
+        当前成员ID: currentMemberId || '未指定'
+      });
+
+      // 使用渲染管线执行渲染
+      const renderResult = this.treeRenderer.render({
+        nodes,
+        connectors,
+        visibleArea,
+        layeredRendering,
+        currentMemberId,
+        nodeTextureMap
+      });
+
+      return renderResult;
+    } catch (error) {
+      console.error('[WebGL渲染器] 渲染过程中发生错误:', error.message);
+      console.error('[WebGL渲染器] 错误堆栈:', error.stack);
+      return false;
     }
-
-    // 记录渲染参数
-    console.log('[WebGL渲染器] 渲染参数:', {
-      节点数量: nodes?.length || 0,
-      连接线数量: connectors?.length || 0,
-      纹理数量: nodeTextureMap ? Object.keys(nodeTextureMap).length : 0,
-      当前成员ID: currentMemberId || '未指定'
-    });
-
-    // 将纹理映射传递给树渲染器
-    if (nodeTextureMap) {
-      // 确保树渲染器有有效的textures对象
-      this.treeRenderer.textures = this.treeRenderer.textures || {};
-      
-      // 合并传入的纹理映射
-      Object.assign(this.treeRenderer.textures, nodeTextureMap);
-    }
-
-    // 执行渲染
-    this.treeRenderer.render({
-      nodes,
-      connectors,
-      visibleArea,
-      layeredRendering,
-      currentMemberId,
-      nodeTextureMap
-    });
-
-    return true;
   }
 
   /**

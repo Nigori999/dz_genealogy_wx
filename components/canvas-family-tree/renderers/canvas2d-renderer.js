@@ -12,7 +12,14 @@ class Canvas2DRenderer {
     this.component = component;
     this.ctx = component.ctx;
     this.canvas = component.canvas;
-    this._dpr = wx.getSystemInfoSync().pixelRatio || 1;
+    // 使用新API获取设备像素比
+    try {
+      const deviceInfo = wx.getDeviceInfo();
+      this._dpr = deviceInfo.pixelRatio || 1;
+    } catch (e) {
+      console.warn('[Canvas 2D] 获取设备信息失败，使用默认像素比:', e.message);
+      this._dpr = 1;
+    }
     // 精灵图相关属性
     this._spriteEnabled = false;
     this._spriteCache = null;

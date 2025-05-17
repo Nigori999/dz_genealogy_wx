@@ -25,7 +25,13 @@ class CanvasManager {
     this.ctx = null;
     
     // 设备信息
-    this._dpr = wx.getSystemInfoSync().pixelRatio || 1;
+    try {
+      const deviceInfo = wx.getDeviceInfo();
+      this._dpr = deviceInfo.pixelRatio || 1;
+    } catch (e) {
+      console.warn('[Canvas管理器] 获取设备信息失败:', e.message);
+      this._dpr = 1;
+    }
     
     // 状态标志
     this._initialized = false;

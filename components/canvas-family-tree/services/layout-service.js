@@ -13,8 +13,10 @@ class LayoutService {
   constructor(options = {}) {
     this.wasmLoader = options.wasmLoader;
     this.worker = null;
-    this.useWorker = false;
-    this.useWasm = !!this.wasmLoader;
+    this.useWorker = false; // 实际使用状态，将在初始化后更新
+    // 更积极的WASM使用策略 - 默认启用，只有在明确不支持时才禁用
+    this.useWasm = typeof WebAssembly === 'object';
+    console.log('[布局服务] WebAssembly支持检测:', this.useWasm ? '支持' : '不支持');
     this.callbacks = new Map();
   }
 
@@ -52,12 +54,16 @@ class LayoutService {
       // 创建Worker实例
       try {
         // 尝试创建Worker前先检查小程序版本
-        const sysInfo = wx.getSystemInfoSync();
-        const sdkVersion = sysInfo.SDKVersion || '';
-        console.log('当前基础库版本:', sdkVersion);
+        const deviceInfo = wx.getDeviceInfo();
+        const appBaseInfo = wx.getAppBaseInfo();
+        
+        // 获取设备信息
+        const screenWidth = deviceInfo.screenWidth;
+        const screenHeight = deviceInfo.screenHeight;
+        const pixelRatio = deviceInfo.pixelRatio || 1;
         
         // 基础库版本过低可能不支持某些功能
-        if (this._compareVersion(sdkVersion, '2.13.0') < 0) {
+        if (this._compareVersion(appBaseInfo.SDKVersion || '', '2.13.0') < 0) {
           console.warn('当前基础库版本低于2.13.0，可能不支持WebAssembly');
         }
         

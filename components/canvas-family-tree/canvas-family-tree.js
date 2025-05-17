@@ -1,5 +1,4 @@
 // Canvas族谱树渲染器（优化版）
-const spriteUtil = require('../../utils/sprite-util');
 const WebGLRenderer = require('./renderers/webgl-renderer');
 const wasmLoader = require('../../utils/wasm-loader');
 // 导入优化工具
@@ -100,8 +99,8 @@ Component({
 
     // 精灵图支持
     spriteSupport: {
-      enabled: true, // 是否启用精灵图
-      supported: false, // 设备是否支持精灵图
+      enabled: true, // 默认启用精灵图，在设备不支持时才降级
+      supported: false, // 设备是否支持精灵图，将通过检测更新
       batchSize: 20 // 每批处理的头像数量
     },
 
@@ -116,8 +115,8 @@ Component({
 
     // WebGL支持
     webgl: {
-      enabled: true, // 默认启用WebGL，后续根据设备能力可能降级
-      supported: false, // 设备是否支持WebGL
+      enabled: true, // 默认启用WebGL，在设备不支持时才降级
+      supported: true, // 默认认为设备支持WebGL，只有在检测不支持时才更新为false
       renderer: null, // WebGL渲染器实例
       initialized: false, // 是否已初始化
       initializing: false // 是否正在初始化
@@ -127,11 +126,13 @@ Component({
     wasm: {
       available: false,
       initialized: false,
-      initError: null
+      initError: null,
+      enabled: true // 默认启用WebAssembly
     },
 
     // Worker相关状态
-    workerAvailable: false
+    workerAvailable: false,
+    workerEnabled: true // 默认启用Worker
   },
 
   /**
@@ -144,11 +145,25 @@ Component({
       // 初始化服务
       this._initServices();
 
-      // 使用RenderStrategies进行兼容性检查和性能检测
-      await RenderStrategies.init(this);
-
-      // 初始化Canvas和资源
-      this._initResources();
+      // 先初始化Canvas和资源
+      await this._initResources();
+      
+      // 然后再初始化渲染策略（确保Canvas已准备就绪）
+      const success = await RenderStrategies.init(this);
+      if (success) {
+        console.log('[族谱树] 渲染策略初始化成功');
+        
+        // 渲染策略初始化成功后，更新UI状态
+        this.setData({
+          'optionMenuItems.useWebGL.disabled': !this.data.webgl.supported,
+          'optionMenuItems.useWebGL.checked': this.data.webgl.enabled,
+          'optionMenuItems.useSprites.disabled': !this.data.spriteSupport.supported
+        });
+      } else {
+        console.warn('[族谱树] 渲染策略初始化失败，使用默认策略');
+      }
+      
+      console.log('[族谱树] 初始化流程完成');
     },
 
     detached() {
@@ -204,6 +219,8 @@ Component({
           this._render();
         }
       });
+      
+      console.log('[族谱树] 服务初始化完成');
     },
 
     /**
@@ -218,34 +235,43 @@ Component({
         // 初始化图像缓存
         this._initImageCache();
 
-        // 初始化WebAssembly
+        // 初始化WebAssembly - 默认尝试初始化，不支持时降级
         await this._initWebAssembly();
 
-        // 根据条件初始化Worker
-        if (this.devicePerformance && this.devicePerformance.score >= 60) {
+        // 初始化Worker - 默认尝试初始化，不支持时才降级
+        if (this.data.workerEnabled) {
           try {
+            console.log('[族谱树] 尝试初始化Worker');
             let workerInitialized = this.layoutService.initWorker('workers/tree-layout-worker.js');
 
             if (workerInitialized) {
-              // 设置WebAssembly选项
+              console.log('[族谱树] Worker初始化成功');
+              // 如果WebAssembly已初始化，设置Worker使用WebAssembly
               this.layoutService.setWasmUsage(this.data.wasm.initialized);
+              this.setData({
+                workerAvailable: true
+              });
+            } else {
+              console.warn('[族谱树] Worker初始化失败，降级到主线程计算');
+              this.setData({
+                workerAvailable: false
+              });
             }
-
           } catch (error) {
-            console.error('Worker初始化出错:', error);
+            console.error('[族谱树] Worker初始化出错:', error.message);
             // 降级到主线程计算
             this.setData({
               workerAvailable: false
             });
           }
         } else {
-          console.log('当前设备性能较低，不使用Worker计算');
+          console.log('[族谱树] Worker已禁用');
           this.setData({
             workerAvailable: false
           });
         }
       } catch (error) {
-        console.error('初始化资源失败:', error);
+        console.error('[族谱树] 初始化资源失败:', error.message);
       }
     },
 
@@ -257,12 +283,21 @@ Component({
       try {
         console.log('[族谱树] 开始初始化Canvas');
 
-        // 注意：此时webgl.enabled已在_checkFeatureSupport和优化策略中设置
-        // 在WXML中会根据此值决定canvas的type
+        // 确保WebGL默认启用，除非明确设置为false
+        if (this.data.webgl.enabled === undefined) {
+          console.log('[族谱树] 明确设置WebGL为启用状态');
+          this.setData({
+            'webgl.enabled': true,
+            'webgl.supported': true
+          });
+        }
+
+        // 使用当前状态
         const useWebGL = this.data.webgl.enabled;
 
         console.log('[族谱树] 渲染模式决策:', useWebGL ? 'WebGL' : 'Canvas 2D');
         console.log('[族谱树] WebGL支持状态:', this.data.webgl.supported ? '支持' : '不支持');
+        console.log('[族谱树] 当前WebGL完整状态:', JSON.stringify(this.data.webgl));
 
         // 重要：使用setData的回调确保DOM已更新再进行查询
         // 这样可以确保Canvas的type属性已经完成更新
@@ -299,36 +334,38 @@ Component({
     }),
 
     /**
-     * 切换渲染模式（仅供调试使用）
-     * @param {Boolean} useWebGL - 是否使用WebGL
+     * 切换渲染模式（WebGL/Canvas2D）
+     * @param {Boolean} useWebGL - 是否使用WebGL渲染
      */
-    switchRenderMode(useWebGL) {
-      // 确保当前状态与目标状态不同，避免不必要的重新初始化
-      if (this.data.webgl.enabled === useWebGL) {
-        console.log('[族谱树] 已经是' + (useWebGL ? 'WebGL' : 'Canvas 2D') + '渲染模式，无需切换');
+    switchRenderMode: function(useWebGL) {
+      console.log('[族谱树] 切换渲染模式:', useWebGL ? 'WebGL' : 'Canvas 2D');
+      
+      if (useWebGL === this.data.webgl.enabled) {
+        console.log('[族谱树] 渲染模式未改变');
         return;
       }
-
-      console.log('[族谱树] 手动切换渲染模式为:', useWebGL ? 'WebGL' : 'Canvas 2D');
-
+      
+      // 释放当前渲染器资源
+      this._cleanupRenderer();
+      
       // 更新渲染模式
       this.setData({
-        'webgl.enabled': useWebGL,
-        'webgl.initializing': false
-      }, () => {
-        // 清理旧的渲染器资源
-        if (this.rendererService) {
-          this.rendererService.dispose();
-        }
-
-        // 重置Canvas引用
-        this.canvas = null;
-        this.ctx = null;
-
-        // 重新初始化Canvas
-        setTimeout(() => {
-          this._initCanvas();
-        }, 100);
+        'webgl.enabled': useWebGL
+      });
+      
+      // 重新初始化Canvas
+      if (useWebGL) {
+        this._initWebGLCanvas();
+      } else {
+        this._init2DCanvas();
+      }
+      
+      // 更新渲染
+      this._render();
+      
+      // 触发渲染模式变更事件
+      this.triggerEvent('renderModeChange', {
+        webgl: useWebGL
       });
     },
 
@@ -481,28 +518,80 @@ Component({
      */
     _initWebGLCanvas: function(canvasNode) {
       try {
+        console.log('[族谱树] 开始初始化WebGL Canvas');
+        
         // 保存Canvas引用并设置尺寸
         this.canvas = canvasNode;
         this.canvas.width = this.properties.viewportWidth;
         this.canvas.height = this.properties.viewportHeight;
         
-        // 获取WebGL上下文
-        const webglContext = this.canvas.getContext('webgl', {
-          alpha: true,
-          antialias: true,
-          preserveDrawingBuffer: true
+        // 详细记录Canvas属性
+        console.log('[族谱树] Canvas详情:', {
+          type: this.canvas.type || '未知',
+          width: this.canvas.width,
+          height: this.canvas.height,
+          constructor: this.canvas.constructor ? this.canvas.constructor.name : '未知'
         });
         
+        // 尝试获取WebGL上下文 - 使用更多参数提高兼容性
+        let webglContext = null;
+        try {
+          console.log('[族谱树] 尝试获取WebGL上下文');
+          webglContext = this.canvas.getContext('webgl', {
+            alpha: true,
+            antialias: true,
+            preserveDrawingBuffer: true,
+            failIfMajorPerformanceCaveat: false, // 即使性能较低也尝试使用WebGL
+            powerPreference: 'default'
+          });
+          
+          if (!webglContext) {
+            console.log('[族谱树] 首次尝试获取WebGL上下文失败，尝试其他参数组合');
+            
+            // 第二次尝试 - 使用更宽松的参数
+            webglContext = this.canvas.getContext('webgl');
+          }
+        } catch (ctxError) {
+          console.error('[族谱树] 获取WebGL上下文出错:', ctxError.message);
+          webglContext = null;
+        }
+        
         if (!webglContext) {
-          console.error('[族谱树] 无法获取WebGL上下文，可能是设备不支持');
+          console.error('[族谱树] 无法获取WebGL上下文，可能是设备不支持或Canvas类型不匹配');
+          
+          // 检查Canvas元素类型
+          if (this.canvas.type && this.canvas.type !== 'webgl') {
+            console.warn(`[族谱树] Canvas类型不是webgl，而是 ${this.canvas.type}`);
+            console.log('[族谱树] 需要在WXML中设置canvas的type="webgl"');
+          }
+          
           this.setData({ 'webgl.supported': false, 'webgl.enabled': false });
           return false;
         }
         
+        console.log('[族谱树] 成功获取WebGL上下文');
         this.ctx = webglContext;
+        
+        // 显示WebGL信息
+        try {
+          const debugInfo = webglContext.getExtension('WEBGL_debug_renderer_info');
+          if (debugInfo) {
+            const vendor = webglContext.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
+            const renderer = webglContext.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+            console.log('[族谱树] WebGL信息:', {
+              vendor: vendor,
+              renderer: renderer,
+              version: webglContext.getParameter(webglContext.VERSION),
+              shadingLanguageVersion: webglContext.getParameter(webglContext.SHADING_LANGUAGE_VERSION)
+            });
+          }
+        } catch (infoError) {
+          console.warn('[族谱树] 获取WebGL详细信息失败:', infoError.message);
+        }
         
         // 初始化渲染器
         try {
+          console.log('[族谱树] 开始创建WebGL渲染器');
           this.renderer = new WebGLRenderer({
             canvas: this.canvas,
             gl: webglContext,
@@ -518,20 +607,24 @@ Component({
           // 设置组件状态
           this.setData({
             'webgl.initialized': true,
-            'webgl.initializing': false
+            'webgl.initializing': false,
+            'webgl.supported': true, // 明确标记为支持
+            'webgl.enabled': true    // 明确启用
           });
+          
+          console.log('[族谱树] WebGL渲染器创建成功');
           
           // 调整Canvas尺寸
           this._resizeCanvas();
           
           return true;
         } catch (error) {
-          console.error('[族谱树] 创建WebGL渲染器失败:', error.message);
+          console.error('[族谱树] 创建WebGL渲染器失败:', error.message, '\n堆栈:', error.stack);
           this.setData({ 'webgl.supported': false, 'webgl.enabled': false });
           return false;
         }
       } catch (error) {
-        console.error('[族谱树] WebGL Canvas初始化错误:', error.message);
+        console.error('[族谱树] WebGL Canvas初始化错误:', error.message, '\n堆栈:', error.stack);
         this.setData({ 'webgl.supported': false, 'webgl.enabled': false });
         return false;
       }
@@ -567,30 +660,45 @@ Component({
 
     /**
      * 初始化WebAssembly
-     * @returns {Promise<boolean>} 是否成功初始化
      * @private
      */
     _initWebAssembly: async function() {
       try {
         // 检查是否已经初始化
         if (this.data.wasm.initialized) {
-          console.log('WebAssembly已经初始化');
+          console.log('[族谱树] WebAssembly已经初始化');
           return true;
         }
 
-        // 检查WebAssembly支持
-        if (!this.data.wasm.available) {
-          console.warn('当前环境不支持WebAssembly');
+        // 检查WebAssembly是否在环境中可用
+        if (typeof WebAssembly !== 'object') {
+          console.warn('[族谱树] 当前环境不支持WebAssembly，降级到JS实现');
+          this.setData({
+            'wasm.available': false,
+            'wasm.initialized': false,
+            'wasm.initError': '环境不支持WebAssembly'
+          });
           return false;
         }
 
-        console.log('开始初始化WebAssembly模块');
+        // 设置WebAssembly可用
+        this.setData({
+          'wasm.available': true
+        });
+
+        // 仅在启用WebAssembly时尝试初始化
+        if (!this.data.wasm.enabled) {
+          console.log('[族谱树] WebAssembly功能已禁用');
+          return false;
+        }
+
+        console.log('[族谱树] 开始初始化WebAssembly模块');
 
         // 调用wasmLoader进行初始化
         const initResult = await wasmLoader.init();
 
         if (!initResult.success) {
-          console.warn('WebAssembly初始化失败:', initResult.error);
+          console.warn('[族谱树] WebAssembly初始化失败:', initResult.error);
           this.setData({
             'wasm.initialized': false,
             'wasm.initError': initResult.error || '初始化失败'
@@ -598,16 +706,15 @@ Component({
           return false;
         }
 
-        console.log('WebAssembly初始化成功');
+        console.log('[族谱树] WebAssembly初始化成功');
         this.setData({
           'wasm.initialized': true
         });
         return true;
       } catch (error) {
-        console.error('WebAssembly初始化错误:', error);
+        console.error('[族谱树] WebAssembly初始化错误:', error.message);
         this.setData({
           'wasm.initialized': false,
-          'wasm.available': false,
           'wasm.initError': error.message || '未知错误'
         });
         return false;
@@ -770,7 +877,7 @@ Component({
     _render: function() {
       try {
         // 当组件未就绪时，不执行渲染
-        if (!this._canRenderWithWebGL()) {
+        if (!this.properties.ready || !this.canvas) {
           if (this.ctx && this.canvas) {
             // 清除画布
             this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -788,53 +895,33 @@ Component({
           return;
         }
         
-        // 根据渲染模式选择合适的渲染方法
-        if (this.data.webgl.enabled && this.data.webgl.initialized && this.renderer) {
-          // 计算可视区域
-          const visibleArea = this._calculateVisibleArea();
-          if (!visibleArea) return;
-          
-          // 执行WebGL渲染
-          try {
-            const renderParams = {
-              nodes,
-              connectors,
-              visibleArea,
-              currentMemberId: this.properties.currentMemberId,
-              transformUniforms: {
-                offsetX: this.data.offsetX,
-                offsetY: this.data.offsetY,
-                scale: this.data.currentScale
-              },
-              layeredRendering: this.data.layeredRendering.enabled ? {
-                enabled: true,
-                currentLayer: this.data.layeredRendering.currentLayer,
-                layerNodes: this.data.layeredRendering.layerNodes,
-                layerConnectors: this.data.layeredRendering.layerConnectors,
-                layerCount: this.data.layeredRendering.layerCount
-              } : { enabled: false }
-            };
-            
-            if (!this.renderer.render(renderParams)) {
-              this._renderWith2D(nodes, connectors);
-            }
-          } catch (error) {
-            console.error('[渲染] 渲染出错:', error.message);
-            this._renderWith2D(nodes, connectors);
-          }
-        } else {
-          this._renderWith2D(nodes, connectors);
+        // 获取当前渲染策略
+        const renderStrategy = RenderStrategies.getCurrentStrategy();
+        if (!renderStrategy) {
+          console.warn('[渲染] 未找到有效的渲染策略');
+          return;
         }
         
-        // 更新节点映射
-        this._updateNodesMap();
+        // 执行渲染
+        renderStrategy.render(this, { 
+          nodes, 
+          connectors 
+        });
+        
+        // 更新渲染计数
+        this._renderCount++;
+        
+        // 更新最后渲染时间
+        this._lastRenderTime = Date.now();
+        
+        // 触发渲染完成事件
+        this.triggerEvent('renderComplete', {
+          count: this._renderCount,
+          time: this._lastRenderTime,
+          strategy: renderStrategy.name
+        });
       } catch (error) {
-        console.error('[渲染] 捕获到错误:', error.message);
-        
-        // 清理画布
-        if (this.ctx && this.canvas) {
-          this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        }
+        console.error('[渲染] 渲染过程出错:', error.message);
       }
     },
     
@@ -843,77 +930,11 @@ Component({
      * @param {Array} nodes - 节点数据
      * @param {Array} connectors - 连接线数据
      * @private
+     * @deprecated 已由RenderStrategy替代
      */
     _renderWithWebGL: function(nodes, connectors) {
-      try {
-        console.log('[WebGL渲染] 开始执行WebGL渲染');
-        
-        if (!this.renderer) {
-          console.error('[WebGL渲染] WebGL渲染器未初始化');
-          return;
-        }
-        
-        // 计算可见区域
-        const visibleArea = this._calculateVisibleArea();
-        if (!visibleArea) {
-          console.error('[WebGL渲染] 无法计算可视区域');
-          return;
-        }
-        
-        // 准备节点纹理映射
-        const nodeTextureMap = {};
-        
-        // 获取所有节点纹理
-        nodes.forEach(node => {
-          const texture = this._getNodeTexture(node);
-          if (texture) {
-            nodeTextureMap[node.id] = texture;
-          }
-        });
-        
-        // 准备渲染参数
-        const renderParams = {
-          nodes: nodes,
-          connectors: connectors,
-          nodeTextureMap: nodeTextureMap,
-          visibleArea: visibleArea,
-          currentMemberId: this.properties.currentMemberId,
-          transformUniforms: {
-            offsetX: this.data.offsetX,
-            offsetY: this.data.offsetY,
-            scale: this.data.currentScale
-          },
-          layeredRendering: this.data.layeredRendering.enabled ? {
-            enabled: true,
-            currentLayer: this.data.layeredRendering.currentLayer,
-            layerNodes: this.data.layeredRendering.layerNodes,
-            layerConnectors: this.data.layeredRendering.layerConnectors,
-            layerCount: this.data.layeredRendering.layerCount
-          } : { enabled: false }
-        };
-        
-        // 执行WebGL渲染
-        console.log('[WebGL渲染] 调用渲染器:', {
-          节点数: nodes.length,
-          连接线数: connectors.length,
-          纹理数: Object.keys(nodeTextureMap).length
-        });
-        
-        const renderResult = this.renderer.render(renderParams);
-        
-        if (!renderResult) {
-          console.warn('[WebGL渲染] 渲染失败，尝试降级到2D渲染');
-          this._renderWith2D(nodes, connectors);
-        } else {
-          console.log('[WebGL渲染] 渲染成功完成');
-          
-          // 更新节点映射，确保点击检测正确
-          this._updateNodesMap();
-        }
-      } catch (error) {
-        console.error('[WebGL渲染] 渲染过程中发生错误:', error.message);
-        this._renderWith2D(nodes, connectors);
-      }
+      // 该方法已被渲染策略模式替代
+      console.warn('[渲染] _renderWithWebGL方法已弃用，请使用渲染策略');
     },
     
     /**
@@ -921,55 +942,11 @@ Component({
      * @param {Array} nodes - 节点数据
      * @param {Array} connectors - 连接线数据
      * @private
+     * @deprecated 已由RenderStrategy替代
      */
     _renderWith2D: function(nodes, connectors) {
-      // 这里应该实现或调用现有的2D渲染逻辑
-      // 如果已有现成的2D渲染方法，直接调用即可
-      console.log('[2D渲染] 执行Canvas 2D渲染');
-      
-      // 这里仅作为示例，实际实现应该更复杂
-      if (this.ctx && this.canvas) {
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        
-        // 渲染连接线
-        for (const conn of connectors) {
-          this.ctx.beginPath();
-          this.ctx.moveTo(conn.fromX + this.data.offsetX, conn.fromY + this.data.offsetY);
-          this.ctx.lineTo(conn.toX + this.data.offsetX, conn.toY + this.data.offsetY);
-          this.ctx.strokeStyle = conn.highlighted ? 'rgba(0, 102, 204, 0.8)' : 'rgba(128, 128, 128, 0.6)';
-          this.ctx.lineWidth = 1 * this.data.currentScale;
-          this.ctx.stroke();
-        }
-        
-        // 渲染节点
-        for (const node of nodes) {
-          const x = node.x + this.data.offsetX;
-          const y = node.y + this.data.offsetY;
-          const width = node.width * this.data.currentScale;
-          const height = node.height * this.data.currentScale;
-          
-          // 绘制节点背景
-          this.ctx.fillStyle = node.isCurrent ? 'rgba(230, 247, 255, 0.8)' : 'rgba(255, 255, 255, 0.8)';
-          this.ctx.strokeStyle = node.isRoot ? 'rgba(255, 128, 0, 0.8)' : 'rgba(204, 204, 204, 0.8)';
-          this.ctx.lineWidth = 1 * this.data.currentScale;
-          
-          if (this.data.hasRoundRectAPI) {
-            this.ctx.beginPath();
-            this.ctx.roundRect(x, y, width, height, 8 * this.data.currentScale);
-            this.ctx.fill();
-            this.ctx.stroke();
-          } else {
-            this.ctx.fillRect(x, y, width, height);
-            this.ctx.strokeRect(x, y, width, height);
-          }
-          
-          // 绘制节点名称
-          this.ctx.fillStyle = 'black';
-          this.ctx.font = `${14 * this.data.currentScale}px Arial`;
-          this.ctx.textAlign = 'center';
-          this.ctx.fillText(node.name, x + width / 2, y + height - 10 * this.data.currentScale);
-        }
-      }
+      // 该方法已被渲染策略模式替代
+      console.warn('[渲染] _renderWith2D方法已弃用，请使用渲染策略');
     },
     
     /**
@@ -977,38 +954,12 @@ Component({
      * @param {Object} node - 节点数据
      * @returns {Object} 纹理对象
      * @private
+     * @deprecated 已由ImageCacheManager.getTexturesForNodes替代
      */
     _getNodeTexture: function(node) {
-      if (!this.renderer || !this.renderer.textures) {
-        return null;
-      }
-      
-      const nodeId = node.id;
-      
-      // 1. 检查是否已有纹理
-      if (this.renderer.textures[nodeId]) {
-        return this.renderer.textures[nodeId];
-      }
-      
-      // 2. 处理纹理加载
-      const gender = (node.gender || '').toLowerCase();
-      const defaultTexture = this._createDefaultTexture(gender);
-      
-      // 存储默认纹理，后续异步替换
-      if (defaultTexture) {
-        this.renderer.textures[nodeId] = defaultTexture;
-      }
-      
-      // 3. 如果有图像URL，异步加载
-      if (node.imageUrl) {
-        wx.getImageInfo({
-          src: node.imageUrl,
-          success: (res) => this._processLoadedImage(res, nodeId, gender, defaultTexture),
-          fail: () => {} // 默认纹理已设置，无需处理失败情况
-        });
-      }
-      
-      return defaultTexture;
+      // 该方法已被ImageCacheManager.getTexturesForNodes替代
+      console.warn('[渲染] _getNodeTexture方法已弃用，请使用ImageCacheManager');
+      return null;
     },
     
     /**
@@ -1017,49 +968,12 @@ Component({
      * @param {String} nodeId - 节点ID
      * @param {String} gender - 性别
      * @param {Object} existingTexture - 已存在的纹理
-     * @private 
+     * @private
+     * @deprecated 已由ImageCacheManager替代
      */
     _processLoadedImage: function(res, nodeId, gender, existingTexture) {
-      if (!this.renderer || !this.renderer.treeRenderer || !this.renderer.treeRenderer.gl) {
-        return;
-      }
-      
-      try {
-        const gl = this.renderer.treeRenderer.gl;
-        const texture = existingTexture || gl.createTexture();
-        
-        // 创建离屏Canvas并绘制图像
-        const tempCanvas = wx.createOffscreenCanvas({
-          type: '2d',
-          width: res.width,
-          height: res.height
-        });
-        
-        const tempCtx = tempCanvas.getContext('2d');
-        const img = tempCanvas.createImage();
-        
-        img.onload = () => {
-          tempCtx.drawImage(img, 0, 0, res.width, res.height);
-          
-          // 绑定纹理
-          gl.bindTexture(gl.TEXTURE_2D, texture);
-          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, tempCanvas);
-          
-          // 设置纹理参数
-          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-          
-          // 更新纹理引用并重新渲染
-          this.renderer.textures[nodeId] = texture;
-          this._render();
-        };
-        
-        img.src = res.path;
-      } catch (error) {
-        // 出错时保留使用默认纹理，不需额外处理
-      }
+      // 该方法已被ImageCacheManager替代
+      console.warn('[渲染] _processLoadedImage方法已弃用，请使用ImageCacheManager');
     },
     
     /**
@@ -1067,61 +981,12 @@ Component({
      * @param {String} gender - 性别
      * @returns {Object} 纹理对象
      * @private
+     * @deprecated 已由ImageCacheManager._createDefaultTexture替代
      */
     _createDefaultTexture: function(gender) {
-      if (!this.renderer?.treeRenderer?.gl) return null;
-      
-      const gl = this.renderer.treeRenderer.gl;
-      const texture = gl.createTexture();
-      if (!texture) return null;
-      
-      // 根据性别选择默认颜色
-      const color = gender === 'male' ? [100, 149, 237, 255] : 
-                   (gender === 'female' ? [255, 182, 193, 255] : [200, 200, 200, 255]);
-      
-      // 绑定纹理
-      gl.bindTexture(gl.TEXTURE_2D, texture);
-      gl.texImage2D(
-        gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0,
-        gl.RGBA, gl.UNSIGNED_BYTE,
-        new Uint8Array(color)
-      );
-      
-      // 设置纹理参数
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-      
-      return texture;
-    },
-    
-    /**
-     * 检查是否可以使用WebGL渲染
-     * @returns {Boolean} 是否可以使用WebGL渲染
-     * @private
-     */
-    _canRenderWithWebGL() {
-      return this.properties.ready && 
-             this.canvas && 
-             this.data.webgl.enabled && 
-             this.data.webgl.initialized && 
-             this.renderer;
-    },
-    
-    /**
-     * 调整Canvas尺寸
-     * @private
-     */
-    _resizeCanvas() {
-      // 使用渲染服务调整Canvas尺寸
-      this.rendererService.resizeCanvas(
-        this.properties.viewportWidth,
-        this.properties.viewportHeight,
-        this.data.offsetX,
-        this.data.offsetY,
-        this.data.currentScale
-      );
+      // 该方法已被ImageCacheManager._createDefaultTexture替代
+      console.warn('[渲染] _createDefaultTexture方法已弃用，请使用ImageCacheManager');
+      return null;
     },
 
     /**

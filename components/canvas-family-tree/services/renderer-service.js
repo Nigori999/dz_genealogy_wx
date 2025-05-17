@@ -86,16 +86,19 @@ class RendererService {
       console.log('[WebGL服务] 开始检测WebGL支持');
       
       // 检查系统信息
-      const systemInfo = wx.getSystemInfoSync();
-      console.log('[WebGL服务] 设备信息:', systemInfo.brand, systemInfo.model);
-      console.log('[WebGL服务] 系统信息:', systemInfo.system);
-      console.log('[WebGL服务] 微信版本:', systemInfo.version);
-      console.log('[WebGL服务] 基础库版本:', systemInfo.SDKVersion);
+      const deviceInfo = wx.getDeviceInfo();
+      const appBaseInfo = wx.getAppBaseInfo();
+      
+      // 使用新API获取设备信息
+      const pixelRatio = deviceInfo.pixelRatio || 1;
+      const platform = appBaseInfo.platform || '';
+      
+      console.log(`[渲染服务] 设备像素比: ${pixelRatio}, 平台: ${platform}`);
       
       // 检查基础库版本是否支持WebGL (需要2.7.0及以上版本)
       const minVersion = '2.7.0';
-      if (this._compareVersion(systemInfo.SDKVersion, minVersion) < 0) {
-        console.log(`[WebGL服务] 基础库版本(${systemInfo.SDKVersion})低于最低要求(${minVersion})，不支持WebGL`);
+      if (this._compareVersion(appBaseInfo.SDKVersion, minVersion) < 0) {
+        console.log(`[WebGL服务] 基础库版本(${appBaseInfo.SDKVersion})低于最低要求(${minVersion})，不支持WebGL`);
         return false;
       }
       
@@ -105,8 +108,8 @@ class RendererService {
       ];
       
       if (unsupportedDevices.some(device => 
-          systemInfo.model.toLowerCase().includes(device.toLowerCase()))) {
-        console.log(`[WebGL服务] 设备${systemInfo.model}在已知不支持WebGL的列表中`);
+          platform.toLowerCase().includes(device.toLowerCase()))) {
+        console.log(`[WebGL服务] 设备${platform}在已知不支持WebGL的列表中`);
         return false;
       }
       
@@ -270,7 +273,10 @@ class RendererService {
     
     try {
       // 获取设备像素比，确保不为0
-      const dpr = wx.getSystemInfoSync().pixelRatio || 1;
+      const deviceInfo = wx.getDeviceInfo();
+      const dpr = deviceInfo.pixelRatio || 1;
+      
+      console.log(`[渲染服务] 设备像素比: ${dpr}`);
       
       // 设置物理像素大小 - 使用floor避免小数点引起的渲染问题
       const physicalWidth = Math.floor(width * dpr);
