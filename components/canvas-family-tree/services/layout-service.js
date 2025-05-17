@@ -15,9 +15,23 @@ class LayoutService {
     this.worker = null;
     this.useWorker = false; // 实际使用状态，将在初始化后更新
     // 更积极的WASM使用策略 - 默认启用，只有在明确不支持时才禁用
-    this.useWasm = typeof WebAssembly === 'object';
-    console.log('[布局服务] WebAssembly支持检测:', this.useWasm ? '支持' : '不支持');
+    this.useWasm = typeof WXWebAssembly === 'object';
+    console.log('[布局服务] WXWebAssembly支持检测:', this.useWasm ? '支持' : '不支持');
     this.callbacks = new Map();
+    
+    // 初始化时记录完整的WXWebAssembly对象检测
+    if (typeof WXWebAssembly === 'object') {
+      console.log('[布局服务] WXWebAssembly可用，检测可用方法:');
+      const methods = [];
+      for (const key in WXWebAssembly) {
+        if (typeof WXWebAssembly[key] === 'function') {
+          methods.push(key);
+        }
+      }
+      console.log('[布局服务] WXWebAssembly方法:', methods.join(', '));
+    } else {
+      console.warn('[布局服务] WXWebAssembly不可用，将使用JS降级实现');
+    }
   }
 
   /**
@@ -64,7 +78,7 @@ class LayoutService {
         
         // 基础库版本过低可能不支持某些功能
         if (this._compareVersion(appBaseInfo.SDKVersion || '', '2.13.0') < 0) {
-          console.warn('当前基础库版本低于2.13.0，可能不支持WebAssembly');
+          console.warn('当前基础库版本低于2.13.0，可能不支持WXWebAssembly');
         }
         
         // 尝试创建Worker
@@ -76,7 +90,7 @@ class LayoutService {
         // 检查是否是模块加载错误
         if (createError && createError.message) {
           if (createError.message.includes('not support')) {
-            console.warn('当前环境不支持Worker或WebAssembly，降级到主线程计算');
+            console.warn('当前环境不支持Worker或WXWebAssembly，降级到主线程计算');
           } else if (createError.message.includes('module') && 
               (createError.message.includes('not defined') || 
                createError.message.includes('not found'))) {
@@ -105,7 +119,7 @@ class LayoutService {
           
           // 特殊处理"not support"错误
           if (error.message && error.message.includes('not support')) {
-            console.warn('检测到Worker "not support"错误，这通常与WebAssembly支持有关');
+            console.warn('检测到Worker "not support"错误，这通常与WXWebAssembly支持有关');
             // 设置降级标志
             this.useWasm = false;
           }
@@ -234,7 +248,7 @@ class LayoutService {
         console.log('收到Worker调试信息:', result.data);
         // 根据调试信息调整状态
         if (result.data && !result.data.wasmAvailable) {
-          console.warn('Worker报告WebAssembly不可用，禁用WebAssembly功能');
+          console.warn('Worker报告WXWebAssembly不可用，禁用WebAssembly功能');
           this.useWasm = false;
         }
         break;
@@ -346,33 +360,29 @@ class LayoutService {
    * @private
    */
   _calculateWithWasm(options) {
-    const { nodes, levelHeight, siblingDistance } = options;
-    
-    return new Promise((resolve, reject) => {
-      try {
-        console.log('使用WebAssembly计算树布局');
-        
-        // 获取WebAssembly实例
-        const { treeLayoutCalculator } = this.wasmLoader.getInstances();
-        
-        if (!treeLayoutCalculator) {
-          throw new Error('WebAssembly树布局计算器未初始化');
-        }
-        
-        // 准备节点数据
-        const processedResult = this._prepareAndProcessWasmData(nodes, levelHeight, siblingDistance, treeLayoutCalculator);
-        
-        // 返回结果
-        resolve(processedResult);
-      } catch (error) {
-        console.error('WebAssembly布局计算失败:', error);
-        
-        // 降级到JavaScript实现
-        this._calculateWithJS(options)
-          .then(resolve)
-          .catch(reject);
+    try {
+      const { nodes, levelHeight = 150, siblingDistance = 60 } = options;
+      
+      if (!nodes || nodes.length === 0) {
+        console.warn('节点数据为空，无法计算布局');
+        return null;
       }
-    });
+      
+      console.log('使用WXWebAssembly计算树布局');
+      
+      // 获取WebAssembly实例
+      const calculator = this.wasmLoader.getTreeLayoutCalculator();
+      if (!calculator) {
+        throw new Error('WXWebAssembly树布局计算器未初始化');
+      }
+      
+      // 调用WebAssembly计算布局
+      return this._prepareAndProcessWasmData(nodes, levelHeight, siblingDistance, calculator);
+    } catch (error) {
+      console.error('WXWebAssembly布局计算失败:', error);
+      // 出错时降级到JS实现
+      return this._calculateWithJS(options);
+    }
   }
 
   
@@ -549,73 +559,47 @@ class LayoutService {
    * @param {Number} levelHeight - 层高
    * @param {Number} siblingDistance - 兄弟节点间距
    * @param {Object} calculator - WebAssembly计算器实例
-   * @returns {Object} 处理后的结果
+   * @returns {Object} 处理后的布局结果
    * @private
    */
   _prepareAndProcessWasmData(nodes, levelHeight, siblingDistance, calculator) {
-    // 将节点数据转换为WebAssembly可处理的格式
-    const nodesBuffer = new Float64Array(nodes.length * 8); // 每个节点8个属性
-    const idsBuffer = new Array(nodes.length);
-    
-    nodes.forEach((node, index) => {
-      const offset = index * 8;
-      nodesBuffer[offset] = index; // 节点索引
-      nodesBuffer[offset + 1] = node.parentId ? nodes.findIndex(n => n.id === node.parentId) : -1; // 父节点索引
-      nodesBuffer[offset + 2] = node.spouseId ? nodes.findIndex(n => n.id === node.spouseId) : -1; // 配偶节点索引
-      nodesBuffer[offset + 3] = node.x || 0;
-      nodesBuffer[offset + 4] = node.y || 0;
-      nodesBuffer[offset + 5] = node.width || 120;
-      nodesBuffer[offset + 6] = node.height || 150;
-      nodesBuffer[offset + 7] = node.generation || 1;
+    try {
+      // 将节点数据转换为WXWebAssembly可处理的格式
+      const nodeData = nodes.map(node => ({
+        id: String(node.id),
+        parentId: String(node.parentId || ''),
+        width: Number(node.width || 120),
+        height: Number(node.height || 150),
+        level: Number(node.level || 0),
+        isLeaf: Boolean(node.isLeaf)
+      }));
       
-      idsBuffer[index] = node.id;
-    });
-    
-    // 调用WebAssembly计算布局
-    const resultBuffer = calculator.calculateLayout(nodesBuffer, nodes.length, levelHeight, siblingDistance);
-    
-    if (!resultBuffer) {
-      throw new Error('WebAssembly计算返回空结果');
-    }
-    
-    // 解析计算结果
-    const resultNodes = [];
-    const resultConnectors = [];
-    
-    // 解析节点位置
-    for (let i = 0; i < nodes.length; i++) {
-      const nodeOffset = i * 3; // x, y, generation
+      // 调用WXWebAssembly计算布局
+      const result = calculator.calculateLayout(nodeData, levelHeight, siblingDistance);
       
-      resultNodes.push({
-        ...nodes[i],
-        x: resultBuffer[nodeOffset],
-        y: resultBuffer[nodeOffset + 1],
-        generation: resultBuffer[nodeOffset + 2]
-      });
-    }
-    
-    // 解析连接线
-    const connectorCount = resultBuffer[nodes.length * 3];
-    const connectorOffset = nodes.length * 3 + 1;
-    
-    for (let i = 0; i < connectorCount; i++) {
-      const offset = connectorOffset + i * 6; // fromId, toId, type, fromX, fromY, toX, toY
+      if (!result) {
+        throw new Error('WXWebAssembly计算返回空结果');
+      }
       
-      resultConnectors.push({
-        fromId: idsBuffer[resultBuffer[offset]],
-        toId: idsBuffer[resultBuffer[offset + 1]],
-        type: resultBuffer[offset + 2] === 1 ? 'spouse' : 'parent-child',
-        fromX: resultBuffer[offset + 3],
-        fromY: resultBuffer[offset + 4],
-        toX: resultBuffer[offset + 5],
-        toY: resultBuffer[offset + 6]
-      });
+      // 处理布局结果
+      const layoutResult = {
+        nodes: result.nodes.map(node => ({
+          id: node.id,
+          x: node.x,
+          y: node.y,
+          width: node.width,
+          height: node.height,
+          level: node.level
+        })),
+        width: result.width,
+        height: result.height
+      };
+      
+      return layoutResult;
+    } catch (error) {
+      console.error('处理WXWebAssembly数据失败:', error);
+      throw error;
     }
-    
-    return {
-      nodes: resultNodes,
-      connectors: resultConnectors
-    };
   }
 
   /**
@@ -664,11 +648,24 @@ class LayoutService {
   }
 
   /**
-   * 设置WebAssembly使用状态
-   * @param {Boolean} useWasm - 是否使用WebAssembly
+   * 设置WXWebAssembly使用状态
+   * @param {Boolean} useWasm - 是否使用WXWebAssembly
    */
   setWasmUsage(useWasm) {
-    this.useWasm = !!useWasm;
+    this.useWasm = useWasm;
+    
+    // 如果有Worker，更新Worker的WASM使用状态
+    if (this.useWorker && this.worker) {
+      try {
+        this.worker.postMessage({
+          type: 'setWasmUsage',
+          useWasm: useWasm
+        });
+        console.log('[布局服务] 已更新Worker的WXWebAssembly使用状态:', useWasm);
+      } catch (error) {
+        console.warn('[布局服务] 更新Worker的WXWebAssembly状态失败:', error.message);
+      }
+    }
   }
 
   /**

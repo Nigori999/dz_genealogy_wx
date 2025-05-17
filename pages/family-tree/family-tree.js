@@ -216,12 +216,27 @@ Page({
   _getUserInfo: function() {
     return api.userAPI.getUserInfo()
       .then(user => {
+        // 确保user和user.memberId有效
+        if (!user) {
+          user = { memberId: '' };
+        } else if (!user.memberId) {
+          user.memberId = '';
+        }
+        
+        // 确保memberId始终是字符串
+        user.memberId = String(user.memberId || '');
+        
+        console.log('[族谱树] 当前用户信息:', JSON.stringify(user));
+        
         this.setData({ currentUser: user });
         return user;
       })
       .catch(error => {
         console.error('获取用户信息失败:', error);
-        return null;
+        // 设置默认值避免null
+        const defaultUser = { memberId: '' };
+        this.setData({ currentUser: defaultUser });
+        return defaultUser;
       });
   },
 
@@ -825,10 +840,11 @@ Page({
   /**
    * 定位到当前用户
    */
-  onTapLocateButton: function() {
+  locateUserNode: function() {
+    // 确保currentUser存在且有memberId
     if (!this.data.currentUser || !this.data.currentUser.memberId) {
       wx.showToast({
-        title: '用户未关联成员',
+        title: '无法定位：未找到当前用户',
         icon: 'none'
       });
       return;
@@ -839,9 +855,13 @@ Page({
       this.treeCanvas = this.selectComponent('#canvasFamilyTree');
     }
     
+    // 获取用户memberId并确保是字符串
+    const memberId = String(this.data.currentUser.memberId || '');
+    console.log('[族谱树] 尝试定位用户:', memberId);
+    
     // 调用Canvas组件的定位方法
     if (this.treeCanvas && this.treeCanvas.locateNode) {
-      const result = this.treeCanvas.locateNode(this.data.currentUser.memberId);
+      const result = this.treeCanvas.locateNode(memberId);
       
       if (result) {
         // 成功定位

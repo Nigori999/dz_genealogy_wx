@@ -40,7 +40,7 @@
       id="canvasFamilyTree"
       treeNodes="{{allTreeNodes}}"
       treeConnectors="{{allTreeConnectors}}"
-      currentMemberId="{{currentUser.memberId}}"
+      currentMemberId="{{currentUser.memberId || ''}}"
       scale="{{zoomScale}}"
       viewportWidth="{{treeViewWidth}}"
       viewportHeight="{{treeViewHeight}}"

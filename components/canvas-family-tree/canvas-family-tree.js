@@ -148,22 +148,41 @@ Component({
       // 先初始化Canvas和资源
       await this._initResources();
       
-      // 然后再初始化渲染策略（确保Canvas已准备就绪）
-      const success = await RenderStrategies.init(this);
-      if (success) {
-        console.log('[族谱树] 渲染策略初始化成功');
+      // 确保Canvas已准备好后，再初始化渲染策略
+      wx.nextTick(async () => {
+        try {
+          // 确保Canvas已初始化
+          if (!this.canvas || !this.ctx) {
+            console.log('[族谱树] Canvas尚未准备好，等待初始化...');
+            // 等待Canvas初始化完成
+            await new Promise(resolve => setTimeout(resolve, 300));
+          }
+          
+          // 再次检查Canvas是否已准备好
+          if (!this.canvas || !this.ctx) {
+            console.warn('[族谱树] Canvas初始化失败，渲染策略将使用默认配置');
+          }
+          
+          // 然后再初始化渲染策略
+          const success = await RenderStrategies.init(this);
+          if (success) {
+            console.log('[族谱树] 渲染策略初始化成功');
+            
+            // 渲染策略初始化成功后，更新UI状态
+            this.setData({
+              'optionMenuItems.useWebGL.disabled': !this.data.webgl.supported,
+              'optionMenuItems.useWebGL.checked': this.data.webgl.enabled,
+              'optionMenuItems.useSprites.disabled': !this.data.spriteSupport.supported
+            });
+          } else {
+            console.warn('[族谱树] 渲染策略初始化失败，使用默认策略');
+          }
+        } catch (error) {
+          console.error('[族谱树] 渲染策略初始化错误:', error);
+        }
         
-        // 渲染策略初始化成功后，更新UI状态
-        this.setData({
-          'optionMenuItems.useWebGL.disabled': !this.data.webgl.supported,
-          'optionMenuItems.useWebGL.checked': this.data.webgl.enabled,
-          'optionMenuItems.useSprites.disabled': !this.data.spriteSupport.supported
-        });
-      } else {
-        console.warn('[族谱树] 渲染策略初始化失败，使用默认策略');
-      }
-      
-      console.log('[族谱树] 初始化流程完成');
+        console.log('[族谱树] 初始化流程完成');
+      });
     },
 
     detached() {
@@ -670,13 +689,13 @@ Component({
           return true;
         }
 
-        // 检查WebAssembly是否在环境中可用
-        if (typeof WebAssembly !== 'object') {
-          console.warn('[族谱树] 当前环境不支持WebAssembly，降级到JS实现');
+        // 检查WXWebAssembly是否在环境中可用（微信小程序中使用WXWebAssembly而非WebAssembly）
+        if (typeof WXWebAssembly !== 'object') {
+          console.warn('[族谱树] 当前环境不支持WXWebAssembly，降级到JS实现');
           this.setData({
             'wasm.available': false,
             'wasm.initialized': false,
-            'wasm.initError': '环境不支持WebAssembly'
+            'wasm.initError': '环境不支持WXWebAssembly'
           });
           return false;
         }

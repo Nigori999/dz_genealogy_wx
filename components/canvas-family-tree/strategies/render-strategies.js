@@ -299,6 +299,12 @@ const RenderStrategies = {
         return false;
       }
       
+      // 确保组件上的Canvas和渲染上下文已存在
+      if (!component.canvas || !component.ctx) {
+        console.error('[策略] 组件的Canvas或渲染上下文未初始化');
+        return false;
+      }
+      
       const result = this.currentStrategy.init(component);
       
       console.log('[策略] 渲染策略初始化完成:', result ? '成功' : '失败');
@@ -348,7 +354,8 @@ const RenderStrategies = {
       this.compatibility.canvas2dSupported = true;
       // 默认启用精灵图支持
       this.compatibility.spriteSupported = true;
-      this.compatibility.wasmAvailable = typeof WebAssembly === 'object';
+      // 检测微信小程序的WebAssembly支持 - 使用WXWebAssembly而非WebAssembly
+      this.compatibility.wasmAvailable = typeof WXWebAssembly === 'object';
       
       console.log('[策略] 兼容性检查结果:', this.compatibility);
     } catch (error) {
@@ -357,6 +364,7 @@ const RenderStrategies = {
       this.compatibility.webglSupported = true;
       this.compatibility.canvas2dSupported = true;
       this.compatibility.spriteSupported = true;
+      this.compatibility.wasmAvailable = typeof WXWebAssembly === 'object';
     }
   },
   
@@ -450,6 +458,7 @@ const RenderStrategies = {
    * 应用渲染策略到组件
    * @param {Object} component - 组件实例
    * @param {Object} options - 策略选项
+   * @returns {Boolean} 应用是否成功
    */
   applyStrategiesToComponent(component, options = {}) {
     if (!component) {
@@ -477,25 +486,45 @@ const RenderStrategies = {
         // 调用组件的switchRenderMode方法切换渲染模式
         if (typeof component.switchRenderMode === 'function') {
           component.switchRenderMode(options.webgl);
+          
+          // 等待一段时间后再更新策略，确保渲染器已初始化
+          setTimeout(() => {
+            // 创建新的策略实例
+            this.currentStrategy = RenderStrategyFactory.getStrategy({
+              enabled: component.data.webgl.enabled,
+              supported: component.data.webgl.supported
+            });
+            
+            // 初始化新策略
+            if (this.currentStrategy) {
+              this.currentStrategy.init(component);
+            }
+            
+            console.log('[策略] 已应用新策略:', this.currentStrategy ? this.currentStrategy.name : '无');
+          }, 300);
+          
+          return true;
         } else {
           console.warn('[策略] 组件未实现switchRenderMode方法，无法切换渲染模式');
           return false;
         }
+      } else {
+        // 渲染模式未变化，仅更新参数
+        // 创建新的策略实例
+        this.currentStrategy = RenderStrategyFactory.getStrategy({
+          enabled: component.data.webgl.enabled,
+          supported: component.data.webgl.supported
+        });
+        
+        console.log('[策略] 已应用新策略:', this.currentStrategy.name);
+        return true;
       }
-      
-      // 创建新的策略实例
-      this.currentStrategy = RenderStrategyFactory.getStrategy({
-        enabled: component.data.webgl.enabled,
-        supported: component.data.webgl.supported
-      });
-      
-      console.log('[策略] 已应用新策略:', this.currentStrategy.name);
-      return true;
     } catch (error) {
       console.error('[策略] 应用策略出错:', error.message, error.stack);
       
       // 出错时创建默认策略
       this.currentStrategy = new Canvas2DRenderStrategy();
+      
       return false;
     }
   },
