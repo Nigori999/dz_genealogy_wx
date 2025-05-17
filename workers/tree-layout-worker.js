@@ -397,88 +397,38 @@ async function loadWasmWithWXWebAssembly() {
     }
     
     // 文件名
-    const treeLayoutFile = 'tree_layout.wasm';
+    let treeLayoutFile = 'tree_layout.wasm';
     
-    // 创建WASM内存
-    const wasmMemory = new WXWebAssembly.Memory({ initial: 256, maximum: 512 });
-    
-    // 创建函数处理代理
-    const functionProxy = new Proxy({}, {
-      get: function(target, prop) {
-        console.log(`[WASM] 请求调用函数 a.${prop}`);
-        // 返回一个通用函数，接受任意参数并返回0
-        return function(...args) {
-          console.log(`[WASM] 调用函数 a.${prop} 参数:`, args);
-          return 0;
-        };
-      }
-    });
-    
-    // 准备导入对象
-    const importObject = {
-      // Emscripten需要的a模块 - 使用代理处理所有函数请求
-      a: new Proxy({
-        memory: wasmMemory
-      }, {
-        get: function(target, prop) {
-          // 如果属性存在，返回它
-          if (prop in target) {
-            return target[prop];
-          }
-          // 否则，创建一个通用函数
-          console.log(`[WASM] 请求调用函数 a.${prop}`);
-          return function(...args) {
-            console.log(`[WASM] 调用函数 a.${prop} 参数:`, args);
-            return 0;
-          };
-        }
-      }),
+    // 检查环境是否需要使用压缩格式
+    try {
+      // 获取环境信息
+      const envType = worker.env || {};
+      console.log('[Worker] 环境类型:', envType);
       
-      // Emscripten标准环境
-      env: {
-        memory: wasmMemory, // 使用同一个内存实例
-        table: new WXWebAssembly.Table({ initial: 10, element: "anyfunc" }),
-        abort: function(msg, file, line, column) {
-          console.error(`[WASM Error] ${msg}:${file}:${line}:${column}`);
-        },
-        log: function(value) {
-          console.log('[WASM]', value);
-        },
-        // 添加必要的数学常量和函数
-        cos: Math.cos,
-        sin: Math.sin,
-        tan: Math.tan,
-        pow: Math.pow,
-        exp: Math.exp,
-        log: Math.log,
-        sqrt: Math.sqrt,
-        // C++标准库可能需要的数学常量
-        M_PI: Math.PI
-      },
-      
-      wasi_snapshot_preview1: {
-        proc_exit: function(code) {
-          console.log('[WASM] proc_exit called with code', code);
-        },
-        fd_close: function() { return 0; },
-        fd_seek: function() { return 0; },
-        fd_write: function() { return 0; }
+      // 根据环境信息判断
+      if (typeof envType === 'string' && 
+          (envType.includes('Windows') || envType.includes('ios'))) {
+        console.log('[Worker] 当前环境可能需要压缩WebAssembly格式');
+        treeLayoutFile = 'tree_layout.wasm.br';
       }
-    };
+    } catch (e) {
+      console.warn('[Worker] 环境检测失败，使用默认WASM格式:', e);
+    }
     
+    // 注意：使用embind绑定的WebAssembly模块不需要复杂的导入对象
+    // 只需要空对象即可，实际的绑定由Emscripten生成的JS胶水代码处理
     let loadedInstance = null;
     let loadError = null;
     const fullPath = 'wasm/dist/' + treeLayoutFile;
     
     // 尝试加载wasm模块，记录更多调试信息
     console.log(`[Worker] 开始实例化WASM: ${fullPath}`);
-    console.log('[Worker] importObject结构:', Object.keys(importObject).join(', '));
     
     try {
       // 更详细地记录整个加载过程
       console.log('[Worker] 开始WXWebAssembly.instantiate调用...');
       
-      const result = await WXWebAssembly.instantiate(fullPath, importObject);
+      const result = await WXWebAssembly.instantiate(fullPath, {});
       
       console.log('[Worker] WXWebAssembly.instantiate调用完成，检查结果');
       

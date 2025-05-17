@@ -158,13 +158,6 @@ class WasmLoader {
         throw new Error('当前环境不支持WXWebAssembly');
       }
       
-      // 可能的路径格式
-      const basePaths = [
-        'wasm/dist/',     // 标准相对路径
-        '/wasm/dist/',    // 绝对路径
-        './wasm/dist/'    // 当前目录相对路径
-      ];
-      
       // 需要加载的文件
       const files = [
         { name: 'treeLayout', file: 'tree_layout.wasm' },
@@ -172,43 +165,54 @@ class WasmLoader {
         { name: 'path', file: 'path_calculator.wasm' }
       ];
       
-      // 尝试所有路径组合
-      let loadSuccess = false;
-      let loadedModules = [];
-      
-      for (const basePath of basePaths) {
-        try {
-          console.log(`尝试从路径加载WebAssembly: ${basePath}`);
+      // 根据微信环境确定适当的文件后缀
+      // 某些微信版本只支持.wasm.br文件
+      try {
+        const systemInfo = wx.getSystemInfoSync();
+        const envInfo = `${systemInfo.platform || ''},mp,${systemInfo.version || ''}`;
+        console.log('微信环境信息:', envInfo);
+        
+        // 检查是否需要使用压缩格式
+        const needCompressedFormat = 
+          envInfo.includes('Windows') || 
+          envInfo.includes('iOS') || 
+          systemInfo.platform === 'ios' || 
+          systemInfo.platform === 'windows';
           
-          // 创建所有模块的加载Promise
-          const loadPromises = files.map(file => {
-            const fullPath = basePath + file.file;
-            console.log(`加载WebAssembly模块: ${fullPath}`);
-            return WXWebAssembly.instantiate(fullPath, {})
-              .then(result => {
-                console.log(`模块 ${file.name} 加载成功`);
-                return { name: file.name, instance: result.instance };
-              })
-              .catch(error => {
-                console.error(`加载 ${file.name} 失败: ${error.message}`);
-                throw error;
-              });
+        if (needCompressedFormat) {
+          console.log('当前环境可能需要压缩格式的WebAssembly文件');
+          
+          // 修改文件名后缀为.wasm.br
+          files.forEach(file => {
+            file.file = file.file + '.br';
+            console.log(`调整文件名为: ${file.file}`);
           });
-          
-          // 尝试加载所有模块
-          loadedModules = await Promise.all(loadPromises);
-          loadSuccess = true;
-          console.log(`所有WebAssembly模块从路径 ${basePath} 加载成功`);
-          break;
-        } catch (error) {
-          console.warn(`从路径 ${basePath} 加载WebAssembly失败: ${error.message}，尝试下一个路径`);
         }
+      } catch (e) {
+        console.warn('获取系统信息失败，使用默认WASM格式:', e);
       }
       
-      if (!loadSuccess) {
-        throw new Error('所有WebAssembly加载路径尝试都失败');
-      }
       
+      // 创建所有模块的加载Promise
+      const loadPromises = files.map(file => {
+        const fullPath = 'wasm/dist/' + file.file;
+        console.log(`加载WebAssembly模块: ${fullPath}`);
+        
+        // 注意：使用embind绑定的WebAssembly模块不需要复杂的导入对象
+        // 只需要空对象即可，实际的绑定由Emscripten生成的js胶水代码处理
+        return WXWebAssembly.instantiate(fullPath, {})
+          .then(result => {
+            console.log(`模块 ${file.name} 加载成功`);
+            return { name: file.name, instance: result.instance };
+          })
+          .catch(error => {
+            console.error(`加载 ${file.name} 失败: ${error.message}`);
+            throw error;
+          });
+      });
+      
+      // 尝试加载所有模块
+      let loadedModules = await Promise.all(loadPromises);
       // 从加载结果中提取模块实例
       for (const module of loadedModules) {
         if (module.name === 'treeLayout') {
