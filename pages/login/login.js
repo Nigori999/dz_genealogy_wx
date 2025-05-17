@@ -285,5 +285,39 @@ Page({
         url: '/pages/index/index'
       });
     }
+  },
+
+  /**
+   * 登录处理
+   * @param {Object} e - 事件对象
+   */
+  loginWithUserType: function(e) {
+    const userType = e.currentTarget.dataset.type;
+    
+    this.setData({ isLoading: true });
+    
+    // 使用 app.js 中的 login 方法按类型登录
+    const user = app.login(userType);
+    
+    if (user) {
+      wx.showToast({
+        title: `以${user.nickname}身份登录成功`,
+        icon: 'success',
+        duration: 1500
+      });
+      
+      // 延迟跳转，让用户看到成功提示
+      setTimeout(() => {
+        wx.switchTab({
+          url: '/pages/index/index'
+        });
+      }, 1500);
+    } else {
+      this.setData({ isLoading: false });
+      wx.showToast({
+        title: '登录失败，请重试',
+        icon: 'none'
+      });
+    }
   }
 });

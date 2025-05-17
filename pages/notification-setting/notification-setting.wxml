@@ -130,38 +130,7 @@
       </view>
     </view>
 
-    <!-- 通知历史记录 -->
-    <view class="section">
-      <view class="section-header">
-        <text class="section-title">通知历史记录</text>
-        <text class="section-desc">查看已接收的所有通知消息</text>
-      </view>
-      
-      <view class="section-content">
-        <view wx:if="{{notificationHistory.length > 0}}">
-          <view class="history-item" wx:for="{{notificationHistory}}" wx:key="id" bindtap="viewNotificationDetail" data-id="{{item.id}}">
-            <view class="history-item-header">
-              <text class="history-item-title">{{item.title}}</text>
-              <text class="history-item-time">{{item.time}}</text>
-            </view>
-            <view class="history-item-content">{{item.content}}</view>
-            <view class="history-item-footer">
-              <text class="history-item-tag">{{item.type}}</text>
-              <text class="history-item-status {{item.read ? 'read' : 'unread'}}">{{item.read ? '已读' : '未读'}}</text>
-            </view>
-          </view>
-        </view>
-        <view wx:else class="empty-history">
-          <view class="empty-icon">📪</view>
-          <view class="empty-text">暂无通知记录</view>
-        </view>
-        
-        <view class="history-footer">
-          <view class="history-btn" bindtap="viewAllNotifications">查看全部通知</view>
-          <view class="history-btn clear" bindtap="clearAllNotifications">清空通知</view>
-        </view>
-      </view>
-    </view>
+    
     
     <!-- 通知权限管理 -->
     <view class="manage-container">

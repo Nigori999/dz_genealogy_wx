@@ -4,35 +4,43 @@
 
 /**
  * 格式化日期
- * @param {String|Date} date - 日期字符串或日期对象
- * @param {String} format - 格式化模板，如 'YYYY-MM-DD'
+ * @param {Date} date - 日期对象
+ * @param {String} fmt - 格式模板，例如："yyyy-MM-dd hh:mm:ss"
  * @returns {String} 格式化后的日期字符串
  */
-const formatDate = (date, format = 'YYYY-MM-DD') => {
+function formatDate(date, fmt) {
   if (!date) return '';
   
-  const d = typeof date === 'string' ? new Date(date) : date;
+  if (typeof date === 'string') {
+    date = new Date(date);
+  }
   
-  // 检查日期是否有效
-  if (isNaN(d.getTime())) return '';
+  if (!(date instanceof Date) || isNaN(date.getTime())) {
+    return '';
+  }
   
-  const year = d.getFullYear();
-  const month = d.getMonth() + 1;
-  const day = d.getDate();
-  const hours = d.getHours();
-  const minutes = d.getMinutes();
-  const seconds = d.getSeconds();
+  var o = {
+    "M+": date.getMonth() + 1, // 月份
+    "d+": date.getDate(), // 日
+    "h+": date.getHours(), // 小时
+    "m+": date.getMinutes(), // 分
+    "s+": date.getSeconds(), // 秒
+    "q+": Math.floor((date.getMonth() + 3) / 3), // 季度
+    "S": date.getMilliseconds() // 毫秒
+  };
   
-  const pad = (num) => (num < 10 ? '0' + num : num);
+  if (/(y+)/.test(fmt)) {
+    fmt = fmt.replace(RegExp.$1, (date.getFullYear() + "").substr(4 - RegExp.$1.length));
+  }
   
-  return format
-    .replace('YYYY', year)
-    .replace('MM', pad(month))
-    .replace('DD', pad(day))
-    .replace('HH', pad(hours))
-    .replace('mm', pad(minutes))
-    .replace('ss', pad(seconds));
-};
+  for (var k in o) {
+    if (new RegExp("(" + k + ")").test(fmt)) {
+      fmt = fmt.replace(RegExp.$1, (RegExp.$1.length == 1) ? (o[k]) : (("00" + o[k]).substr(("" + o[k]).length)));
+    }
+  }
+  
+  return fmt;
+}
 
 /**
  * 计算年龄
@@ -58,46 +66,40 @@ const calculateAge = (birthDate, deathDate) => {
 
 /**
  * 节流函数
- * @param {Function} fn - 要执行的函数
- * @param {Number} delay - 延迟时间（毫秒）
- * @returns {Function} 节流后的函数
+ * @param {Function} func - 要执行的函数
+ * @param {Number} wait - 等待时间（毫秒）
+ * @returns {Function} 节流处理后的函数
  */
-const throttle = (fn, delay = 500) => {
-  let timer = null;
+function throttle(func, wait) {
   let lastTime = 0;
-  
-  return function (...args) {
+  return function() {
+    const context = this;
+    const args = arguments;
     const now = Date.now();
-    
-    if (now - lastTime >= delay) {
-      fn.apply(this, args);
+    if (now - lastTime >= wait) {
+      func.apply(context, args);
       lastTime = now;
-    } else {
-      clearTimeout(timer);
-      timer = setTimeout(() => {
-        fn.apply(this, args);
-        lastTime = Date.now();
-      }, delay - (now - lastTime));
     }
   };
-};
+}
 
 /**
  * 防抖函数
- * @param {Function} fn - 要执行的函数
- * @param {Number} delay - 延迟时间（毫秒）
- * @returns {Function} 防抖后的函数
+ * @param {Function} func - 要执行的函数
+ * @param {Number} wait - 等待时间（毫秒）
+ * @returns {Function} 防抖处理后的函数
  */
-const debounce = (fn, delay = 500) => {
-  let timer = null;
-  
-  return function (...args) {
-    clearTimeout(timer);
-    timer = setTimeout(() => {
-      fn.apply(this, args);
-    }, delay);
+function debounce(func, wait) {
+  let timeout;
+  return function() {
+    const context = this;
+    const args = arguments;
+    clearTimeout(timeout);
+    timeout = setTimeout(() => {
+      func.apply(context, args);
+    }, wait);
   };
-};
+}
 
 /**
  * 深拷贝对象
@@ -165,19 +167,18 @@ const isVideoFile = (filename) => {
 /**
  * 格式化文件大小
  * @param {Number} size - 文件大小（字节）
- * @returns {String} 格式化后的文件大小
+ * @param {Number} decimal - 小数位数，默认2位
+ * @returns {String} 格式化后的文件大小，例如 "1.25 MB"
  */
-const formatFileSize = (size) => {
-  if (size < 1024) {
-    return size + 'B';
-  } else if (size < 1024 * 1024) {
-    return (size / 1024).toFixed(2) + 'KB';
-  } else if (size < 1024 * 1024 * 1024) {
-    return (size / (1024 * 1024)).toFixed(2) + 'MB';
-  } else {
-    return (size / (1024 * 1024 * 1024)).toFixed(2) + 'GB';
-  }
-};
+function formatFileSize(size, decimal = 2) {
+  if (size === 0) return '0 B';
+  
+  const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+  const i = Math.floor(Math.log(size) / Math.log(1024));
+  const formattedSize = (size / Math.pow(1024, i)).toFixed(decimal);
+  
+  return `${formattedSize} ${units[i]}`;
+}
 
 /**
  * 获取省市区字符串中的省份

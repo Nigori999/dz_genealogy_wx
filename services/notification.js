@@ -108,6 +108,13 @@ function markAsRead(notificationIds) {
     // 更新存储
     wx.setStorageSync('notificationHistory', updatedNotifications);
     
+    // 更新全局未读消息数
+    const app = getApp();
+    if (app && app.globalData) {
+      const unreadCount = updatedNotifications.filter(item => !item.read).length;
+      app.updateUnreadNotificationCount(unreadCount);
+    }
+    
     // 模拟请求延迟
     setTimeout(() => {
       resolve({
@@ -143,6 +150,12 @@ function markAllAsRead() {
     
     // 计算更新的通知数量
     const updatedCount = notifications.filter(item => !item.read).length;
+    
+    // 更新全局未读消息数
+    const app = getApp();
+    if (app && app.globalData) {
+      app.updateUnreadNotificationCount(0); // 全部已读，未读数量为0
+    }
     
     // 模拟请求延迟
     setTimeout(() => {
@@ -331,6 +344,149 @@ function updateNotificationSettings(settings = {}) {
   });
 }
 
+/**
+ * 获取通知统计数据
+ * @returns {Promise} 请求结果
+ */
+function getNotificationStats() {
+  // 模拟API调用
+  return new Promise((resolve) => {
+    // 从本地存储获取通知历史（实际应用中应从服务器获取）
+    const notifications = wx.getStorageSync('notificationHistory') || [];
+    
+    // 计算未读通知数量
+    const unreadCount = notifications.filter(item => !item.read).length;
+    
+    // 模拟请求延迟
+    setTimeout(() => {
+      resolve({
+        success: true,
+        data: {
+          totalCount: notifications.length,
+          unreadCount: unreadCount
+        }
+      });
+    }, 300);
+  });
+}
+
+/**
+ * 获取分类统计数据
+ * @returns {Promise} 请求结果
+ */
+function getCategoryStats() {
+  // 模拟API调用
+  return new Promise((resolve) => {
+    // 从本地存储获取通知历史（实际应用中应从服务器获取）
+    const notifications = wx.getStorageSync('notificationHistory') || [];
+    
+    // 按类型分组统计
+    const categories = {};
+    notifications.forEach(item => {
+      if (!categories[item.type]) {
+        categories[item.type] = {
+          type: item.type,
+          name: item.type,
+          count: 0
+        };
+      }
+      categories[item.type].count++;
+    });
+    
+    // 模拟请求延迟
+    setTimeout(() => {
+      resolve({
+        success: true,
+        data: {
+          categories: Object.values(categories)
+        }
+      });
+    }, 300);
+  });
+}
+
+/**
+ * 获取管理员通知列表
+ * @param {Object} params 查询参数
+ * @param {number} params.page 页码
+ * @param {number} params.pageSize 每页条数
+ * @returns {Promise} 请求结果
+ */
+function getAdminNotifications(params = {}) {
+  const { page = 1, pageSize = 20 } = params;
+  
+  // 模拟API调用
+  return new Promise((resolve) => {
+    // 从本地存储获取通知历史（实际应用中应从服务器获取）
+    const notifications = wx.getStorageSync('notificationHistory') || [];
+    
+    // 添加管理员需要的已读和发送次数
+    const adminNotifications = notifications.map(item => {
+      // 模拟发送次数和已读次数
+      const sendCount = Math.floor(Math.random() * 100) + 1;
+      const readCount = Math.floor(Math.random() * sendCount);
+      
+      return {
+        ...item,
+        sendCount,
+        readCount,
+        recalled: item.recalled || false
+      };
+    });
+    
+    // 分页处理
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    const pagedNotifications = adminNotifications.slice(startIndex, endIndex);
+    
+    // 模拟请求延迟
+    setTimeout(() => {
+      resolve({
+        success: true,
+        data: {
+          list: pagedNotifications,
+          total: adminNotifications.length,
+          page,
+          pageSize,
+          hasMore: endIndex < adminNotifications.length
+        }
+      });
+    }, 500);
+  });
+}
+
+/**
+ * 召回通知
+ * @param {string} notificationId 通知ID
+ * @returns {Promise} 请求结果
+ */
+function recallNotification(notificationId) {
+  // 模拟API调用
+  return new Promise((resolve) => {
+    // 从本地存储获取通知历史（实际应用中应从服务器更新）
+    const notifications = wx.getStorageSync('notificationHistory') || [];
+    
+    // 标记为已召回
+    const updatedNotifications = notifications.map(item => {
+      if (item.id === notificationId) {
+        return { ...item, recalled: true };
+      }
+      return item;
+    });
+    
+    // 更新存储
+    wx.setStorageSync('notificationHistory', updatedNotifications);
+    
+    // 模拟请求延迟
+    setTimeout(() => {
+      resolve({
+        success: true,
+        message: '召回成功'
+      });
+    }, 300);
+  });
+}
+
 // 导出通知服务接口
 module.exports = {
   getNotifications,
@@ -341,5 +497,9 @@ module.exports = {
   clearAllNotifications,
   sendTestNotification,
   getNotificationSettings,
-  updateNotificationSettings
+  updateNotificationSettings,
+  getNotificationStats,
+  getCategoryStats,
+  getAdminNotifications,
+  recallNotification
 }; 

@@ -17,28 +17,47 @@
       <view class="invite-desc">
         生成邀请码，邀请家族成员加入族谱。邀请码有效期为7天，最多可使用10次。
       </view>
-      <button class="btn-generate" bindtap="generateInviteCode">
-        <text class="iconfont icon-invite"></text>
-        <text>生成邀请码</text>
-      </button>
+      <view class="invite-buttons">
+        <button class="btn-generate btn-full-width" bindtap="generateInviteCode">
+          <text class="iconfont icon-invite"></text>
+          <text>生成邀请码</text>
+        </button>
+      </view>
     </view>
 
     <!-- 邀请记录 -->
-    <view class="invite-records card" wx:if="{{inviteRecords.length > 0}}">
+    <view class="invite-records card">
       <view class="section-title">邀请记录</view>
-      <view class="records-list">
-        <view 
-          wx:for="{{inviteRecords}}" 
-          wx:key="code" 
-          class="record-item"
-        >
-          <view class="record-code">{{item.code}}</view>
-          <view class="record-meta">
-            <text class="record-date">{{item.createdAt}}</text>
-            <text class="record-usage">已使用{{item.usageCount}}/{{item.usageLimit}}次</text>
+      <view wx:if="{{inviteRecords.length === 0}}" class="empty-records">
+        <image class="empty-icon" src="/assets/images/empty_records.png" mode="aspectFit"></image>
+        <text class="empty-text">暂无邀请记录</text>
+      </view>
+      <view wx:else class="records-list">
+        <view class="record-item" wx:for="{{inviteRecords}}" wx:key="id">
+          <view class="record-top">
+            <view class="record-code">
+              <text class="code-label">邀请码:</text>
+              <text class="code-value">{{item.code}}</text>
+            </view>
+            <view class="record-date">{{item.createdAt}}</view>
           </view>
-          <view class="record-status {{item.expired ? 'expired' : ''}}">
-            {{item.expired ? '已过期' : '有效'}}
+          <view class="record-bottom">
+            <view class="record-status {{item.expired ? 'expired' : ''}}">
+              {{item.expired ? '已过期' : '有效'}}
+            </view>
+            <view class="record-actions">
+              <view class="action-btn" catchtap="copyHistoryCode" data-code="{{item.code}}">
+                <text class="iconfont icon-copy"></text>
+                <text>复制</text>
+              </view>
+              <button 
+                class="action-btn share-btn" 
+                open-type="share" 
+                data-code="{{item.code}}">
+                <text class="iconfont icon-share"></text>
+                <text>分享</text>
+              </button>
+            </view>
           </view>
         </view>
       </view>
@@ -62,68 +81,56 @@
   <!-- 成功生成邀请码对话框 -->
   <view class="dialog-mask" wx:if="{{showSuccessDialog}}" bindtap="closeSuccessDialog"></view>
   <view class="dialog-container" wx:if="{{showSuccessDialog}}">
-    <view class="dialog-header">
-      <view class="dialog-title">邀请码已生成</view>
-      <view class="dialog-close" bindtap="closeSuccessDialog">
-        <text class="iconfont icon-close"></text>
-      </view>
-    </view>
     <view class="dialog-content">
-      <view class="invite-code-display">
-        <text class="invite-code">{{inviteCode}}</text>
-        <view class="code-copy" bindtap="copyInviteCode">
-          <text class="iconfont icon-copy"></text>
-          <text>复制</text>
-        </view>
+      <view class="dialog-title">邀请码创建成功</view>
+      <view class="dialog-code">
+        <text class="code-value">{{inviteCode}}</text>
+        <view class="copy-btn" bindtap="copyInviteCode">复制</view>
       </view>
-      
-      <view class="divider">
-        <view class="divider-line"></view>
-        <view class="divider-text">或者</view>
-        <view class="divider-line"></view>
-      </view>
-      
-      <view class="invite-url-display">
-        <text class="invite-url">{{inviteURL}}</text>
-        <view class="url-copy" bindtap="copyInviteURL">
-          <text class="iconfont icon-copy"></text>
+      <view class="dialog-desc">请将此邀请码分享给您想邀请的亲人</view>
+      <view class="dialog-actions">
+        <view class="action-item" bindtap="copyInviteURL">
+          <text class="iconfont icon-link"></text>
           <text>复制链接</text>
         </view>
+        <view class="action-item" bindtap="showQrCode">
+          <text class="iconfont icon-qrcode"></text>
+          <text>显示二维码</text>
+        </view>
+        <button class="action-item share-btn" open-type="share">
+          <text class="iconfont icon-wechat"></text>
+          <text>分享到微信</text>
+        </button>
       </view>
-    </view>
-    <view class="dialog-footer">
-      <button class="btn-share" bindtap="shareToWechat">
-        <text class="iconfont icon-wechat"></text>
-        <text>分享到微信</text>
-      </button>
-      <button class="btn-qrcode" bindtap="showQrCode">
-        <text class="iconfont icon-qrcode"></text>
-        <text>显示二维码</text>
-      </button>
+      <view class="dialog-close" bindtap="closeSuccessDialog">关闭</view>
     </view>
   </view>
 
   <!-- 二维码弹窗 -->
   <view class="qrcode-mask" wx:if="{{showQrCode}}" bindtap="closeQrCode"></view>
   <view class="qrcode-container" wx:if="{{showQrCode}}">
-    <view class="qrcode-header">
-      <view class="qrcode-title">邀请二维码</view>
-      <view class="qrcode-close" bindtap="closeQrCode">
-        <text class="iconfont icon-close"></text>
-      </view>
-    </view>
     <view class="qrcode-content">
-      <image class="qrcode-image" src="{{inviteQrCode || '/images/qrcode_placeholder.png'}}" mode="aspectFit"></image>
-      <view class="qrcode-tip">请让被邀请人扫描以上二维码</view>
-    </view>
-    <view class="qrcode-footer">
-      <button class="btn-save" bindtap="saveQrCode">
-        <text class="iconfont icon-download"></text>
-        <text>保存到相册</text>
-      </button>
+      <view class="qrcode-title">邀请二维码</view>
+      <view class="qrcode-image">
+        <image src="{{inviteQrCode}}" mode="aspectFit"></image>
+      </view>
+      <view class="qrcode-tip">扫描上方二维码加入族谱</view>
+      <view class="qrcode-actions">
+        <view class="qrcode-action" bindtap="saveQrCode">
+          <text class="iconfont icon-save"></text>
+          <text>保存到相册</text>
+        </view>
+      </view>
+      <view class="qrcode-close" bindtap="closeQrCode">关闭</view>
     </view>
   </view>
 
-  <!-- Loading 状态 -->
-  <loading wx:if="{{isLoading}}" type="spinner" text="加载中..."></loading>
+  <!-- 加载状态 -->
+  <view wx:if="{{isLoading}}" class="loading-container">
+    <view class="loading-mask"></view>
+    <view class="loading-content">
+      <view class="spinner"></view>
+      <view class="loading-text">处理中...</view>
+    </view>
+  </view>
 </view>

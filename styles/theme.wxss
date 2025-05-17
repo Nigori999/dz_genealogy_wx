@@ -9,6 +9,7 @@ page {
   --color-primary: #6D4C41;
   --color-primary-light: #8D6E63;
   --color-primary-ultralight: rgba(109, 76, 65, 0.1);
+  --color-primary-rgb: 109, 76, 65;
   
   /* 辅助色 */
   --color-secondary: #A1887F;
@@ -16,12 +17,16 @@ page {
   /* 强调色 */
   --color-accent: #D84315;
   --color-accent-light: #FF7043;
+  --color-accent-rgb: 216, 67, 21;
   
   /* 功能色 */
   --color-success: #28A745;
   --color-success-light: #34CE57;
+  --color-success-rgb: 40, 167, 69;
   --color-warning: #FFC107;
+  --color-warning-rgb: 255, 193, 7;
   --color-error: #DC3545;
+  --color-error-rgb: 220, 53, 69;
   
   /* 中性色 */
   --color-text-dark: #333333;
@@ -30,6 +35,13 @@ page {
   --color-border: #EEEEEE;
   --color-background: #F8F5F2;
   --color-white: #FFFFFF;
+  
+  /* 功能状态映射 */
+  --color-approved: var(--color-success);
+  --color-pending: var(--color-warning);
+  --color-rejected: var(--color-error);
+  --color-info: var(--color-primary-light);
+  --color-info-rgb: 141, 110, 99;
   
   /* 间距 */
   --spacing-base: 8px;
@@ -45,8 +57,18 @@ page {
   
   /* 阴影 */
   --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-card-light: 0 2px 4px rgba(0, 0, 0, 0.05);
+  --shadow-card-medium: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-card-strong: 0 8px 16px rgba(0, 0, 0, 0.15);
+  
   --shadow-button: 0 3px 6px rgba(216, 67, 21, 0.3);
+  --shadow-button-light: 0 2px 4px rgba(216, 67, 21, 0.1);
+  --shadow-button-pressed: 0 2px 4px rgba(216, 67, 21, 0.2);
+  
   --shadow-modal: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --shadow-dropdown: 0 2px 10px rgba(0, 0, 0, 0.05);
+  --shadow-header: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --shadow-bottom: 0 -2px 8px rgba(0, 0, 0, 0.08);
   
   /* 渐变 */
   --gradient-header: linear-gradient(to right, #6D4C41, #8D6E63);
@@ -89,14 +111,52 @@ page {
   border: 1px solid var(--color-border);
 }
 
+/* 阴影相关辅助类 */
 .shadow-card {
   box-shadow: var(--shadow-card);
+}
+
+.shadow-card-light {
+  box-shadow: var(--shadow-card-light);
+}
+
+.shadow-card-medium {
+  box-shadow: var(--shadow-card-medium);
+}
+
+.shadow-card-strong {
+  box-shadow: var(--shadow-card-strong);
 }
 
 .shadow-button {
   box-shadow: var(--shadow-button);
 }
 
+.shadow-button-light {
+  box-shadow: var(--shadow-button-light);
+}
+
+.shadow-button-pressed {
+  box-shadow: var(--shadow-button-pressed);
+}
+
+.shadow-modal {
+  box-shadow: var(--shadow-modal);
+}
+
+.shadow-dropdown {
+  box-shadow: var(--shadow-dropdown);
+}
+
+.shadow-header {
+  box-shadow: var(--shadow-header);
+}
+
+.shadow-bottom {
+  box-shadow: var(--shadow-bottom);
+}
+
+/* 圆角相关辅助类 */
 .radius-sm {
   border-radius: var(--radius-sm);
 }

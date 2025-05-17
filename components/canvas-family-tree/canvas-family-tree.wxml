@@ -1,0 +1,19 @@
+<!-- Canvas族谱树渲染器 -->
+<view class="canvas-container">
+  <canvas 
+    type="{{webgl.enabled ? 'webgl' : '2d'}}"
+    id="canvasFamilyTree"
+    canvas-id="familyTreeCanvas" 
+    class="family-tree-canvas"
+    bindtouchstart="_onTouchStart"
+    bindtouchmove="_onTouchMove"
+    bindtouchend="_onTouchEnd"
+    bindtap="_onCanvasTap"
+    disable-scroll="true"
+  ></canvas>
+  
+  <!-- 缩放指示器 -->
+  <view class="scale-indicator {{data.showScaleIndicator ? 'show' : ''}}">
+    <text>{{data.scalePercentage}}%</text>
+  </view>
+</view> 

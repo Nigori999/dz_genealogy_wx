@@ -26,9 +26,12 @@ Page({
    * 生命周期函数--监听页面加载
    */
   onLoad: function (options) {
+    console.log('成员详情页接收参数:', options);
+    
     const { genealogyId, memberId } = options;
     
     if (!genealogyId || !memberId) {
+      console.error('缺少必要参数:', options);
       wx.showToast({
         title: '参数错误',
         icon: 'none'
@@ -45,6 +48,8 @@ Page({
       genealogyId,
       memberId
     });
+    
+    console.log(`开始加载成员详情，族谱ID:${genealogyId}，成员ID:${memberId}`);
     
     // 加载成员详情
     this._loadMemberDetail(genealogyId, memberId);

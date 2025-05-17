@@ -1,6 +1,6 @@
 <!-- 成员卡片组件 -->
 <view class="member-card">
-  <view class="member-card-inner">
+  <view class="member-card-inner {{cardClasses}}">
     <view class="member-avatar">
       <image 
         src="{{member.avatar || (member.gender === 'male' ? '/images/avatar_male_default.png' : '/images/avatar_female_default.png')}}" 

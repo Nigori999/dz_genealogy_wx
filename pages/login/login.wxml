@@ -1,101 +1,45 @@
 <!-- 登录页面 -->
-<view class="login-container">
-  <view class="logo-area">
-    <image class="logo-image" src="/images/app_logo.png" mode="aspectFit"></image>
+<view class="container login-container">
+  <view class="logo-container">
+    <image class="logo" src="/assets/images/app_logo.png" mode="aspectFit"></image>
     <view class="app-name">云族谱</view>
     <view class="app-slogan">记录家族历史，传承家族文化</view>
   </view>
-
-  <view class="login-content">
-    <!-- 登录表单区域 -->
-    <!-- 模拟账号登录 -->
-    <form bindsubmit="onFormSubmit">
-      <view class="account-login">
-        <view class="input-group {{usernameFocus ? 'focus' : ''}}">
-          <text class="input-label">手机号</text>
-          <view class="input-wrapper">
-            <input 
-              class="input-field {{username ? 'has-value' : ''}}" 
-              type="number"
-              maxlength="11"
-              placeholder="请输入手机号" 
-              value="{{username}}" 
-              bindinput="onUsernameInput"
-              bindfocus="onUsernameFocus"
-              bindblur="onUsernameBlur"
-              confirm-type="next"
-            />
-            <text wx:if="{{username}}" class="complete-icon iconfont icon-check"></text>
-          </view>
+  
+  <view class="login-options">
+    <view class="option-title">登录选项</view>
+    
+    <view class="user-options">
+      <!-- 高级管理员 -->
+      <view class="user-option" bindtap="loginWithUserType" data-type="admin">
+        <view class="option-icon admin-icon">高级</view>
+        <view class="option-info">
+          <view class="option-name">高级管理员</view>
+          <view class="option-desc">无限制，可访问所有功能</view>
         </view>
-        <view class="input-group {{passwordFocus ? 'focus' : ''}}">
-          <text class="input-label">密码</text>
-          <view class="input-wrapper">
-            <input 
-              class="input-field {{password ? 'has-value' : ''}}" 
-              type="password" 
-              placeholder="请输入密码" 
-              value="{{password}}" 
-              bindinput="onPasswordInput"
-              bindfocus="onPasswordFocus"
-              bindblur="onPasswordBlur"
-              confirm-type="done"
-              bindconfirm="directLogin"
-            />
-            <text wx:if="{{password}}" class="complete-icon iconfont icon-check"></text>
-          </view>
-        </view>
-        <view class="login-tip">默认账号：13800138000 密码：123456</view>
-        <button 
-          form-type="submit"
-          class="login-button account-button" 
-          disabled="{{isLoading}}"
-        >
-          <text class="iconfont icon-user"></text>
-          <text>账号登录</text>
-        </button>
       </view>
-    </form>
-
-    <view class="divider">
-      <text class="divider-text">或</text>
+      
+      <!-- 家族长 -->
+      <view class="user-option" bindtap="loginWithUserType" data-type="owner">
+        <view class="option-icon owner-icon">族长</view>
+        <view class="option-info">
+          <view class="option-name">家族长</view>
+          <view class="option-desc">受限制，管理权限有限</view>
+        </view>
+      </view>
+      
+      <!-- 普通成员 -->
+      <view class="user-option" bindtap="loginWithUserType" data-type="member">
+        <view class="option-icon member-icon">成员</view>
+        <view class="option-info">
+          <view class="option-name">普通成员</view>
+          <view class="option-desc">只有家族，查看权限有限</view>
+        </view>
+      </view>
     </view>
-
-    <!-- 微信登录按钮 -->
-    <view class="login-button-area">
-      <button 
-        wx:if="{{canIUseGetUserProfile}}" 
-        class="login-button" 
-        bindtap="getUserProfile"
-        disabled="{{isLoading}}"
-      >
-        <text class="iconfont icon-wechat"></text>
-        <text>微信一键登录</text>
-      </button>
-      <button 
-        wx:else 
-        class="login-button" 
-        open-type="getUserInfo" 
-        bindgetuserinfo="getUserInfo"
-        disabled="{{isLoading}}"
-      >
-        <text class="iconfont icon-wechat"></text>
-        <text>微信一键登录</text>
-      </button>
-    </view>
-  </view>
-
-  <view class="policy-text">
-    登录即表示您同意《用户协议》和《隐私政策》
-  </view>
-
-  <!-- 自定义加载动画 -->
-  <view class="loading-container" wx:if="{{isLoading}}">
-    <view class="spinner"></view>
   </view>
   
-  <!-- 气泡背景 -->
-  <view class="bubbles">
-    <view class="bubble" wx:for="{{12}}" wx:key="index"></view>
+  <view class="login-footer">
+    <view class="copyright">©2023 云族谱 版权所有</view>
   </view>
 </view>

@@ -1,0 +1,231 @@
+<!-- 通知管理页面 -->
+<view class="container">
+  <view wx:if="{{isLoading}}" class="loading-container">
+    <loading type="spinner" text="加载中..."></loading>
+  </view>
+  <block wx:else>
+    <!-- 数据统计卡片 -->
+    <view class="section stats-section">
+      <view class="section-header">
+        <text class="section-title">通知概览</text>
+      </view>
+      <view class="section-content">
+        <view class="stats-card">
+          <view class="stats-item">
+            <view class="stats-value">{{stats.totalCount || 0}}</view>
+            <view class="stats-label">总通知数</view>
+          </view>
+          <view class="stats-item">
+            <view class="stats-value">{{stats.unreadCount || 0}}</view>
+            <view class="stats-label">未读数</view>
+          </view>
+          <view class="stats-item">
+            <view class="stats-value">{{stats.readRate || '0%'}}</view>
+            <view class="stats-label">阅读率</view>
+          </view>
+        </view>
+      </view>
+    </view>
+    
+    <!-- 操作面板 -->
+    <view class="section">
+      <view class="section-header">
+        <text class="section-title">通知操作</text>
+      </view>
+      <view class="section-content">
+        <view class="action-panel">
+          <view class="action-button" bindtap="showCreateNotificationPopup">
+            <text class="action-icon iconfont icon-add"></text>
+            <text class="action-text">发布通知</text>
+          </view>
+        </view>
+      </view>
+    </view>
+    
+    <!-- 最近发布的通知 -->
+    <view class="section">
+      <view class="section-header">
+        <text class="section-title">最近发布</text>
+        <view class="section-more" bindtap="navigateToManageNotifications">
+          <text>查看全部</text>
+          <text class="iconfont icon-arrow-right"></text>
+        </view>
+      </view>
+      <view class="section-content">
+        <view class="notification-list">
+          <view wx:if="{{recentNotifications.length === 0}}" class="empty-tip">
+            <text>暂无通知记录</text>
+          </view>
+          <view 
+            wx:for="{{recentNotifications}}" 
+            wx:key="id"
+            class="notification-item"
+            bindtap="viewNotificationDetail"
+            data-id="{{item.id}}"
+          >
+            <view class="notification-header">
+              <text class="notification-title">{{item.title}}</text>
+              <text class="notification-time">{{item.time}}</text>
+            </view>
+            <view class="notification-stats">
+              <view class="stat-item">
+                <text class="stat-icon iconfont icon-send"></text>
+                <text class="stat-value">已发送：{{item.sendCount}}</text>
+              </view>
+              <view class="stat-item">
+                <text class="stat-icon iconfont icon-read"></text>
+                <text class="stat-value">已读：{{item.readCount}}</text>
+              </view>
+            </view>
+            <view class="notification-footer">
+              <text class="notification-tag">{{item.type}}</text>
+              <view class="notification-actions">
+                <view class="action-btn recall-btn" catchtap="recallNotification" data-id="{{item.id}}" wx:if="{{!item.recalled}}">
+                  撤回
+                </view>
+                <view class="action-btn disabled" wx:else>
+                  已撤回
+                </view>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </block>
+  
+  <!-- 底部弹窗 -->
+  <view class="popup-mask" wx:if="{{showCreatePopup}}" bindtap="hideCreateNotificationPopup" catchtouchmove="preventTouchMove"></view>
+  <view class="popup-container {{showCreatePopup ? 'popup-show' : ''}}" catchtouchmove="{{true}}">
+    <view class="popup-header">
+      <view class="popup-close" bindtap="hideCreateNotificationPopup">
+        <text class="iconfont icon-close"></text>
+      </view>
+      <text class="popup-title">发布通知</text>
+      <view class="popup-close" style="opacity: 0"></view>
+    </view>
+    <view class="popup-content">
+      <form bindsubmit="submitCreateNotification">
+        <view class="form-group">
+          <view class="form-label">通知标题</view>
+          <view class="input-container">
+            <input 
+              class="form-input" 
+              name="title" 
+              placeholder="请输入通知标题" 
+              placeholder-class="input-placeholder"
+              value="{{notificationForm.title}}"
+              bindinput="onTitleInput"
+              maxlength="50"
+            />
+          </view>
+        </view>
+        
+        <view class="form-group">
+          <view class="form-label">接收对象</view>
+          <view class="search-dropdown">
+            <view class="search-dropdown-header" bindtap="toggleReceiverDropdown">
+              <text class="selected-receiver">{{selectedReceiverName || '所有人'}}</text>
+              <text class="iconfont {{showReceiverDropdown ? 'icon-arrow-up' : 'icon-arrow-down'}}"></text>
+            </view>
+            
+            <block wx:if="{{showReceiverDropdown}}">
+              <view class="dropdown-container">
+                <view class="search-box">
+                  <input 
+                    class="search-input" 
+                    placeholder="搜索成员" 
+                    bindinput="onReceiverSearchInput"
+                    focus="{{showReceiverDropdown}}"
+                    confirm-type="search"
+                  />
+                  <text class="iconfont icon-search"></text>
+                </view>
+                
+                <scroll-view 
+                  class="dropdown-list" 
+                  scroll-y="true"
+                  enhanced="true"
+                  show-scrollbar="false"
+                  bounces="true"
+                >
+                  <view 
+                    class="dropdown-item {{selectedReceiverId === 'all' ? 'active' : ''}}" 
+                    data-id="all" 
+                    data-name="所有人" 
+                    bindtap="selectReceiver"
+                    hover-class="item-hover"
+                  >
+                    所有人
+                  </view>
+                  
+                  <view wx:if="{{filteredReceivers.length === 0 && receiverSearchKeyword}}" class="no-results">
+                    未找到相关成员
+                  </view>
+                  
+                  <view 
+                    wx:for="{{filteredReceivers}}" 
+                    wx:key="id" 
+                    class="dropdown-item {{selectedReceiverId === item.id ? 'active' : ''}}"
+                    data-id="{{item.id}}"
+                    data-name="{{item.name}}"
+                    bindtap="selectReceiver"
+                    hover-class="item-hover"
+                  >
+                    {{item.name}}
+                  </view>
+                </scroll-view>
+              </view>
+            </block>
+          </view>
+        </view>
+        
+        <view class="form-group">
+          <view class="form-label">通知类型</view>
+          <view class="input-container">
+            <picker 
+              mode="selector" 
+              range="{{notificationTypes}}" 
+              range-key="label" 
+              value="{{typeIndex}}" 
+              bindchange="onTypeChange"
+            >
+              <view class="form-picker">
+                <text class="picker-text">{{notificationTypes[typeIndex].label}}</text>
+                <text class="iconfont icon-arrow-down"></text>
+              </view>
+            </picker>
+          </view>
+        </view>
+
+        <view class="form-group">
+          <view class="form-label">通知内容</view>
+          <view class="input-container">
+            <textarea 
+              class="form-textarea" 
+              name="content" 
+              placeholder="请输入通知内容" 
+              placeholder-class="input-placeholder"
+              value="{{notificationForm.content}}"
+              bindinput="onContentInput"
+              maxlength="500"
+              auto-height="{{false}}"
+              fixed="true"
+              show-confirm-bar="{{false}}"
+              cursor-spacing="120"
+            ></textarea>
+            <view class="textarea-counter">{{notificationForm.content.length || 0}}/500</view>
+          </view>
+        </view>
+        
+        <button 
+          class="submit-btn" 
+          type="primary" 
+          form-type="submit" 
+          disabled="{{submitDisabled}}"
+          hover-class="button-hover"
+        >发布通知</button>
+      </form>
+    </view>
+  </view>
+</view> 

@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "通知管理",
+  "usingComponents": {
+    "loading": "/components/loading/loading"
+  },
+  "enablePullDownRefresh": true
+} 

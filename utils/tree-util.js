@@ -11,6 +11,7 @@
  */
 const buildFamilyTree = (members, rootMemberId) => {
   if (!members || members.length === 0) {
+    console.error('buildFamilyTree: 成员列表为空');
     return null;
   }
 
@@ -25,7 +26,9 @@ const buildFamilyTree = (members, rootMemberId) => {
         return new Date(a.birthDate) - new Date(b.birthDate);
       });
       rootMemberId = rootMembers[0].id;
+      console.log('自动选择根成员:', rootMembers[0].name, rootMemberId);
     } else {
+      console.error('buildFamilyTree: 找不到没有父节点的成员');
       return null;
     }
   }
@@ -33,13 +36,74 @@ const buildFamilyTree = (members, rootMemberId) => {
   // 查找根成员
   const rootMember = members.find(m => m.id === rootMemberId);
   if (!rootMember) {
+    console.error('buildFamilyTree: 找不到指定的根成员ID:', rootMemberId);
+    
+    // 尝试自动选择一个替代的根成员
+    if (members.length > 0) {
+      // 首先尝试找没有父节点的成员
+      const alternateRoots = members.filter(m => !m.parentId);
+      if (alternateRoots.length > 0) {
+        // 按世代排序，取最早的
+        alternateRoots.sort((a, b) => (a.generation || 999) - (b.generation || 999));
+        rootMemberId = alternateRoots[0].id;
+        console.log('自动选择替代根成员:', alternateRoots[0].name, rootMemberId);
+        return buildFamilyTree(members, rootMemberId); // 递归调用，使用新的根成员ID
+      } else {
+        // 如果没有没有父节点的成员，则使用第一个成员
+        rootMemberId = members[0].id;
+        console.log('使用第一个成员作为根节点:', members[0].name, members[0].id);
+        return buildFamilyTree(members, rootMemberId); // 递归调用，使用新的根成员ID
+      }
+    }
     return null;
   }
 
+  console.log('开始构建树形结构，根成员:', rootMember.name);
+
+  // 创建成员ID到成员的映射，提高查找效率
+  const membersMap = new Map();
+  members.forEach(member => {
+    membersMap.set(member.id, member);
+  });
+
+  // 用于检测循环引用
+  const visitedIds = new Set();
+
   // 递归构建树形结构
-  const buildTreeNode = (memberId) => {
-    const member = members.find(m => m.id === memberId);
-    if (!member) return null;
+  const buildTreeNode = (memberId, parentId = null, depth = 0) => {
+    // 防止无限递归（检测循环引用）
+    if (depth > members.length) {
+      console.error('buildFamilyTree: 可能存在循环引用，递归深度超过成员总数');
+      return null;
+    }
+
+    // 防止父子节点循环引用
+    if (parentId && memberId === parentId) {
+      console.error('buildFamilyTree: 检测到父子循环引用', memberId);
+      return null;
+    }
+
+    // 检测是否已经添加过此ID（可能在其他分支）
+    if (visitedIds.has(memberId)) {
+      console.warn('buildFamilyTree: 成员已在其他分支出现', memberId);
+      // 此处可以选择返回null或构建简化节点，避免循环
+      return {
+        id: memberId,
+        name: membersMap.get(memberId)?.name || '未知成员',
+        isReference: true, // 标记为引用节点
+        spouses: [],
+        children: []
+      };
+    }
+
+    const member = membersMap.get(memberId);
+    if (!member) {
+      console.error('buildFamilyTree: 找不到成员ID:', memberId);
+      return null;
+    }
+
+    // 记录访问过的ID
+    visitedIds.add(memberId);
 
     // 构建基本节点
     const node = { ...member };
@@ -48,8 +112,12 @@ const buildFamilyTree = (members, rootMemberId) => {
     if (member.spouseIds && member.spouseIds.length > 0) {
       node.spouses = member.spouseIds
         .map(spouseId => {
-          const spouse = members.find(m => m.id === spouseId);
-          return spouse ? { ...spouse } : null;
+          const spouse = membersMap.get(spouseId);
+          if (!spouse) {
+            console.warn(`buildFamilyTree: 找不到配偶ID:${spouseId}`);
+            return null;
+          }
+          return { ...spouse };
         })
         .filter(spouse => spouse !== null);
     } else {
@@ -59,7 +127,7 @@ const buildFamilyTree = (members, rootMemberId) => {
     // 添加子女节点
     if (member.childrenIds && member.childrenIds.length > 0) {
       node.children = member.childrenIds
-        .map(childId => buildTreeNode(childId))
+        .map(childId => buildTreeNode(childId, memberId, depth + 1))
         .filter(child => child !== null);
 
       // 对子女按性别和出生日期排序
@@ -77,10 +145,15 @@ const buildFamilyTree = (members, rootMemberId) => {
       node.children = [];
     }
 
+    // 完成此节点访问，从访问集合中移除
+    visitedIds.delete(memberId);
+
     return node;
   };
 
-  return buildTreeNode(rootMemberId);
+  const tree = buildTreeNode(rootMemberId);
+  console.log('树形结构构建完成');
+  return tree;
 };
 
 /**

@@ -122,10 +122,10 @@
 
 .notification-tag {
   font-size: 24rpx;
-  color: #D84315;
-  background-color: rgba(216, 67, 21, 0.1);
+  color: var(--color-accent);
+  background-color: rgba(var(--color-accent-rgb), 0.1);
   padding: 6rpx 16rpx;
-  border-radius: 4rpx;
+  border-radius: var(--radius-sm);
 }
 
 .notification-actions {
@@ -139,10 +139,21 @@
   margin-left: 16rpx;
 }
 
+.mark-btn, .delete-btn {
+  min-width: 120rpx;
+  height: 56rpx;
+  font-size: 24rpx;
+  padding: 0 16rpx;
+  border-radius: var(--radius-pill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .mark-btn {
-  color: #4CAF50;
-  background-color: rgba(76, 175, 80, 0.1);
-  border: 1rpx solid #4CAF50;
+  color: var(--color-success);
+  background-color: rgba(var(--color-success-rgb), 0.1);
+  border: 1rpx solid var(--color-success);
 }
 
 .mark-btn.disabled {
@@ -152,9 +163,9 @@
 }
 
 .delete-btn {
-  color: #F44336;
-  background-color: rgba(244, 67, 54, 0.1);
-  border: 1rpx solid #F44336;
+  color: var(--color-error);
+  background-color: rgba(var(--color-error-rgb), 0.1);
+  border: 1rpx solid var(--color-error);
 }
 
 /* 加载更多 */
@@ -166,7 +177,7 @@
 }
 
 .load-more {
-  color: #D84315;
+  color: var(--color-accent);
 }
 
 /* 空状态 */
@@ -240,14 +251,24 @@
   font-size: 28rpx;
 }
 
+.mark-all-btn, .delete-all-btn {
+  height: 70rpx;
+  border-radius: var(--radius-pill);
+  font-size: 26rpx;
+  padding: 0 30rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .mark-all-btn {
-  color: #4CAF50;
-  background-color: rgba(76, 175, 80, 0.1);
-  border: 1rpx solid #4CAF50;
+  color: var(--color-success);
+  background-color: rgba(var(--color-success-rgb), 0.1);
+  border: 1rpx solid var(--color-success);
 }
 
 .delete-all-btn {
   color: #fff;
-  background-color: #F44336;
-  border: 1rpx solid #F44336;
+  background-color: var(--color-error);
+  border: 1rpx solid var(--color-error);
 } 

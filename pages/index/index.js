@@ -51,15 +51,13 @@ Page({
   _getUnreadNotificationsCount: function () {
     if (!app.globalData.isLogin) return;
     
-    api.notificationAPI.getUnreadCount()
-      .then(count => {
-        this.setData({
-          unreadNotificationsCount: count || 0
-        });
-      })
-      .catch(error => {
-        console.error('Get unread notifications count failed:', error);
-      });
+    // 直接从app.globalData获取未读通知数量
+    this.setData({
+      unreadNotificationsCount: app.globalData.unreadNotificationCount || 0
+    });
+    
+    // 也可以主动更新一次
+    app.loadUnreadNotificationCount();
   },
   
   /**

@@ -38,7 +38,8 @@ Component({
    */
   data: {
     formatBirthYear: '',
-    formatDeathYear: ''
+    formatDeathYear: '',
+    cardClasses: ''
   },
 
   /**
@@ -48,7 +49,11 @@ Component({
     'member': function(member) {
       if (member) {
         this._formatDates(member);
+        this._setCardClasses();
       }
+    },
+    'isLatestGen, isRootMember': function() {
+      this._setCardClasses();
     }
   },
 
@@ -77,6 +82,34 @@ Component({
           });
         }
       }
+    },
+
+    /**
+     * 设置卡片样式类
+     */
+    _setCardClasses() {
+      const { member, isLatestGen, isRootMember } = this.properties;
+      if (!member) return;
+      
+      const classList = [];
+      
+      if (member.gender === 'male') {
+        classList.push('male');
+      } else {
+        classList.push('female');
+      }
+
+      if (isLatestGen) {
+        classList.push('latest-gen');
+      }
+
+      if (isRootMember) {
+        classList.push('root-member');
+      }
+
+      this.setData({
+        cardClasses: classList.join(' ')
+      });
     },
 
     /**
@@ -117,31 +150,7 @@ Component({
       const { member } = this.properties;
       if (member) {
         this._formatDates(member);
-
-        // 设置卡片样式
-        const classList = [];
-        if (member.gender === 'male') {
-          classList.push('male');
-        } else {
-          classList.push('female');
-        }
-
-        if (this.properties.isLatestGen) {
-          classList.push('latest-gen');
-        }
-
-        if (this.properties.isRootMember) {
-          classList.push('root-member');
-        }
-
-        if (classList.length > 0) {
-          this.createSelectorQuery()
-            .select('.member-card-inner')
-            .fields({ node: true, size: true }, function (res) {
-              res.node.classList.add(...classList);
-            })
-            .exec();
-        }
+        this._setCardClasses();
       }
     }
   }

@@ -1,0 +1,1 @@
+<view class="notification-badge {{position}} {{showBackground ? 'with-bg' : ''}}" bindtap="navigateToNotificationCenter">  <view class="badge-icon">    <!-- 使用内置的图标字体替代图片 -->    <text class="iconfont icon-notification"></text>    <view class="badge-count" wx:if="{{showBadge}}">{{unreadCount > 99 ? '99+' : unreadCount}}</view>  </view></view> 

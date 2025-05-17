@@ -2,6 +2,7 @@
 const app = getApp();
 const api = require('../../services/api');
 const notificationService = require('../../services/notification');
+const mockUtils = require('../../utils/mock');  // 引入模拟数据工具
 
 Page({
   /**
@@ -12,6 +13,7 @@ Page({
     userInfo: null,
     currentGenealogy: null,
     genealogies: [],
+    currentGenealogyIndex: 0, // 当前显示的族谱索引
     subscriptionPlan: {
       name: '免费版',
       genealogyLimit: 1,
@@ -47,9 +49,20 @@ Page({
     }
     
     // 更新当前族谱显示
+    const currentGenealogy = app.getCurrentGenealogy();
     this.setData({
-      currentGenealogy: app.getCurrentGenealogy()
+      currentGenealogy: currentGenealogy
     });
+    
+    // 如果有族谱列表，确保当前族谱在轮播中显示
+    if (this.data.genealogies && this.data.genealogies.length > 0 && currentGenealogy) {
+      const index = this.data.genealogies.findIndex(g => g.id === currentGenealogy.id);
+      if (index !== -1 && index !== this.data.currentGenealogyIndex) {
+        this.setData({
+          currentGenealogyIndex: index
+        });
+      }
+    }
     
     // 获取未读通知数量
     this._loadUnreadNotificationCount();
@@ -105,8 +118,20 @@ Page({
           genealogies = [];
         }
         
+        const currentGenealogy = app.getCurrentGenealogy();
+        let currentGenealogyIndex = 0;
+        
+        // 查找当前族谱在列表中的索引
+        if (currentGenealogy) {
+          const index = genealogies.findIndex(g => g.id === currentGenealogy.id);
+          if (index !== -1) {
+            currentGenealogyIndex = index;
+          }
+        }
+        
         this.setData({
           genealogies: genealogies,
+          currentGenealogyIndex: currentGenealogyIndex,
           isLoading: false
         });
         
@@ -129,17 +154,13 @@ Page({
    * 加载未读通知数量
    */
   _loadUnreadNotificationCount: function() {
-    notificationService.getUnreadCount()
-      .then(res => {
-        if (res.success) {
-          this.setData({
-            unreadCount: res.data.count || 0
-          });
-        }
-      })
-      .catch(err => {
-        console.error('Load unread notification count failed:', err);
-      });
+    // 直接从全局数据获取未读通知数量
+    this.setData({
+      unreadCount: app.globalData.unreadNotificationCount || 0
+    });
+    
+    // 也可以主动更新一次全局数据
+    app.loadUnreadNotificationCount();
   },
 
   /**
@@ -259,7 +280,19 @@ Page({
    * 选择族谱
    */
   onGenealogySelect: function (e) {
-    const { genealogy } = e.detail;
+    let genealogy;
+    
+    // 处理来自折叠项的点击
+    if (e.currentTarget && e.currentTarget.dataset) {
+      const genealogyId = e.currentTarget.dataset.genealogyId;
+      if (genealogyId) {
+        genealogy = this.data.genealogies.find(g => g.id === genealogyId);
+      }
+    } 
+    // 处理来自 family-card 组件的点击
+    else if (e.detail) {
+      genealogy = e.detail.genealogy;
+    }
     
     if (!genealogy) return;
     
@@ -299,15 +332,6 @@ Page({
     
     // 标记需要刷新
     this.needRefresh = true;
-  },
-
-  /**
-   * 导航到切换族谱页面
-   */
-  navigateToSwitchGenealogy: function () {
-    wx.navigateTo({
-      url: '/pages/switch-genealogy/switch-genealogy'
-    });
   },
 
   /**
@@ -401,6 +425,15 @@ Page({
   },
 
   /**
+   * 导航到通知管理页面
+   */
+  navigateToNotificationAdmin: function () {
+    wx.navigateTo({
+      url: '/pages/notification-admin/notification-admin'
+    });
+  },
+
+  /**
    * 导航到帮助中心页面
    */
   navigateToHelp: function () {
@@ -458,5 +491,133 @@ Page({
     setTimeout(() => {
       wx.stopPullDownRefresh();
     }, 1000);
-  }
+  },
+
+  /**
+   * 打开邀请成员
+   */
+  openInvite: function() {
+    const { currentGenealogy } = this.data;
+    
+    if (!currentGenealogy) {
+      wx.showToast({
+        title: '请先选择一个族谱',
+        icon: 'none'
+      });
+      return;
+    }
+    
+    wx.navigateTo({
+      url: `/pages/invite/invite?genealogyId=${currentGenealogy.id}`
+    });
+  },
+
+  /**
+   * 打开编辑历史
+   */
+  openEditHistory: function() {
+    const { currentGenealogy } = this.data;
+    
+    if (!currentGenealogy) {
+      wx.showToast({
+        title: '请先选择一个族谱',
+        icon: 'none'
+      });
+      return;
+    }
+    
+    wx.navigateTo({
+      url: `/pages/edit-history/edit-history?genealogyId=${currentGenealogy.id}`
+    });
+  },
+
+  /**
+   * 折叠族谱项点击
+   */
+  onGenealogyItemTap: function (e) {
+    const genealogyId = e.currentTarget.dataset.genealogyId;
+    if (!genealogyId) return;
+    
+    const genealogy = this.data.genealogies.find(g => g.id === genealogyId);
+    if (!genealogy) return;
+    
+    // 设置为当前族谱
+    app.setCurrentGenealogy(genealogy);
+    
+    // 更新显示
+    this.setData({
+      currentGenealogy: genealogy
+    });
+    
+    // 返回首页
+    wx.switchTab({
+      url: '/pages/index/index'
+    });
+  },
+
+  /**
+   * Swiper切换事件
+   */
+  onSwiperChange: function(e) {
+    const current = e.detail.current;
+    
+    // 判断是否是创建族谱卡片
+    if (this.data.genealogies && current === this.data.genealogies.length) {
+      // 不更新currentGenealogyIndex，保持当前选中状态
+      return;
+    }
+    
+    this.setData({
+      currentGenealogyIndex: current
+    });
+  },
+
+  /**
+   * 选择当前族谱
+   */
+  selectCurrentGenealogy: function(e) {
+    const index = e.currentTarget.dataset.index;
+    const genealogy = this.data.genealogies[index];
+    
+    if (!genealogy) return;
+    
+    // 设置为当前族谱
+    app.setCurrentGenealogy(genealogy);
+    
+    // 更新显示
+    this.setData({
+      currentGenealogy: genealogy
+    });
+    
+    wx.showToast({
+      title: '已切换到族谱：' + genealogy.name,
+      icon: 'success'
+    });
+    
+    // 刷新页面数据
+    setTimeout(() => {
+      wx.switchTab({
+        url: '/pages/index/index'
+      });
+    }, 1500);
+  },
+
+  /**
+   * 打开权限设置
+   */
+  openPermissionSettings: function() {
+    const { currentGenealogy } = this.data;
+    
+    if (!currentGenealogy) {
+      wx.showToast({
+        title: '请先选择一个族谱',
+        icon: 'none'
+      });
+      return;
+    }
+    
+    wx.navigateTo({
+      url: `/pages/permission-settings/permission-settings?genealogyId=${currentGenealogy.id}`
+    });
+  },
 });

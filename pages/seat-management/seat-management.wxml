@@ -1,0 +1,150 @@
+<!-- 族谱席位管理页面 -->
+<view class="container">
+  <view class="page-header">
+    <view class="header-title">族谱席位管理</view>
+    <view class="header-subtitle">{{genealogy.name}}</view>
+  </view>
+
+  <!-- 席位统计信息 -->
+  <view class="stats-panel">
+    <view class="stats-item">
+      <text class="stats-value">{{totalSeats}}</text>
+      <text class="stats-label">总席位数</text>
+    </view>
+    <view class="stats-item">
+      <text class="stats-value">{{usedSeats}}</text>
+      <text class="stats-label">已使用</text>
+    </view>
+    <view class="stats-item">
+      <text class="stats-value">{{remainingSeats}}</text>
+      <text class="stats-label">剩余席位</text>
+    </view>
+    <view class="stats-action">
+      <button class="btn-add-seats" bindtap="showAllocationDialog">
+        <text class="iconfont icon-add"></text>
+        <text>增加席位</text>
+      </button>
+    </view>
+  </view>
+
+  <!-- 成员管理列表 -->
+  <view class="members-panel">
+    <view class="panel-title">成员管理 ({{members.length}}人)</view>
+    
+    <!-- 操作按钮 -->
+    <view class="panel-actions">
+      <button class="action-btn primary" bindtap="navigateToCreateGenealogy">
+        <text class="iconfont icon-add-file"></text>
+        <text>创建新图谱</text>
+      </button>
+      <navigator url="/pages/invite/invite?genealogyId={{genealogyId}}" class="action-btn">
+        <text class="iconfont icon-invite"></text>
+        <text>邀请成员</text>
+      </navigator>
+    </view>
+    
+    <view class="members-list">
+      <view 
+        wx:for="{{members}}" 
+        wx:key="userId" 
+        class="member-item"
+      >
+        <view class="member-avatar">
+          <image src="{{item.avatar || '/images/avatar_default.png'}}" mode="aspectFill"></image>
+        </view>
+        <view class="member-info">
+          <view class="member-name">{{item.name || '未命名用户'}}</view>
+          <view class="member-role">
+            <text>角色：</text>
+            <picker 
+              mode="selector" 
+              range="{{roleOptions}}" 
+              range-key="label" 
+              value="{{item.roleIndex}}"
+              data-member-id="{{item.userId}}"
+              bindchange="setMemberRole"
+            >
+              <text class="role-text {{item.role}}">
+                {{item.role === 'admin' ? '管理员' : item.role === 'editor' ? '编辑者' : '浏览者'}}
+              </text>
+              <text class="iconfont icon-arrow-down"></text>
+            </picker>
+          </view>
+          <view class="member-join-time">
+            <text>加入时间：{{item.joinTime || '未知'}}</text>
+          </view>
+        </view>
+        <view class="member-actions">
+          <button 
+            class="btn-remove" 
+            data-member-id="{{item.userId}}"
+            data-name="{{item.name || '未命名用户'}}"
+            bindtap="removeMemberSeat"
+          >移除</button>
+        </view>
+      </view>
+    </view>
+
+    <!-- 暂无成员提示 -->
+    <view class="empty-tip" wx:if="{{members.length === 0}}">
+      <image src="/images/empty_members.png" mode="aspectFit"></image>
+      <text>暂无成员，邀请家人加入吧</text>
+      <button class="btn-create-genealogy" bindtap="navigateToCreateGenealogy">创建新图谱</button>
+      <navigator url="/pages/invite/invite?genealogyId={{genealogyId}}" class="btn-invite">
+        去邀请
+      </navigator>
+    </view>
+  </view>
+
+  <!-- 族谱说明 -->
+  <view class="info-panel">
+    <view class="info-title">说明</view>
+    <view class="info-content">
+      <text>• 管理员可以编辑族谱内容、管理成员、分配席位。</text>
+      <text>• 编辑者可以编辑族谱内容，但无法管理成员。</text>
+      <text>• 浏览者只能查看族谱内容，无法编辑。</text>
+      <text>• 每个注册用户在族谱中占用一个席位。</text>
+      <text>• 移除成员席位后，该成员将无法继续访问族谱。</text>
+      <text>• 可以通过升级会员计划获取更多席位。</text>
+    </view>
+  </view>
+
+  <!-- 分配席位对话框 -->
+  <view class="dialog-mask" wx:if="{{showAllocationDialog}}" bindtap="closeAllocationDialog"></view>
+  <view class="dialog-container" wx:if="{{showAllocationDialog}}">
+    <view class="dialog-header">
+      <view class="dialog-title">分配席位</view>
+      <view class="dialog-close" bindtap="closeAllocationDialog">
+        <text class="iconfont icon-close"></text>
+      </view>
+    </view>
+    <view class="dialog-content">
+      <form bindsubmit="allocateMoreSeats">
+        <view class="form-item">
+          <view class="form-label">添加席位数量</view>
+          <input 
+            class="form-input" 
+            name="seats" 
+            type="number" 
+            placeholder="请输入数量" 
+          />
+        </view>
+        <view class="form-tips">
+          <text>提示：</text>
+          <text>• 当前剩余席位：{{remainingSeats}}个</text>
+          <text>• 免费用户最多可拥有10个席位</text>
+          <text>• 高级会员可根据订阅计划获得更多席位</text>
+        </view>
+        <button 
+          form-type="submit" 
+          class="btn-submit"
+        >确认添加</button>
+      </form>
+    </view>
+  </view>
+
+  <!-- Loading 状态 -->
+  <view class="loading-mask" wx:if="{{isLoading}}">
+    <view class="loading-spinner"></view>
+  </view>
+</view> 

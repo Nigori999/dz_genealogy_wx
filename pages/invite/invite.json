@@ -1,7 +1,9 @@
 {
   "navigationBarTitleText": "邀请成员",
-  "usingComponents": {
-    "loading": "../../components/loading/loading"
-  },
-  "enablePullDownRefresh": true
+  "navigationBarBackgroundColor": "#6D4C41",
+  "navigationBarTextStyle": "white",
+  "enablePullDownRefresh": true,
+  "backgroundColor": "#f5f5f5",
+  "backgroundTextStyle": "dark",
+  "usingComponents": {}
 }

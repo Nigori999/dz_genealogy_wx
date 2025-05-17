@@ -1,0 +1,58 @@
+<!--pages/notification-create/notification-create.wxml-->
+<view class="container">
+  <view wx:if="{{isSubmitting}}" class="loading-container">
+    <loading type="spinner" text="提交中..."></loading>
+  </view>
+  <view wx:else class="form-container">
+    <view class="form-title">发布新通知</view>
+    
+    <!-- 通知标题 -->
+    <view class="form-group">
+      <text class="form-label">通知标题</text>
+      <input 
+        class="form-input" 
+        placeholder="请输入通知标题" 
+        value="{{notification.title}}"
+        bindinput="onTitleInput"
+      />
+    </view>
+    
+    <!-- 通知类型 -->
+    <view class="form-group">
+      <text class="form-label">通知类型</text>
+      <picker 
+        mode="selector" 
+        range="{{typeOptions}}" 
+        value="{{typeIndex}}"
+        bindchange="onTypeChange"
+      >
+        <view class="picker-input">
+          <text>{{typeOptions[typeIndex] || '请选择通知类型'}}</text>
+          <text class="iconfont icon-arrow-down"></text>
+        </view>
+      </picker>
+    </view>
+    
+    <!-- 通知内容 -->
+    <view class="form-group">
+      <text class="form-label">通知内容</text>
+      <textarea 
+        class="form-textarea" 
+        placeholder="请输入通知内容" 
+        value="{{notification.content}}"
+        bindinput="onContentInput"
+        auto-height
+      />
+    </view>
+    
+    <!-- 提交按钮 -->
+    <view class="form-actions">
+      <button 
+        class="submit-btn" 
+        type="primary" 
+        bindtap="submitNotification"
+        disabled="{{!formValid}}"
+      >发布通知</button>
+    </view>
+  </view>
+</view>

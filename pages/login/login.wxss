@@ -2,51 +2,127 @@
 .login-container {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e9ecf6 100%);
-  position: relative;
-  padding-bottom: 20rpx;
-  overflow: hidden; /* 防止气泡溢出 */  
+  background-color: #f5f5f5;
+  padding: 60rpx 40rpx;
+  box-sizing: border-box;
 }
 
-/* Logo区域 */
-.logo-area {
+.logo-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 80rpx 0 30rpx;
-  animation: fadeInDown 0.8s ease;
-  position: relative; /* 确保在气泡之上 */
-  z-index: 2;
+  margin-top: 40rpx;
 }
 
-.logo-image {
+.logo {
   width: 160rpx;
   height: 160rpx;
-  margin-bottom: 20rpx;
-  border-radius: 50rpx;
-  box-shadow: 0 10rpx 30rpx rgba(66, 133, 244, 0.2);
-  transform: translateY(0);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.logo-image:active {
-  transform: translateY(6rpx);
-  box-shadow: 0 4rpx 15rpx rgba(66, 133, 244, 0.15);
+  border-radius: 20rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
 }
 
 .app-name {
   font-size: 48rpx;
   font-weight: bold;
   color: #333;
-  margin-bottom: 10rpx;
-  letter-spacing: 2rpx;
+  margin-top: 20rpx;
 }
 
 .app-slogan {
-  font-size: 26rpx;
+  font-size: 28rpx;
   color: #666;
-  letter-spacing: 1rpx;
+  margin-top: 10rpx;
+}
+
+.login-options {
+  width: 100%;
+  margin-top: 80rpx;
+}
+
+.option-title {
+  font-size: 32rpx;
+  color: #333;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 40rpx;
+}
+
+.user-options {
+  background-color: #fff;
+  border-radius: 16rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.user-option {
+  display: flex;
+  align-items: center;
+  padding: 30rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+  position: relative;
+}
+
+.user-option:last-child {
+  border-bottom: none;
+}
+
+.user-option:active {
+  background-color: #f9f9f9;
+}
+
+.option-icon {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #fff;
+  margin-right: 20rpx;
+}
+
+.admin-icon {
+  background-color: #4285f4;
+}
+
+.owner-icon {
+  background-color: #34a853;
+}
+
+.member-icon {
+  background-color: #ea4335;
+}
+
+.option-info {
+  flex: 1;
+}
+
+.option-name {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10rpx;
+}
+
+.option-desc {
+  font-size: 26rpx;
+  color: #999;
+}
+
+.login-footer {
+  width: 100%;
+  text-align: center;
+  margin-top: 60rpx;
+}
+
+.copyright {
+  font-size: 24rpx;
+  color: #999;
 }
 
 /* 登录内容区 */
@@ -91,7 +167,7 @@
 }
 
 .input-group.focus .input-label {
-  color: #4285F4;
+  color: var(--color-accent);
   font-weight: 600;
 }
 
@@ -103,12 +179,12 @@
 .input-field {
   width: 100%;
   height: 80rpx;
-  background-color: #fff;
-  border-radius: 40rpx;
+  background-color: var(--color-white);
+  border-radius: var(--radius-pill);
   padding: 0 30rpx 0 30rpx;
   font-size: 28rpx;
-  color: #333;
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+  color: var(--color-text-dark);
+  box-shadow: var(--shadow-card-light);
   border: 2rpx solid transparent;
   transition: all 0.3s ease;
   box-sizing: border-box;
@@ -119,8 +195,8 @@
 }
 
 .input-group.focus .input-field {
-  border-color: #4285F4;
-  box-shadow: 0 6rpx 16rpx rgba(66, 133, 244, 0.15);
+  border-color: var(--color-accent);
+  box-shadow: var(--shadow-button-light);
   background-color: #f8fbff;
 }
 
@@ -131,7 +207,7 @@
   top: 50%;
   transform: translateY(-50%);
   font-size: 36rpx;
-  color: #4285F4;
+  color: var(--color-accent);
   z-index: 10;
 }
 
@@ -143,8 +219,8 @@
 }
 
 .account-button {
-  background: linear-gradient(135deg, #4285F4, #34A5FF);
-  box-shadow: 0 8rpx 20rpx rgba(66, 133, 244, 0.3);
+  background-image: var(--gradient-button);
+  box-shadow: var(--shadow-button);
   margin-bottom: 15rpx;
   letter-spacing: 2rpx;
   font-weight: 500;
@@ -158,7 +234,7 @@
 
 .account-button:active {
   transform: translateY(6rpx);
-  box-shadow: 0 4rpx 10rpx rgba(66, 133, 244, 0.2);
+  box-shadow: 0 4rpx 10rpx rgba(var(--color-accent-rgb), 0.2);
   opacity: 0.9;
 }
 
@@ -212,11 +288,11 @@
   justify-content: center;
   width: 80%;
   height: 84rpx;
-  background: linear-gradient(135deg, #07C160, #10D570);
-  color: #FFFFFF;
+  background: linear-gradient(to right, var(--color-success), var(--color-success-light));
+  color: var(--color-white);
   font-size: 30rpx;
-  border-radius: 42rpx;
-  box-shadow: 0 8rpx 20rpx rgba(7, 193, 96, 0.3);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-button);
   letter-spacing: 2rpx;
   font-weight: 500;
   transition: all 0.3s ease;
@@ -232,13 +308,13 @@
 
 .login-button:active {
   transform: translateY(6rpx);
-  box-shadow: 0 4rpx 10rpx rgba(7, 193, 96, 0.2);
+  box-shadow: var(--shadow-button-pressed);
   opacity: 0.9;
 }
 
 .login-button[disabled] {
   opacity: 0.7;
-  background: linear-gradient(135deg, #07C160, #10D570);
+  background: linear-gradient(to right, var(--color-success), var(--color-success-light));
   color: #FFFFFF;
 }
 
@@ -254,7 +330,7 @@
 }
 
 .policy-text text {
-  color: #4285F4;
+  color: var(--color-accent);
 }
 
 /* 气泡背景 */
@@ -466,4 +542,22 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+.wechat-button {
+  width: 60rpx !important;
+  height: 60rpx !important;
+  border-radius: var(--radius-circle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background-size: 100% !important;
+}
+
+.privacy-policy {
+  font-size: 22rpx;
+  color: var(--color-text-light);
+  padding: 30rpx 0;
+  text-align: center;
 }

@@ -31,5 +31,11 @@
   },
   "appid": "wx12a45b318d5735f0",
   "editorSetting": {},
-  "libVersion": "3.8.4"
+  "libVersion": "3.8.4",
+  "projectname": "云族谱",
+  "debugOptions": {
+    "hidedInDevtools": []
+  },
+  "isGameTourist": false,
+  "condition": {}
 }

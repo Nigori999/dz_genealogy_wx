@@ -51,13 +51,6 @@
                 >
                   标为已读
                 </view>
-                <view 
-                  class="action-btn delete-btn" 
-                  catchtap="deleteNotification" 
-                  data-id="{{item.id}}"
-                >
-                  删除
-                </view>
               </view>
             </view>
           </view>
@@ -92,7 +85,6 @@
       </view>
       <view class="toolbar-right">
         <view class="toolbar-btn mark-all-btn" bindtap="markAllAsRead">全部已读</view>
-        <view class="toolbar-btn delete-all-btn" bindtap="deleteChecked">删除</view>
       </view>
     </view>
   </block>

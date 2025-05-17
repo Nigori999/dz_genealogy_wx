@@ -10,26 +10,31 @@
         <view class="card-title">当前订阅</view>
       </view>
       <view class="card-content">
+        <view class="plan-name">{{currentPlan.name || '基础版'}}</view>
         <view class="plan-features">
-          <view class="plan-feature">
-            <text class="feature-label">族谱数量：</text>
-            <text class="feature-value">{{currentPlan.genealogyCount || 1}}个</text>
+          <view class="plan-features-row">
+            <view class="plan-feature">
+              <text class="feature-label">族谱数量：</text>
+              <text class="feature-value">{{currentPlan.genealogyCount || 1}}个</text>
+            </view>
+            <view class="plan-feature">
+              <text class="feature-label">席位数量：</text>
+              <text class="feature-value">{{currentPlan.memberCount || 50}}人</text>
+            </view>
           </view>
-          <view class="plan-feature">
-            <text class="feature-label">席位数量：</text>
-            <text class="feature-value">{{currentPlan.memberCount || 50}}人</text>
+          <view class="plan-features-row">
+            <view class="plan-feature">
+              <text class="feature-label">存储空间：</text>
+              <text class="feature-value">{{formatStorage(currentPlan.storageSize || 100 * 1024 * 1024)}}</text>
+            </view>
+            <view class="plan-feature">
+              <text class="feature-label">到期时间：</text>
+              <text class="feature-value">{{currentPlan.expireDate || '永久'}}</text>
+            </view>
           </view>
-          <view class="plan-feature">
-            <text class="feature-label">存储空间：</text>
-            <text class="feature-value">{{formatStorage(currentPlan.storageSize || 100 * 1024 * 1024)}}</text>
-          </view>
-          <view class="plan-feature">
-            <text class="feature-label">到期时间：</text>
-            <text class="feature-value">{{currentPlan.expireDate || '永久'}}</text>
-          </view>
-          <view class="plan-feature">
-            <text class="feature-label">当前费用：</text>
-            <text class="feature-value">¥{{currentPlan.totalPrice || 0}}/月</text>
+          <view class="plan-total">
+            <text class="total-label">当前费用：</text>
+            <text class="total-value">¥{{currentPlan.totalPrice || 0}}/月</text>
           </view>
         </view>
       </view>
@@ -48,20 +53,12 @@
               <text class="item-title">族谱数量</text>
               <text class="item-description">每个族谱自带10个席位</text>
             </view>
-            <text class="item-price">¥{{priceRates.genealogy}}/个/月</text>
+            <view class="price-tag">
+              <text class="price-label">单价：</text>
+              <text class="price-value">¥{{priceRates.genealogy}}/个/月</text>
+            </view>
           </view>
           <view class="item-content">
-            <slider 
-              min="1" 
-              max="50" 
-              step="1" 
-              value="{{customPlan.genealogyCount}}"
-              activeColor="#6D4C41"
-              backgroundColor="#E0E0E0"
-              block-size="24"
-              bindchange="onGenealogyCountChange"
-              show-value="{{false}}"
-            />
             <view class="count-selector">
               <view class="count-btn" bindtap="decreaseGenealogyCount">-</view>
               <input class="count-input" type="number" value="{{customPlan.genealogyCount}}" bindinput="onGenealogyCountInput" />
@@ -80,7 +77,10 @@
               <text class="item-title">席位数量</text>
               <text class="item-description">当前用户作为管理员所管理的所有族谱共享</text>
             </view>
-            <text class="item-price">¥{{priceRates.member}}/人/月</text>
+            <view class="price-tag">
+              <text class="price-label">单价：</text>
+              <text class="price-value">¥{{priceRates.member}}/人/月</text>
+            </view>
           </view>
           <view class="item-content compact">
             <view class="quick-options">
@@ -89,17 +89,6 @@
               <view class="quick-option {{customPlan.memberCount === 100 ? 'active' : ''}}" data-value="100" bindtap="setQuickMemberCount">100人</view>
               <view class="quick-option {{customPlan.memberCount === 200 ? 'active' : ''}}" data-value="200" bindtap="setQuickMemberCount">200人</view>
             </view>
-            <slider 
-              min="30" 
-              max="5000" 
-              step="1" 
-              value="{{customPlan.memberCount}}"
-              activeColor="#6D4C41"
-              backgroundColor="#E0E0E0"
-              block-size="24"
-              bindchange="onMemberCountChange"
-              show-value="{{false}}"
-            />
             <view class="count-selector">
               <view class="count-btn" bindtap="decreaseMemberCount">-</view>
               <input class="count-input" type="number" value="{{customPlan.memberCount}}" bindinput="onMemberCountInput" />
@@ -118,20 +107,12 @@
               <text class="item-title">存储空间</text>
               <text class="item-description">当前用户作为管理员所管理的所有族谱共享</text>
             </view>
-            <text class="item-price">¥{{priceRates.storage}}/GB/月</text>
+            <view class="price-tag">
+              <text class="price-label">单价：</text>
+              <text class="price-value">¥{{priceRates.storage}}/GB/月</text>
+            </view>
           </view>
           <view class="item-content compact">
-            <slider 
-              min="1" 
-              max="100" 
-              step="1" 
-              value="{{customPlan.storageSize / (1024 * 1024 * 1024)}}"
-              activeColor="#6D4C41"
-              backgroundColor="#E0E0E0"
-              block-size="24"
-              bindchange="onStorageSizeChange"
-              show-value="{{false}}"
-            />
             <view class="count-selector">
               <view class="count-btn" bindtap="decreaseStorageSize">-</view>
               <input class="count-input" type="number" value="{{customPlan.storageSize / (1024 * 1024 * 1024)}}" bindinput="onStorageSizeInput" />

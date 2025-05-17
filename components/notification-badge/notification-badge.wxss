@@ -1,0 +1,51 @@
+.notification-badge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 80rpx;
+  height: 80rpx;
+  z-index: 100;
+}
+
+.notification-badge.fixed {
+  position: fixed;
+  top: 20rpx;
+  right: 20rpx;
+}
+
+.notification-badge.with-bg {
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
+}
+
+.badge-icon {
+  position: relative;
+  width: 50rpx;
+  height: 50rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.badge-icon .iconfont {
+  font-size: 46rpx;
+  color: var(--color-primary);
+}
+
+.badge-count {
+  position: absolute;
+  top: -10rpx;
+  right: -10rpx;
+  min-width: 36rpx;
+  height: 36rpx;
+  padding: 0 6rpx;
+  background-color: var(--color-error);
+  color: #fff;
+  font-size: 22rpx;
+  border-radius: 18rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+} 

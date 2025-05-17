@@ -22,6 +22,11 @@
     "pages/account/bind-phone/bind-phone",
     "pages/notification-setting/notification-setting",
     "pages/notification-center/notification-center",
+    "pages/notification-admin/notification-admin",
+    "pages/notification-create/notification-create",
+    "pages/notification-list/notification-list",
+    "pages/seat-management/seat-management",
+    "pages/permission-settings/permission-settings",
     "pages/about/about"
   ],
   "window": {
@@ -64,5 +69,35 @@
   },
   "style": "v2",
   "sitemapLocation": "sitemap.json",
-  "usingComponents": {}
+  "usingComponents": {
+    "notification-badge": "/components/notification-badge/notification-badge",
+    "canvas-family-tree": "/components/canvas-family-tree/canvas-family-tree"
+  },
+  "workers": "workers",
+  "wasm": {
+    "modules": [
+      {
+        "name": "tree_layout",
+        "path": "wasm/dist/tree_layout.wasm",
+        "jsPath": "wasm/dist/tree_layout.js"
+      },
+      {
+        "name": "visibility_calculator",
+        "path": "wasm/dist/visibility_calculator.wasm",
+        "jsPath": "wasm/dist/visibility_calculator.js"
+      },
+      {
+        "name": "path_calculator",
+        "path": "wasm/dist/path_calculator.wasm",
+        "jsPath": "wasm/dist/path_calculator.js"
+      }
+    ]
+  },
+  "minifyDescriptor": false,
+  "lazyCodeLoading": "requiredComponents",
+  "requiredBackgroundModes": [],
+  "resizable": false,
+  "navigateToMiniProgramAppIdList": [],
+  "permission": {},
+  "debug": false
 }

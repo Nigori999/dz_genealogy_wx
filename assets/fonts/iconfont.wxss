@@ -165,3 +165,7 @@
   content: "\e68f";
 }
 
+.icon-role:before {
+  content: "\e678";
+}
+

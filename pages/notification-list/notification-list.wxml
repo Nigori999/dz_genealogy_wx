@@ -1,0 +1,94 @@
+<!--pages/notification-list/notification-list.wxml-->
+<view class="container">
+  <view wx:if="{{isLoading}}" class="loading-container">
+    <loading type="spinner" text="加载中..."></loading>
+  </view>
+  <block wx:else>
+    <!-- 搜索筛选 -->
+    <view class="search-section">
+      <view class="search-bar">
+        <input 
+          type="text" 
+          placeholder="搜索通知标题" 
+          value="{{searchKeyword}}"
+          bindinput="onSearchInput"
+          confirm-type="search"
+          bindconfirm="searchNotifications"
+        />
+        <view class="search-icon" bindtap="searchNotifications">
+          <text class="iconfont icon-search"></text>
+        </view>
+      </view>
+      <view class="filter-bar">
+        <view 
+          class="filter-item {{currentType === '' ? 'active' : ''}}" 
+          data-type="" 
+          bindtap="filterByType"
+        >全部</view>
+        <view 
+          wx:for="{{notificationTypes}}" 
+          wx:key="value" 
+          class="filter-item {{currentType === item.value ? 'active' : ''}}" 
+          data-type="{{item.value}}" 
+          bindtap="filterByType"
+        >
+          {{item.label}}
+        </view>
+      </view>
+    </view>
+    
+    <!-- 通知列表 -->
+    <view class="notification-list">
+      <view wx:if="{{notifications.length === 0}}" class="empty-tip">
+        <text>暂无通知记录</text>
+      </view>
+      <view 
+        wx:for="{{notifications}}" 
+        wx:key="id" 
+        class="notification-item"
+        bindtap="viewNotificationDetail"
+        data-id="{{item.id}}"
+      >
+        <view class="notification-header">
+          <text class="notification-title">{{item.title}}</text>
+          <text class="notification-time">{{item.time}}</text>
+        </view>
+        <view class="notification-content">
+          <text>{{item.content}}</text>
+        </view>
+        <view class="notification-stats">
+          <view class="stat-item">
+            <text class="stat-icon iconfont icon-send"></text>
+            <text class="stat-value">已发送：{{item.sendCount}}</text>
+          </view>
+          <view class="stat-item">
+            <text class="stat-icon iconfont icon-read"></text>
+            <text class="stat-value">已读：{{item.readCount}}</text>
+          </view>
+        </view>
+        <view class="notification-footer">
+          <text class="notification-tag">{{item.type}}</text>
+          <view class="notification-actions">
+            <view class="action-btn recall-btn" catchtap="recallNotification" data-id="{{item.id}}" wx:if="{{!item.recalled}}">
+              撤回
+            </view>
+            <view class="action-btn disabled" wx:else>
+              已撤回
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+    
+    <!-- 加载更多 -->
+    <view wx:if="{{hasMore && !isLoadingMore}}" class="load-more" bindtap="loadMoreNotifications">
+      <text>加载更多</text>
+    </view>
+    <view wx:if="{{isLoadingMore}}" class="loading-more">
+      <text>加载中...</text>
+    </view>
+    <view wx:if="{{!hasMore && notifications.length > 0}}" class="no-more">
+      <text>没有更多通知了</text>
+    </view>
+  </block>
+</view>

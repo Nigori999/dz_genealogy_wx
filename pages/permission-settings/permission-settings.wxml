@@ -1,0 +1,170 @@
+<!-- 权限设置页面 -->
+<view class="container">
+  <view class="header">
+    <view class="title">权限设置</view>
+    <view class="subtitle">添加指定用户并设置族谱权限</view>
+  </view>
+  
+  <!-- 加载中 -->
+  <view class="loading" wx:if="{{isLoading}}">
+    <loading type="spinner" text="加载中..."></loading>
+  </view>
+  
+  <block wx:elif="{{genealogy}}">
+    <!-- 族谱信息 -->
+    <view class="genealogy-info">
+      <view class="genealogy-name">{{genealogy.name}}</view>
+      <view class="genealogy-desc">当前共有{{members.length || 0}}位成员</view>
+    </view>
+    
+    <!-- 权限管理列表 -->
+    <view class="permission-section">
+      <view class="section-header">
+        <view class="section-title">权限管理</view>
+        <view class="add-btn" bindtap="showUserSelector">
+          <text class="iconfont icon-add"></text>
+          <text>添加用户</text>
+        </view>
+      </view>
+      
+      <!-- 有权限的用户列表 -->
+      <view class="permission-list">
+        <view wx:if="{{!membersWithPermissions || membersWithPermissions.length === 0}}" class="empty-list">
+          <image class="empty-image" src="/assets/images/empty_permission.png" mode="aspectFit"></image>
+          <view class="empty-text">暂无用户权限设置</view>
+          <view class="empty-tip">点击"添加用户"按钮添加用户并设置权限</view>
+        </view>
+        
+        <view wx:else>
+          <view wx:for="{{membersWithPermissions}}" wx:key="id" class="permission-item">
+            <view class="user-info">
+              <image class="user-avatar" src="{{item.avatar || '/assets/images/avatar_default.png'}}" mode="aspectFill"></image>
+              <view class="user-detail">
+                <view class="user-name">{{item.nickname || '未命名用户'}}</view>
+                <view class="permission-tags">
+                  <text wx:if="{{item.permissions.invite}}" class="tag">邀请成员<text class="tag-close" catchtap="removeSpecificPermission" data-user-id="{{item.id}}" data-permission="invite">×</text></text>
+                  <text wx:if="{{item.permissions.remove}}" class="tag">删除成员<text class="tag-close" catchtap="removeSpecificPermission" data-user-id="{{item.id}}" data-permission="remove">×</text></text>
+                  <text wx:if="{{item.permissions.event}}" class="tag">发布事件<text class="tag-close" catchtap="removeSpecificPermission" data-user-id="{{item.id}}" data-permission="event">×</text></text>
+                  <text wx:if="{{item.permissions.edit}}" class="tag">修改族谱<text class="tag-close" catchtap="removeSpecificPermission" data-user-id="{{item.id}}" data-permission="edit">×</text></text>
+                  <text wx:if="{{item.permissions.admin}}" class="tag admin">管理员<text class="tag-close" catchtap="removeSpecificPermission" data-user-id="{{item.id}}" data-permission="admin">×</text></text>
+                </view>
+              </view>
+            </view>
+            <view class="user-action">
+              <view class="edit-btn" catchtap="editPermission" data-id="{{item.id}}">编辑权限</view>
+              <view class="remove-btn" catchtap="removePermission" data-id="{{item.id}}">移除权限</view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+    
+    <!-- 权限说明 -->
+    <view class="help-section">
+      <view class="help-title">权限说明</view>
+      <view class="help-list">
+        <view class="help-item" wx:for="{{permissions}}" wx:key="id">
+          <view class="help-name">{{item.name}}</view>
+          <view class="help-desc">{{item.desc}}</view>
+        </view>
+      </view>
+    </view>
+  </block>
+  
+  <view wx:else class="error-view">
+    <view class="error-text">加载失败，请返回重试</view>
+    <view class="back-btn" bindtap="navigateBack">返回</view>
+  </view>
+  
+  <!-- 用户选择器弹窗 -->
+  <view class="modal" wx:if="{{showUserSelector}}">
+    <view class="modal-mask" bindtap="closeUserSelector"></view>
+    <view class="modal-content">
+      <view class="modal-header">
+        <view class="modal-title">选择用户</view>
+        <view class="modal-close" bindtap="closeUserSelector">
+          <text class="iconfont icon-close"></text>
+        </view>
+      </view>
+      
+      <!-- 搜索框 -->
+      <view class="search-box">
+        <text class="iconfont icon-search"></text>
+        <input 
+          class="search-input" 
+          placeholder="搜索用户" 
+          value="{{searchValue}}"
+          bindinput="onSearchInput"
+        />
+        <text 
+          class="search-clear iconfont icon-clear" 
+          bindtap="onClearSearch" 
+          wx:if="{{searchValue}}"
+        ></text>
+      </view>
+      
+      <!-- 用户列表 -->
+      <scroll-view class="user-list" scroll-y>
+        <view wx:if="{{searchValue && searchResults.length === 0}}" class="empty-search">
+          没有找到匹配的用户
+        </view>
+        
+        <view 
+          wx:for="{{searchValue ? searchResults : userList}}" 
+          wx:key="id" 
+          class="user-select-item"
+          bindtap="onSelectUser"
+          data-id="{{item.id}}"
+        >
+          <image class="user-avatar" src="{{item.avatar || '/assets/images/avatar_default.png'}}" mode="aspectFill"></image>
+          <view class="user-detail">
+            <view class="user-name">{{item.nickname || '未命名用户'}}</view>
+            <view class="user-info-text" wx:if="{{item.realName}}">{{item.realName}}</view>
+            <view class="user-info-text" wx:if="{{item.phone}}">{{item.phone}}</view>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+  </view>
+  
+  <!-- 权限设置弹窗 -->
+  <view class="modal" wx:if="{{showPermissionDialog}}">
+    <view class="modal-mask" bindtap="closePermissionDialog"></view>
+    <view class="modal-content permission-dialog">
+      <view class="modal-header">
+        <view class="modal-title">设置权限</view>
+        <view class="modal-close" bindtap="closePermissionDialog">
+          <text class="iconfont icon-close"></text>
+        </view>
+      </view>
+      
+      <!-- 已选择的用户 -->
+      <view class="selected-user" wx:if="{{selectedUser}}">
+        <image class="user-avatar" src="{{selectedUser.avatar || '/assets/images/avatar_default.png'}}" mode="aspectFill"></image>
+        <view class="user-name">{{selectedUser.nickname || '未命名用户'}}</view>
+      </view>
+      
+      <!-- 权限列表 - 按钮样式 -->
+      <view class="permission-button-list">
+        <view 
+          wx:for="{{permissions}}" 
+          wx:key="id" 
+          class="permission-button {{item.checked ? 'checked' : ''}}"
+          bindtap="onPermissionChange"
+          data-id="{{item.id}}"
+        >
+          <view class="button-checkbox {{item.checked ? 'checked' : ''}}">
+            <text class="checkbox-icon" wx:if="{{item.checked}}">✓</text>
+          </view>
+          <text class="button-text">{{item.name}}</text>
+        </view>
+      </view>
+      
+      <!-- 按钮 -->
+      <view class="modal-footer">
+        <view class="btn btn-cancel" bindtap="closePermissionDialog">取消</view>
+        <view class="btn btn-confirm" bindtap="savePermissions">保存</view>
+      </view>
+    </view>
+  </view>
+</view> 

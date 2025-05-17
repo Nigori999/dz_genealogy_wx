@@ -13,7 +13,6 @@
   color: var(--color-text-dark);
   margin-bottom: 12px;
   padding-left: 8px;
-  border-left: 3px solid var(--color-accent);
 }
 
 /* 列表样式 */

@@ -20,39 +20,64 @@
   <view class="section">
     <view class="section-header">
       <view class="section-title">我的族谱</view>
-      <view wx:if="{{genealogies.length > 0}}" class="section-action" bindtap="navigateToSwitchGenealogy">
-        <text>管理</text>
-        <text class="iconfont icon-arrow-right"></text>
-      </view>
     </view>
-    <view class="genealogy-list">
-      <view wx:if="{{isLoading}}" class="list-loading">
-        <loading type="spinner" text="加载中..."></loading>
-      </view>
-      <block wx:elif="{{genealogies.length > 0}}">
-        <family-card 
-          wx:for="{{genealogies}}" 
-          wx:key="id"
-          genealogy="{{item}}"
-          bind:select="onGenealogySelect"
-        ></family-card>
-        <!-- 族谱数量到达上限时显示提示 -->
-        <view wx:if="{{hasReachedGenealogyLimit}}" class="limit-tip">
-          <text>您已创建 {{genealogies.length}} 个族谱，已达到当前订阅的最大限制</text>
-          <view class="tip-action" bindtap="navigateToSubscription">升级订阅</view>
+    <view class="genealogy-container">
+      <view class="genealogy-list">
+        <view wx:if="{{isLoading}}" class="list-loading">
+          <loading type="spinner" text="加载中..."></loading>
         </view>
-        <!-- 未达到上限时显示创建按钮 -->
-        <view wx:else class="add-genealogy" bindtap="navigateToCreateGenealogy">
-          <text class="iconfont icon-add"></text>
-          <text>创建新族谱</text>
-        </view>
-      </block>
-      <view wx:else class="empty-genealogy">
-        <image class="empty-image" src="/assets/images/empty_genealogy.png" mode="aspectFit"></image>
-        <view class="empty-text">您还没有创建或加入任何族谱</view>
-        <view class="empty-actions">
-          <button class="btn-primary" bindtap="navigateToCreateGenealogy">创建族谱</button>
-          <button class="btn-secondary" bindtap="navigateToJoinGenealogy">加入族谱</button>
+        <block wx:elif="{{genealogies.length > 0 || !isLoading}}">
+          <view class="genealogy-swiper-container">
+            <swiper 
+              class="genealogy-swiper" 
+              current="{{currentGenealogyIndex}}"
+              bindchange="onSwiperChange"
+              previous-margin="30rpx"
+              next-margin="30rpx"
+              circular="{{genealogies.length > 1}}"
+            >
+              <!-- 族谱卡片 -->
+              <swiper-item wx:for="{{genealogies}}" wx:key="id" class="genealogy-swiper-item">
+                <view class="genealogy-card {{currentGenealogyIndex === index ? 'current' : ''}}">
+                  <view wx:if="{{item.isOwner}}" class="owner-badge">族长</view>
+                  <view class="genealogy-card-content">
+                    <image class="genealogy-cover" src="{{item.coverImage || '/assets/images/genealogy_default_cover.png'}}" mode="aspectFill"></image>
+                    <view class="genealogy-info">
+                      <view class="genealogy-title">{{item.name}}</view>
+                      <view class="genealogy-meta">
+                        <text>成员：{{item.memberCount || 0}}</text>
+                        <text>创建于：{{item.createTime || '未知'}}</text>
+                      </view>
+                      <view class="genealogy-desc" wx:if="{{item.description}}">{{item.description}}</view>
+                    </view>
+                  </view>
+                  <view class="genealogy-actions">
+                    <view class="genealogy-action-btn" bindtap="selectCurrentGenealogy" data-index="{{index}}">
+                      <text wx:if="{{currentGenealogy && item.id === currentGenealogy.id}}" class="action-text current">当前使用中</text>
+                      <text wx:else class="action-text">切换使用</text>
+                    </view>
+                  </view>
+                </view>
+              </swiper-item>
+            </swiper>
+            
+            <!-- 分页指示器 -->
+            <view class="swiper-indicator" wx:if="{{genealogies.length > 1}}">
+              <view 
+                wx:for="{{genealogies}}" 
+                wx:key="id" 
+                class="indicator-dot {{currentGenealogyIndex === index ? 'active' : ''}}"
+              ></view>
+            </view>
+          </view>
+        </block>
+        <view wx:else class="empty-genealogy">
+          <image class="empty-image" src="/assets/images/empty_genealogy.png" mode="aspectFit"></image>
+          <view class="empty-text">您还没有创建或加入任何族谱</view>
+          <view class="empty-actions">
+            <button class="btn-primary" bindtap="navigateToCreateGenealogy">创建族谱</button>
+            <button class="btn-secondary" bindtap="navigateToJoinGenealogy">加入族谱</button>
+          </view>
         </view>
       </view>
     </view>
@@ -63,7 +88,7 @@
     <!-- 订阅信息 -->
     <view class="menu-card subscription-card" bindtap="navigateToSubscription">
       <view class="subscription-info">
-        <view class="subscription-title">当前订阅：{{subscriptionPlan.name}}</view>
+        <view class="subscription-title">订阅使用情况{{subscriptionPlan.name === '免费版' ? '(免费版)' : '(付费版)'}}</view>
         <view class="subscription-detail">
           <text>族谱：{{subscriptionPlan.genealogyLimit || 0}} / 席位：{{subscriptionPlan.memberLimit || 0}} / 存储：{{formatStorage(subscriptionPlan.storageLimit)}}</text>
         </view>
@@ -74,86 +99,90 @@
       </view>
     </view>
 
-    <!-- 菜单列表 -->
-    <view class="menu-list">
-      <!-- 族谱管理 -->
-      <view class="menu-group">
-        <view class="menu-group-title">族谱管理</view>
-        <view class="menu-item" bindtap="navigateToFamilyManager">
-          <view class="menu-item-left">
-            <text class="menu-icon iconfont icon-family"></text>
-            <text class="menu-name">族谱席位管理</text>
-          </view>
-          <text class="iconfont icon-arrow-right"></text>
-        </view>
-        <view class="menu-item" bindtap="navigateToInviteManager">
+    <!-- 族谱管理 -->
+    <view class="menu-group" wx:if="{{userInfo && currentGenealogy}}">
+      <view class="menu-title">族谱管理</view>
+      <view class="menu-list">
+        <view class="menu-item" bindtap="openInvite">
           <view class="menu-item-left">
             <text class="menu-icon iconfont icon-invite"></text>
-            <text class="menu-name">邀请管理</text>
+            <view class="menu-content">
+              <text class="menu-name">邀请成员</text>
+              <text class="menu-desc">邀请亲人加入当前族谱</text>
+            </view>
           </view>
-          <text class="iconfont icon-arrow-right"></text>
+          <view class="menu-arrow"></view>
         </view>
-        <view class="menu-item" bindtap="navigateToDataExport">
+        <view class="menu-item" bindtap="openPermissionSettings">
           <view class="menu-item-left">
-            <text class="menu-icon iconfont icon-export"></text>
-            <text class="menu-name">数据导出</text>
+            <text class="menu-icon iconfont icon-role"></text>
+            <view class="menu-content">
+              <text class="menu-name">权限设置</text>
+              <text class="menu-desc">添加指定用户并设置其族谱权限</text>
+            </view>
           </view>
-          <text class="iconfont icon-arrow-right"></text>
-        </view>
-      </view>
-
-      <!-- 账户设置 -->
-      <view class="menu-group">
-        <view class="menu-group-title">账户设置</view>
-        <view class="menu-item" bindtap="navigateToAccountSetting">
-          <view class="menu-item-left">
-            <text class="menu-icon iconfont icon-setting"></text>
-            <text class="menu-name">账户与安全</text>
-          </view>
-          <text class="iconfont icon-arrow-right"></text>
-        </view>
-        <!-- 通知设置菜单项 -->
-        <view class="menu-item" bindtap="navigateToNotificationSetting">
-          <view class="menu-item-left">
-            <text class="menu-icon iconfont icon-notification"></text>
-            <text class="menu-name">通知设置</text>
-            <!-- 未读通知数量 -->
-            <view wx:if="{{unreadCount > 0}}" class="unread-badge">{{unreadCount > 99 ? '99+' : unreadCount}}</view>
-          </view>
-          <text class="iconfont icon-arrow-right"></text>
-        </view>
-      </view>
-
-      <!-- 关于 -->
-      <view class="menu-group">
-        <view class="menu-group-title">关于</view>
-        <view class="menu-item" bindtap="navigateToHelp">
-          <view class="menu-item-left">
-            <text class="menu-icon iconfont icon-help"></text>
-            <text class="menu-name">帮助中心</text>
-          </view>
-          <text class="iconfont icon-arrow-right"></text>
-        </view>
-        <view class="menu-item" bindtap="navigateToAbout">
-          <view class="menu-item-left">
-            <text class="menu-icon iconfont icon-about"></text>
-            <text class="menu-name">关于我们</text>
-          </view>
-          <text class="iconfont icon-arrow-right"></text>
-        </view>
-        <view class="menu-item" bindtap="navigateToFeedback">
-          <view class="menu-item-left">
-            <text class="menu-icon iconfont icon-feedback"></text>
-            <text class="menu-name">意见反馈</text>
-          </view>
-          <text class="iconfont icon-arrow-right"></text>
+          <view class="menu-arrow"></view>
         </view>
       </view>
     </view>
 
-    <!-- 退出登录 -->
-    <view class="logout-btn" bindtap="logout">退出登录</view>
+    <!-- 账户设置 -->
+    <view class="menu-group">
+      <view class="menu-group-title">账户设置</view>
+      <view class="menu-item" bindtap="navigateToAccountSetting">
+        <view class="menu-item-left">
+          <text class="menu-icon iconfont icon-setting"></text>
+          <text class="menu-name">账户与安全</text>
+        </view>
+        <text class="iconfont icon-arrow-right"></text>
+      </view>
+      <!-- 通知设置菜单项 -->
+      <view class="menu-item" bindtap="navigateToNotificationSetting">
+        <view class="menu-item-left">
+          <text class="menu-icon iconfont icon-notification"></text>
+          <text class="menu-name">通知设置</text>
+        </view>
+        <text class="iconfont icon-arrow-right"></text>
+      </view>
+      <!-- 应用内通知管理菜单项 -->
+      <view class="menu-item" bindtap="navigateToNotificationAdmin" wx:if="{{userInfo && userInfo.isAdmin}}">
+        <view class="menu-item-left">
+          <text class="menu-icon iconfont icon-notification-admin"></text>
+          <text class="menu-name">通知管理</text>
+        </view>
+        <text class="iconfont icon-arrow-right"></text>
+      </view>
+    </view>
+
+    <!-- 关于 -->
+    <view class="menu-group">
+      <view class="menu-group-title">关于</view>
+      <view class="menu-item" bindtap="navigateToHelp">
+        <view class="menu-item-left">
+          <text class="menu-icon iconfont icon-help"></text>
+          <text class="menu-name">帮助中心</text>
+        </view>
+        <text class="iconfont icon-arrow-right"></text>
+      </view>
+      <view class="menu-item" bindtap="navigateToAbout">
+        <view class="menu-item-left">
+          <text class="menu-icon iconfont icon-about"></text>
+          <text class="menu-name">关于我们</text>
+        </view>
+        <text class="iconfont icon-arrow-right"></text>
+      </view>
+      <view class="menu-item" bindtap="navigateToFeedback">
+        <view class="menu-item-left">
+          <text class="menu-icon iconfont icon-feedback"></text>
+          <text class="menu-name">意见反馈</text>
+        </view>
+        <text class="iconfont icon-arrow-right"></text>
+      </view>
+    </view>
   </view>
+
+  <!-- 退出登录 -->
+  <view class="logout-btn" bindtap="logout">退出登录</view>
 
   <!-- 版本信息 -->
   <view class="version-info">

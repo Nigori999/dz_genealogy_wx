@@ -69,9 +69,7 @@ Page({
       nightMode: false   // 夜间免打扰
     },
     notificationMainSwitch: true,  // 通知总开关
-    mainSwitchAnimating: false,     // 主开关动画状态
-    // 通知历史记录
-    notificationHistory: []
+    mainSwitchAnimating: false     // 主开关动画状态
   },
 
   /**
@@ -79,7 +77,14 @@ Page({
    */
   onLoad: function () {
     this._loadNotificationSettings();
-    this._loadNotificationHistory();
+  },
+
+  /**
+   * 生命周期函数--监听页面卸载
+   */
+  onUnload: function () {
+    // 更新全局未读通知数量
+    app.loadUnreadNotificationCount();
   },
 
   /**
@@ -130,24 +135,6 @@ Page({
           title: '设置加载失败，请重试',
           icon: 'none'
         });
-      });
-  },
-
-  /**
-   * 加载通知历史记录
-   */
-  _loadNotificationHistory: function() {
-    // 使用通知服务获取历史记录
-    notificationService.getNotifications({ page: 1, pageSize: 3 })
-      .then(res => {
-        if (res.success) {
-          this.setData({
-            notificationHistory: res.data.list || []
-          });
-        }
-      })
-      .catch(err => {
-        console.error('Load notification history failed:', err);
       });
   },
 
@@ -333,82 +320,7 @@ Page({
     });
   },
 
-  /**
-   * 查看通知详情
-   */
-  viewNotificationDetail: function(e) {
-    const { id } = e.currentTarget.dataset;
-    
-    // 标记为已读
-    notificationService.markAsRead(id)
-      .then(res => {
-        if (res.success) {
-          // 重新加载通知历史记录
-          this._loadNotificationHistory();
-          
-          // 展示通知详情
-          const notification = this.data.notificationHistory.find(item => item.id === id);
-          if (notification) {
-            wx.showModal({
-              title: notification.title,
-              content: notification.content,
-              showCancel: false,
-              confirmText: '知道了'
-            });
-          }
-        }
-      })
-      .catch(err => {
-        console.error('Mark notification as read failed:', err);
-      });
-  },
-
-  /**
-   * 查看全部通知
-   */
-  viewAllNotifications: function() {
-    // 跳转到通知中心页面
-    wx.navigateTo({
-      url: '/pages/notification-center/notification-center'
-    });
-  },
-
-  /**
-   * 清空通知记录
-   */
-  clearAllNotifications: function() {
-    wx.showModal({
-      title: '提示',
-      content: '确定要清空所有通知记录吗？',
-      success: (res) => {
-        if (res.confirm) {
-          notificationService.clearAllNotifications()
-            .then(res => {
-              if (res.success) {
-                this.setData({ notificationHistory: [] });
-                
-                wx.showToast({
-                  title: '已清空通知记录',
-                  icon: 'success'
-                });
-              } else {
-                wx.showToast({
-                  title: '操作失败，请重试',
-                  icon: 'none'
-                });
-              }
-            })
-            .catch(err => {
-              console.error('Clear notifications failed:', err);
-              wx.showToast({
-                title: '操作失败，请重试',
-                icon: 'none'
-              });
-            });
-        }
-      }
-    });
-  },
+  
 
   /**
    * 打开授权设置页面

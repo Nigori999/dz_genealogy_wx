@@ -4,6 +4,16 @@
   flex-direction: column;
   height: 100vh;
   background-color: var(--color-background);
+  position: relative; /* 添加相对定位 */
+  overflow: hidden; /* 防止内容溢出 */
+}
+
+/* 主内容区域 */
+.main-content {
+  flex: 1;
+  position: relative;
+  width: 100%;
+  overflow: hidden; /* 防止内容溢出 */
 }
 
 /* 族谱信息 */
@@ -11,6 +21,7 @@
   background-image: var(--gradient-header);
   padding: 16px;
   color: #FFFFFF;
+  z-index: 10; /* 确保不被Canvas覆盖 */
 }
 
 .genealogy-name {
@@ -21,12 +32,60 @@
 
 .genealogy-meta {
   display: flex;
+  flex-wrap: wrap; /* 允许按钮换行，防止挤压 */
+  align-items: center;
 }
 
 .meta-item {
   display: flex;
   align-items: center;
   margin-right: 16px;
+  margin-bottom: 4px; /* 增加底部边距，防止元素太紧凑 */
+}
+
+/* 家族史按钮和操作指引按钮样式 */
+.meta-item.history-btn, .meta-item.guide-btn {
+  padding: 6px 12px;
+  border-radius: 18px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 10;
+}
+
+/* 家族史按钮样式 */
+.meta-item.history-btn {
+  background-color: var(--color-primary, #4285F4);
+  box-shadow: 0 2px 8px rgba(66, 133, 244, 0.4);
+  margin-left: auto; /* 将按钮推到右侧 */
+}
+
+/* 操作指引按钮样式 */
+.meta-item.guide-btn {
+  background-color: rgba(255, 255, 255, 0.25);
+  margin-left: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.meta-item.history-btn:active, .meta-item.guide-btn:active {
+  transform: scale(0.95);
+  opacity: 0.9;
+}
+
+.meta-item.history-btn .meta-label, .meta-item.guide-btn .meta-label {
+  margin-right: 6px;
+  color: #FFFFFF;
+  font-weight: 600;
+  font-size: 14px;
+  opacity: 1;
+}
+
+.meta-item.history-btn .iconfont, .meta-item.guide-btn .iconfont {
+  font-size: 16px;
+  color: #FFFFFF;
 }
 
 .meta-label {
@@ -43,7 +102,7 @@
 /* 控制面板 */
 .tree-controls {
   display: flex;
-  justify-content: space-between;
+  justify-content: center; /* 修改为居中显示 */
   background-color: #FFFFFF;
   padding: 8px 16px;
   border-bottom: 1px solid var(--color-border);
@@ -80,16 +139,6 @@
   font-size: 16px;
 }
 
-.direction-btn {
-  width: 32px;
-  height: 32px;
-  padding: 0;
-}
-
-.direction-btn .iconfont {
-  margin-right: 0;
-}
-
 /* 世代筛选器 */
 .generation-filter {
   background-color: #FFFFFF;
@@ -122,33 +171,16 @@
 }
 
 /* 树图视图 */
-.tree-view {
-  flex: 1;
-  position: relative;
-  overflow: auto;
-}
-
-.tree-view.vertical {
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-
-.tree-view.horizontal {
-  overflow-x: auto;
-  overflow-y: hidden;
-}
-
-.tree-container {
-  position: relative;
-  min-height: 300px;
-}
-
-.tree-container.vertical {
-  padding: 24px 16px;
-}
-
-.tree-container.horizontal {
-  padding: 16px 24px;
+.tree-view-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%; /* 填充父容器 */
+  overflow: hidden;
+  background-color: #f5f5f5;
 }
 
 .tree-loading, .tree-empty {
@@ -199,7 +231,7 @@
   height: 100%;
 }
 
-/* 悬浮添加按钮 */
+/* 悬浮添加按钮 - 普通版本 */
 .fab {
   position: fixed;
   right: 32px;
@@ -213,9 +245,473 @@
   align-items: center;
   justify-content: center;
   box-shadow: var(--shadow-button);
-  z-index: 100;
+  z-index: 200;
 }
 
 .fab .iconfont {
   font-size: 24px;
+}
+
+/* 悬浮添加按钮 - cover-view版本 */
+cover-view.fab {
+  position: fixed;
+  right: 32px;
+  bottom: 32px;
+  width: 56px;
+  height: 56px;
+  border-radius: 28px;
+  background-color: #4285F4; /* 不支持gradient，使用纯色 */
+  color: #FFFFFF;
+  text-align: center;
+  line-height: 56px;
+  z-index: 500;
+}
+
+.fab-icon {
+  font-size: 28px;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  line-height: 56px;
+}
+
+/* 加号图标 */
+.icon-add:before {
+  content: "+";
+  font-size: 28px;
+  font-weight: bold;
+}
+
+/* 左侧世代指示器样式 - 普通版本 */
+.generation-indicator {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 200;
+}
+
+/* 左侧世代指示器样式 - cover-view版本 */
+cover-view.generation-indicator {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  z-index: 500;
+}
+
+.generation-indicator-inner {
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  padding: var(--spacing-base) var(--spacing-2x);
+  box-shadow: var(--shadow-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: var(--color-primary);
+  font-weight: bold;
+}
+
+cover-view.generation-indicator-inner {
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: 10px 16px;
+  font-size: 14px;
+  color: #4285F4; /* 使用固定颜色代替变量 */
+  text-align: center;
+}
+
+/* 悬浮控制按钮组样式 - 普通版本 */
+.floating-controls {
+  position: absolute;
+  right: var(--spacing-2x);
+  top: var(--spacing-2x);
+  z-index: 200;
+}
+
+/* 悬浮控制按钮组样式 - cover-view版本 */
+cover-view.floating-controls {
+  position: absolute;
+  right: 16px;
+  top: 16px;
+  z-index: 500;
+}
+
+.controls-toggle {
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  background-image: var(--gradient-button);
+  color: var(--color-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-button);
+  z-index: 201;
+  float: right;
+}
+
+cover-view.controls-toggle {
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  background-color: #4285F4; /* 不支持gradient，使用纯色 */
+  color: #FFFFFF;
+  text-align: center;
+  line-height: 40px;
+  z-index: 501;
+  position: absolute;
+  right: 0;
+}
+
+.control-toggle-icon {
+  width: 40px;
+  height: 40px;
+  text-align: center;
+  line-height: 40px;
+  font-size: 20px;
+}
+
+/* 展开/收起图标 */
+.icon-expand:before {
+  content: "+";
+  font-size: 24px;
+}
+
+.icon-collapse:before {
+  content: "−"; /* 减号 */
+  font-size: 24px;
+}
+
+.controls-panel {
+  background-color: var(--color-white);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  margin-top: 48px; /* 保持在切换按钮下方 */
+  width: 60px;
+  transition: all 0.3s ease;
+  position: absolute;
+  right: 0;
+  top: 0;
+  z-index: 200; /* 增加z-index确保在Canvas上方 */
+}
+
+cover-view.controls-panel {
+  background-color: #FFFFFF;
+  width: 60px;
+  position: absolute;
+  right: 0;
+  top: 48px;
+  z-index: 500;
+}
+
+.floating-controls.collapsed .controls-panel {
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.floating-controls.expanded .controls-panel {
+  height: auto;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.control-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 12px;
+  width: 60px;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+cover-view.control-item {
+  padding: 10px 0;
+  width: 60px;
+  height: 50px;
+  border-bottom: 1px solid #EEEEEE; /* 固定颜色代替变量 */
+  box-sizing: border-box;
+}
+
+.control-item:last-child {
+  border-bottom: none;
+}
+
+.control-item .iconfont {
+  font-size: 20px;
+  color: var(--color-primary);
+  margin-bottom: 4px;
+}
+
+.control-icon {
+  height: 24px;
+  line-height: 24px;
+  font-size: 20px;
+  color: #4285F4; /* 固定颜色代替变量 */
+  text-align: center;
+  width: 100%;
+}
+
+/* 各种控制图标 */
+.icon-refresh:before {
+  content: "↻";
+  font-size: 22px;
+}
+
+.icon-locate:before {
+  content: "◎";
+  font-size: 22px;
+}
+
+.icon-zoomin:before {
+  content: "+";
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.icon-zoomout:before {
+  content: "−"; /* 减号 */
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.control-label {
+  font-size: 10px;
+  color: var(--color-text-medium);
+}
+
+cover-view.control-label {
+  font-size: 10px;
+  color: #666666; /* 固定颜色代替变量 */
+  text-align: center;
+  width: 100%;
+  height: 14px;
+  line-height: 14px;
+}
+
+/* 弹窗公共样式 */
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7); /* 更深的遮罩颜色 */
+  backdrop-filter: blur(3px); /* 增加模糊效果 */
+  -webkit-backdrop-filter: blur(3px);
+  z-index: 1000;
+}
+
+/* 通用弹窗样式 */
+.history-popup, .guide-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.9);
+  opacity: 0;
+  width: 86%; /* 稍微缩小宽度，避免超出屏幕 */
+  max-width: 650rpx;
+  max-height: 80%;
+  background-color: #fff;
+  border-radius: 24px; /* 更大的圆角 */
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25); /* 更明显的阴影 */
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s ease;
+  visibility: hidden;
+  animation: popup-in 0.3s ease forwards;
+  transform-origin: center;
+}
+
+@keyframes popup-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.history-popup.visible, .guide-popup.visible {
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+  visibility: visible;
+}
+
+.popup-header {
+  padding: 20px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--color-primary-ultralight, #E8F0FE);
+}
+
+.popup-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--color-primary, #4285F4);
+  display: flex;
+  align-items: center;
+}
+
+.popup-title::before {
+  content: '';
+  display: inline-block;
+  width: 4px;
+  height: 18px;
+  background-color: var(--color-primary, #4285F4);
+  margin-right: 10px;
+  border-radius: 2px;
+}
+
+.popup-close {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 24px;
+  color: var(--color-primary, #4285F4);
+  background-color: rgba(66, 133, 244, 0.1);
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.popup-close:active {
+  background-color: rgba(66, 133, 244, 0.2);
+  transform: scale(0.95);
+}
+
+.popup-content {
+  flex: 1;
+  padding: 24px 20px;
+  overflow-y: auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.history-text {
+  font-size: 16px;
+  color: var(--color-text-dark, #333);
+  line-height: 1.8;
+  text-align: justify;
+  letter-spacing: 0.5px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  width: 100%;
+  box-sizing: border-box;
+  padding-right: 2px; /* 减小右侧内边距，使文本尽可能展示 */
+  text-indent: 2em; /* 添加首行缩进，提高可读性 */
+}
+
+/* 操作指引特有样式 */
+.guide-popup {
+  max-height: 80vh;
+}
+
+.guide-item {
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.guide-item:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.guide-title {
+  font-size: 17px;
+  font-weight: bold;
+  color: var(--color-primary, #4285F4);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+}
+
+.guide-title::before {
+  content: '';
+  display: inline-block;
+  width: 3px;
+  height: 16px;
+  background-color: var(--color-primary, #4285F4);
+  margin-right: 8px;
+  border-radius: 2px;
+}
+
+.guide-content {
+  color: #333;
+  font-size: 15px;
+  line-height: 1.6;
+  padding-left: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.guide-line {
+  margin-bottom: 10px;
+  position: relative;
+  padding-right: 12px; /* 添加右侧内边距 */
+  box-sizing: border-box;
+  text-align: justify; /* 文本两端对齐 */
+  width: 100%;
+}
+
+.guide-line text {
+  display: inline-block;
+  width: 100%;
+  word-break: break-word;
+}
+
+/* 会员列表样式 */
+.member-list {
+  width: 100%;
+}
+
+.member-item {
+  display: flex;
+  align-items: center;
+  padding: 30rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.member-avatar {
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 50%;
+  margin-right: 20rpx;
+  background-color: #f5f5f5;
+  border: 1px solid #eee;
+}
+
+.member-info {
+  flex: 1;
+}
+
+.member-name {
+  font-size: 32rpx;
+  font-weight: bold;
+  margin-bottom: 10rpx;
+}
+
+.member-meta {
+  font-size: 26rpx;
+  color: #666;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.member-select-icon {
+  color: #bbb;
+  font-size: 40rpx;
 }

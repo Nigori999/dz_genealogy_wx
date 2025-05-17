@@ -19,14 +19,49 @@
     </view>
   </view>
 
+  <!-- 快捷功能入口 - 移动到"我的家族"卡片上方 -->
+  <view class="quick-actions">
+    <view class="section-header" bindtap="toggleQuickActions">
+      <view class="section-title">快捷操作</view>
+      <view class="section-toggle">
+        <text class="toggle-text">{{isQuickActionsCollapsed ? '展开' : '收起'}}</text>
+        <view class="toggle-icon {{isQuickActionsCollapsed ? 'collapsed' : ''}}">
+          <text class="iconfont icon-arrow-down"></text>
+        </view>
+      </view>
+    </view>
+    <view class="action-grid {{isQuickActionsCollapsed ? 'collapsed' : ''}}">
+      <view class="action-item" bindtap="navigateToAddMember">
+        <view class="action-icon">
+          <text class="iconfont icon-add-member"></text>
+        </view>
+        <view class="action-text">添加成员</view>
+      </view>
+      <view class="action-item" bindtap="navigateToAddEvent">
+        <view class="action-icon">
+          <text class="iconfont icon-add-event"></text>
+        </view>
+        <view class="action-text">记录大事</view>
+      </view>
+      <view class="action-item" bindtap="navigateToInvite">
+        <view class="action-icon">
+          <text class="iconfont icon-invite"></text>
+        </view>
+        <view class="action-text">邀请亲人</view>
+      </view>
+      <view class="action-item" bindtap="navigateToGenealogyHistory">
+        <view class="action-icon">
+          <text class="iconfont icon-history"></text>
+        </view>
+        <view class="action-text">族谱历史</view>
+      </view>
+    </view>
+  </view>
+
   <!-- 族谱简略预览 -->
   <view wx:if="{{currentGenealogy}}" class="current-genealogy-preview">
     <view class="preview-header">
       <view class="preview-title">{{currentGenealogy.name}}</view>
-      <view class="preview-switch" bindtap="navigateToSwitchGenealogy">
-        <text>切换</text>
-        <text class="iconfont icon-switch"></text>
-      </view>
     </view>
     <view class="family-tree-preview" bindtap="navigateToFamilyTree">
       <image 
@@ -70,45 +105,6 @@
         bind:detail="onEventDetail"
         bind:membertap="onMemberTap"
       ></event-card>
-    </view>
-  </view>
-
-  <!-- 快捷功能入口 -->
-  <view class="quick-actions">
-    <view class="section-header" bindtap="toggleQuickActions">
-      <view class="section-title">快捷操作</view>
-      <view class="section-toggle">
-        <text class="toggle-text">{{isQuickActionsCollapsed ? '展开' : '收起'}}</text>
-        <view class="toggle-icon {{isQuickActionsCollapsed ? 'collapsed' : ''}}">
-          <text class="iconfont icon-arrow-down"></text>
-        </view>
-      </view>
-    </view>
-    <view class="action-grid {{isQuickActionsCollapsed ? 'collapsed' : ''}}">
-      <view class="action-item" bindtap="navigateToAddMember">
-        <view class="action-icon">
-          <text class="iconfont icon-add-member"></text>
-        </view>
-        <view class="action-text">添加成员</view>
-      </view>
-      <view class="action-item" bindtap="navigateToAddEvent">
-        <view class="action-icon">
-          <text class="iconfont icon-add-event"></text>
-        </view>
-        <view class="action-text">记录大事</view>
-      </view>
-      <view class="action-item" bindtap="navigateToInvite">
-        <view class="action-icon">
-          <text class="iconfont icon-invite"></text>
-        </view>
-        <view class="action-text">邀请亲人</view>
-      </view>
-      <view class="action-item" bindtap="navigateToGenealogyHistory">
-        <view class="action-icon">
-          <text class="iconfont icon-history"></text>
-        </view>
-        <view class="action-text">族谱历史</view>
-      </view>
     </view>
   </view>
 

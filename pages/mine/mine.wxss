@@ -65,51 +65,320 @@
 
 /* 部分标题 */
 .section {
-  margin: 16px;
   margin-bottom: 24px;
 }
 
 .section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
+  display: flex;  
+  justify-content: space-between;  
+  align-items: center;  
+  margin: 16px 16px 12px 16px;
 }
 
-.section-title {
-  font-size: 16px;
-  font-weight: bold;
-  color: var(--color-text-dark);
-  position: relative;
+.section-title {  
+  font-size: 16px;  
+  font-weight: bold;  
+  color: var(--color-text-dark);  
+  position: relative;  
   padding-left: 12px;
 }
 
-.section-title::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 4px;
-  bottom: 4px;
-  width: 4px;
-  background-color: var(--color-primary);
+.section-title::before {  
+  content: '';  
+  position: absolute;  
+  left: 0;  
+  top: 4px;  
+  bottom: 4px;  
+  width: 4px;  
+  background-color: var(--color-primary);  
   border-radius: 2px;
 }
 
-.section-action {
-  font-size: 14px;
-  color: var(--color-text-light);
-  display: flex;
+.section-actions {  
+  display: flex;  
+  gap: 10px;
+}
+
+.section-action-btn {  
+  display: flex;  
+  align-items: center;  
+  padding: 5px 10px;  
+  background-color: rgba(var(--color-primary-rgb), 0.1);
+  border-radius: 16px;  
+  border: 1px solid var(--color-primary);  
+  transition: all 0.2s ease;
+}
+
+.section-action-btn:active {  
+  background-color: rgba(var(--color-primary-rgb), 0.2);
+  transform: scale(0.98);
+}
+
+.action-icon {  
+  font-size: 16px;  
+  color: var(--color-primary);  
+  margin-right: 4px;
+}
+
+.action-text {  
+  font-size: 13px;  
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
+.section-action {  
+  font-size: 14px;  
+  color: var(--color-text-light);  
+  display: flex;  
   align-items: center;
 }
 
-.section-action .iconfont {
-  margin-left: 4px;
+.section-action .iconfont {  
+  margin-left: 4px;  
   font-size: 12px;
+}
+
+/* 族谱容器 */
+.genealogy-container {
+  margin: 0 16px;
 }
 
 /* 族谱列表 */
 .genealogy-list {
-  margin-bottom: 16px;
+  margin: 0;
+  background-color: #FFFFFF;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  position: relative;
+}
+
+/* 族谱卡片轮播 */
+.genealogy-swiper-container {
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.genealogy-swiper {
+  height: 240px;
+  width: 100%;
+}
+
+.genealogy-swiper-item {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-sizing: border-box;
+  padding: 10px 0;
+}
+
+/* 当前使用的族谱 */
+.genealogy-card {
+  position: relative;
+  width: 100%;
+  height: 220px;
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: #FFFFFF;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  transform: scale(0.9);
+  display: flex;
+  flex-direction: column;
+}
+
+.genealogy-card.current {
+  transform: scale(1);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  border: 2px solid #4285f4;
+}
+
+.genealogy-card-content {
+  display: flex;
+  padding: 16px;
+  flex: 1;
+}
+
+.genealogy-cover {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  object-fit: cover;
+  margin-right: 12px;
+  background-color: #f5f5f5;
+}
+
+.genealogy-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.genealogy-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: #333333;
+  margin-bottom: 8px;
+}
+
+.genealogy-meta {
+  font-size: 13px;
+  color: #666666;
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.genealogy-desc {
+  font-size: 13px;
+  color: #999999;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.genealogy-actions {
+  height: 60px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f8f9fa;
+  border-top: 1px solid #eeeeee;
+}
+
+.genealogy-action-btn {
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  background-color: #4285f4;
+  color: #FFFFFF;
+  box-shadow: 0 2px 4px rgba(66, 133, 244, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 100px;
+}
+
+.genealogy-action-btn:active {
+  opacity: 0.8;
+  transform: scale(0.98);
+}
+
+.action-text {
+  display: block;
+  text-align: center;
+}
+
+.action-text.current {
+  padding-left: 20px;
+  position: relative;
+}
+
+.action-text.current::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTMuNDk5NSA0LjIwMDFMNi40OTk0OCAxMS4yMDAxTDIuNDk5NTEgNy4yMDAwOSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=');
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+/* 分页指示器 */
+.swiper-indicator {
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+  gap: 8px;
+}
+
+.indicator-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background-color: #dddddd;
+  transition: all 0.3s ease;
+}
+
+.indicator-dot.active {
+  width: 16px;
+  background-color: #4285f4;
+}
+
+/* 族长标记 */
+.owner-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background-color: #4285f4;
+  color: #FFFFFF;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 0 12px 0 12px;
+  z-index: 10;
+}
+
+/* 其他族谱（折叠显示） */
+.other-genealogies {
+  margin-top: 16px;
+  border-top: 1px dashed #dddddd;
+  padding-top: 12px;
+}
+
+.other-title {
+  font-size: 14px;
+  color: #666666;
+  margin-bottom: 8px;
+  padding-left: 4px;
+}
+
+.genealogy-item-collapsed {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  background-color: #f5f7fa;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  transition: all 0.3s ease;
+}
+
+.genealogy-item-collapsed:active {
+  background-color: #e8eaed;
+  transform: scale(0.98);
+}
+
+.genealogy-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333333;
+  flex: 1;
+}
+
+.owner-tag {
+  font-size: 12px;
+  color: #4285f4;
+  background-color: rgba(66, 133, 244, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-right: 8px;
+}
+
+.genealogy-arrow {
+  width: 16px;
+  height: 16px;
+  background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNNiAxMkwxMCA4TDYgNCIgc3Ryb2tlPSIjOTk5OTk5IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==');
+  background-repeat: no-repeat;
+  background-position: center;
 }
 
 .list-loading {
@@ -147,6 +416,13 @@
   justify-content: center;
   color: var(--color-text-light);
   font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.add-genealogy:active {
+  background-color: var(--color-background-hover);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .add-genealogy .iconfont {
@@ -155,7 +431,7 @@
 }
 
 .empty-genealogy {
-  padding: 32px 16px;
+  padding: 48px 16px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -163,31 +439,172 @@
 }
 
 .empty-image {
-  width: 120px;
-  height: 120px;
-  margin-bottom: 16px;
+  width: 160px;
+  height: 160px;
+  margin-bottom: 24px;
   opacity: 0.7;
 }
 
 .empty-text {
-  font-size: 14px;
-  color: var(--color-text-light);
-  margin-bottom: 24px;
+  font-size: 16px;
+  color: var(--color-text-medium);
+  margin-bottom: 32px;
   line-height: 1.5;
 }
 
 .empty-actions {
   display: flex;
+  gap: 16px;
 }
 
 .empty-actions button {
-  margin: 0 8px;
+  min-width: 120px;
+  height: 40px;
+  line-height: 40px;
+  font-size: 14px;
+  border-radius: 20px;
+}
+
+.empty-actions .btn-primary {
+  background-color: var(--color-primary);
+  color: #FFFFFF;
+}
+
+.empty-actions .btn-secondary {
+  background-color: #FFFFFF;
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
 }
 
 /* 菜单部分 */
 .menu-section {
   flex: 1;
   padding: 0 16px;
+}
+
+/* 菜单卡片和菜单组 */
+.menu-card,
+.menu-group.card {
+  background-color: #FFFFFF;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* 菜单组 */
+.menu-group {
+  margin-bottom: 24px;
+}
+
+.menu-title, 
+.menu-group-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--color-text-dark);
+  margin-bottom: 16px;
+  position: relative;
+  padding-left: 12px;
+}
+
+.menu-title::before, 
+.menu-group-title::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 4px;
+  background-color: var(--color-primary);
+  border-radius: 2px;
+}
+
+/* 菜单列表 */
+.menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background-color: var(--color-background);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+/* 菜单项 */
+.menu-item {
+  background-color: #FFFFFF;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  margin-bottom: 1px;
+}
+
+.menu-item:first-child {
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+}
+
+.menu-item:last-child {
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+  margin-bottom: 0;
+}
+
+.menu-item-left {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.menu-icon {
+  width: 24px;
+  height: 24px;
+  font-size: 20px;
+  color: var(--color-primary);
+  margin-right: 12px;
+}
+
+.menu-content {
+  flex: 1;
+}
+
+.menu-name {
+  font-size: 15px;
+  color: var(--color-text-dark);
+  font-weight: 500;
+}
+
+.menu-desc {
+  font-size: 12px;
+  color: var(--color-text-light);
+  margin-top: 4px;
+  display: block;
+}
+
+.menu-arrow, 
+.icon-arrow-right {
+  width: 16px;
+  height: 16px;
+  font-size: 14px;
+  color: var(--color-text-light);
+}
+
+/* 未读通知数量徽章 */
+.unread-badge {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #F44336;
+  color: #FFFFFF;
+  font-size: 10px;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  padding: 0 4px;
+  margin-left: 8px;
 }
 
 /* 订阅信息卡片 */
@@ -226,81 +643,6 @@
   font-size: 12px;
 }
 
-/* 菜单列表 */
-.menu-list {
-  margin-bottom: 32px;
-}
-
-.menu-group {
-  margin-bottom: 24px;
-}
-
-.menu-group-title {
-  font-size: 14px;
-  color: var(--color-text-light);
-  margin-bottom: 8px;
-  padding-left: 16px;
-}
-
-.menu-item {
-  background-color: #FFFFFF;
-  height: 54px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 16px;
-  margin-bottom: 1px;
-}
-
-.menu-item:first-child {
-  border-top-left-radius: 12px;
-  border-top-right-radius: 12px;
-}
-
-.menu-item:last-child {
-  border-bottom-left-radius: 12px;
-  border-bottom-right-radius: 12px;
-  margin-bottom: 0;
-}
-
-.menu-item-left {
-  display: flex;
-  align-items: center;
-  position: relative;
-}
-
-.menu-icon {
-  font-size: 20px;
-  color: var(--color-primary);
-  margin-right: 12px;
-}
-
-.menu-name {
-  font-size: 14px;
-  color: var(--color-text-dark);
-}
-
-/* 未读通知数量徽章 */
-.unread-badge {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #F44336;
-  color: #FFFFFF;
-  font-size: 10px;
-  min-width: 16px;
-  height: 16px;
-  border-radius: 8px;
-  padding: 0 4px;
-  margin-left: 8px;
-}
-
-.menu-item .icon-arrow-right {
-  font-size: 14px;
-  color: var(--color-text-light);
-}
-
 /* 退出登录按钮 */
 .logout-btn {
   background-color: #FFFFFF;
@@ -319,4 +661,38 @@
   font-size: 12px;
   color: var(--color-text-light);
   padding: 16px 0;
+}
+
+/* 创建族谱区域 */
+.create-genealogy-area {
+  margin: 16px 0 0 0;
+}
+
+.create-genealogy-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background-color: rgba(66, 133, 244, 0.05);
+  border: 1px dashed rgba(66, 133, 244, 0.3);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  height: 60px;
+}
+
+.create-genealogy-btn:active {
+  background-color: rgba(66, 133, 244, 0.1);
+  transform: scale(0.98);
+}
+
+.create-genealogy-btn .create-icon {
+  font-size: 24px;
+  color: #4285f4;
+  margin-right: 12px;
+}
+
+.create-genealogy-btn .create-text {
+  font-size: 16px;
+  font-weight: 500;
+  color: #4285f4;
 }

@@ -41,6 +41,14 @@ Page({
     // 加载通知数据
     this._loadNotifications();
   },
+  
+  /**
+   * 生命周期函数--监听页面卸载
+   */
+  onUnload: function () {
+    // 更新全局未读通知数量
+    this._updateUnreadBadge();
+  },
 
   /**
    * 加载通知数据
@@ -246,99 +254,6 @@ Page({
   },
 
   /**
-   * 删除通知
-   */
-  deleteNotification: function (e) {
-    e.stopPropagation(); // 阻止冒泡，防止触发点击通知项事件
-    const { id } = e.currentTarget.dataset;
-    
-    wx.showModal({
-      title: '删除通知',
-      content: '确定要删除这条通知吗？',
-      success: (res) => {
-        if (res.confirm) {
-          this._deleteNotifications([id]);
-        }
-      }
-    });
-  },
-
-  /**
-   * 删除选中的通知
-   */
-  deleteChecked: function () {
-    const { checkedIds } = this.data;
-    
-    if (checkedIds.length === 0) {
-      wx.showToast({
-        title: '请先选择通知',
-        icon: 'none'
-      });
-      return;
-    }
-    
-    wx.showModal({
-      title: '删除通知',
-      content: `确定要删除选中的 ${checkedIds.length} 条通知吗？`,
-      success: (res) => {
-        if (res.confirm) {
-          this._deleteNotifications(checkedIds);
-        }
-      }
-    });
-  },
-
-  /**
-   * 删除通知（内部方法）
-   */
-  _deleteNotifications: function (ids) {
-    wx.showLoading({
-      title: '删除中...',
-      mask: true
-    });
-    
-    notificationService.deleteNotifications(ids)
-      .then(res => {
-        wx.hideLoading();
-        
-        if (res.success) {
-          // 从本地通知列表中移除已删除的通知
-          const notifications = this.data.notifications.filter(
-            item => !ids.includes(item.id)
-          );
-          
-          // 清空选中状态
-          this.setData({
-            notifications,
-            checkedIds: [],
-            isAllChecked: false
-          });
-          
-          // 重新加载未读消息数
-          this._updateUnreadBadge();
-          
-          wx.showToast({
-            title: '删除成功',
-            icon: 'success'
-          });
-        } else {
-          wx.showToast({
-            title: '删除失败，请重试',
-            icon: 'none'
-          });
-        }
-      })
-      .catch(err => {
-        wx.hideLoading();
-        console.error('Delete notifications failed:', err);
-        wx.showToast({
-          title: '删除失败，请重试',
-          icon: 'none'
-        });
-      });
-  },
-
-  /**
    * 全选/取消全选
    */
   checkAllChange: function (e) {
@@ -364,18 +279,14 @@ Page({
    * 更新未读通知数量徽章
    */
   _updateUnreadBadge: function() {
-    // 获取未读通知数量并更新首页
-    if (typeof this.getOpenerEventChannel === 'function') {
-      const eventChannel = this.getOpenerEventChannel();
-      if (eventChannel && typeof eventChannel.emit === 'function') {
-        // 通知父页面更新未读消息数
-        notificationService.getUnreadCount().then(res => {
-          if (res.success) {
-            eventChannel.emit('updateUnreadCount', { count: res.data.count });
-          }
-        });
+    // 直接更新全局未读通知数
+    notificationService.getUnreadCount().then(res => {
+      if (res.success) {
+        // 更新全局计数
+        const count = res.data.count || 0;
+        app.updateUnreadNotificationCount(count);
       }
-    }
+    });
   },
 
   /**

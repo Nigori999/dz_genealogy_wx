@@ -22,12 +22,26 @@
 .section-header {
   padding: 30rpx;
   border-bottom: 1rpx solid #f5f5f5;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .section-title {
   font-size: 32rpx;
   font-weight: bold;
   color: #333;
+}
+
+.section-toggle {
+  display: flex;
+  align-items: center;
+}
+
+.toggle-text {
+  font-size: 26rpx;
+  color: #666;
+  margin-right: 8rpx;
 }
 
 .section-content {
@@ -49,7 +63,8 @@
 
 .item-left {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .item-icon {
@@ -61,6 +76,12 @@
 .item-name {
   font-size: 30rpx;
   color: #333;
+}
+
+.item-desc {
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 6rpx;
 }
 
 .item-right {
@@ -83,6 +104,11 @@
 .icon-arrow-right {
   font-size: 32rpx;
   color: #ccc;
+}
+
+.icon-arrow-up, .icon-arrow-down {
+  font-size: 28rpx;
+  color: #999;
 }
 
 /* 授权设置 */
@@ -138,20 +164,64 @@
   color: #666;
 }
 
-/* 注销账号 */
-.delete-account {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 90rpx;
-  font-size: 32rpx;
-  color: #E53935;
+/* 信息可见性部分 */
+.visibility-section {
   padding: 30rpx 0;
+  border-top: 1rpx solid #f5f5f5;
+  margin-top: 20rpx;
+}
+
+.visibility-title {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10rpx;
+}
+
+.visibility-desc {
+  font-size: 26rpx;
+  color: #999;
+  margin-bottom: 20rpx;
+}
+
+/* 开关样式 */
+.mini-switch {
+  transform: scale(0.8);
+}
+
+/* 注销账号 - 按钮样式 */
+.delete-section {
+  margin-top: 60rpx;
+  margin-bottom: 60rpx;
+  padding: 0 30rpx;
+}
+
+.delete-account-btn {
+  background-color: #9E9E9E !important;
+  color: #FFFFFF !important;
+  font-size: 32rpx;
+  border-radius: 8rpx;
+  width: 100%;
 }
 
 .delete-hint {
   text-align: center;
   font-size: 24rpx;
   color: #999;
-  padding-bottom: 30rpx;
+  padding: 20rpx 40rpx 0;
+  line-height: 1.5;
+}
+
+/* 区域选择器样式 */
+.region-picker {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+}
+
+/* 适配按钮默认样式 */
+button::after {
+  border: none;
 } 
