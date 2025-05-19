@@ -1114,9 +1114,30 @@ Component({
         // 确定渲染模式
         const useWebGL = this.data.webgl && this.data.webgl.enabled;
         
+        // 检查节点数据 - 确保每个节点有必要的属性
+        const nodes = this.properties.treeNodes.map(node => {
+          // 确保节点有宽高属性
+          if (!node.width) node.width = 120;
+          if (!node.height) node.height = 150;
+          return node;
+        });
+        
+        // 调试输出
+        console.log('[族谱树] 节点总数:', nodes.length);
+        if (nodes.length > 0) {
+          console.log('[族谱树] 首个节点示例:', {
+            id: nodes[0].id,
+            x: nodes[0].x,
+            y: nodes[0].y,
+            width: nodes[0].width,
+            height: nodes[0].height,
+            name: nodes[0].name
+          });
+        }
+        
         // 获取渲染数据
         const treeData = {
-          nodes: this.properties.treeNodes,
+          nodes: nodes,
           connectors: this.properties.treeConnectors,
           offsetX: this.data.offsetX,
           offsetY: this.data.offsetY,
@@ -1127,7 +1148,12 @@ Component({
         };
         
         console.log('[族谱树] 开始渲染族谱树，节点数量:', treeData.nodes.length, 
-                    '渲染模式:', useWebGL ? 'WebGL' : 'Canvas2D');
+                    '渲染模式:', useWebGL ? 'WebGL' : 'Canvas2D',
+                    '变换:', {
+                      offsetX: this.data.offsetX,
+                      offsetY: this.data.offsetY,
+                      scale: this.data.currentScale
+                    });
 
         // 使用统一的渲染器接口执行渲染
         const renderSuccess = this.renderer.render(treeData);

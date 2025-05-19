@@ -252,11 +252,37 @@ class Canvas2DTreeRenderer {
    * @private
    */
   _batchDrawNodeBackgrounds(nodes) {
-    // 默认背景颜色
-    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    // 添加调试信息
+    console.log('[Canvas2D] 绘制节点背景，节点数量:', nodes.length);
+    if (nodes.length > 0) {
+      console.log('[Canvas2D] 首个节点示例:', {
+        id: nodes[0].id,
+        x: nodes[0].x,
+        y: nodes[0].y,
+        width: nodes[0].width,
+        height: nodes[0].height,
+        name: nodes[0].name
+      });
+    }
     
-    // 批量绘制普通节点背景
+    // 修复节点尺寸
     for (const node of nodes) {
+      // 确保节点有宽高
+      if (!node.width) node.width = 120; // 提供默认宽度
+      if (!node.height) node.height = 150; // 提供默认高度
+      
+      // 默认背景颜色
+      if (node.id === this.currentMemberId) {
+        // 当前选中节点使用高亮背景
+        this.ctx.fillStyle = 'rgba(230, 247, 255, 0.9)';
+      } else if (node.isRoot) {
+        // 根节点使用特殊背景
+        this.ctx.fillStyle = 'rgba(255, 248, 230, 0.9)';
+      } else {
+        // 普通节点
+        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+      }
+      
       this.ctx.fillRect(node.x, node.y, node.width, node.height);
     }
   }
@@ -324,14 +350,36 @@ class Canvas2DTreeRenderer {
    * @private
    */
   _batchDrawNodeContents(nodes, currentMemberId) {
+    // 保存当前的成员ID
+    this.currentMemberId = currentMemberId;
+    
+    // 添加调试信息
+    console.log('[Canvas2D] 绘制节点内容，节点数量:', nodes.length, '当前成员ID:', currentMemberId);
+    
     // 绘制节点内容（名称等）
-    this.ctx.fillStyle = 'black';
     this.ctx.font = '14px Arial';
     this.ctx.textAlign = 'center';
     
     for (const node of nodes) {
+      // 确保节点有基本属性
+      if (!node.width) node.width = 120;
+      if (!node.height) node.height = 150;
+      
+      // 文本颜色
+      this.ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+      
       const name = node.name || '';
-      this.ctx.fillText(name, node.x + node.width / 2, node.y + node.height - 10);
+      const centerX = node.x + node.width / 2;
+      const bottomY = node.y + node.height - 10;
+      
+      // 实际绘制文本
+      this.ctx.fillText(name, centerX, bottomY);
+      
+      // 如果没有姓名，至少显示一个占位符，方便调试
+      if (!name && (node.id || '').length > 0) {
+        this.ctx.fillStyle = 'rgba(150, 150, 150, 0.5)';
+        this.ctx.fillText('未命名', centerX, bottomY);
+      }
     }
   }
 

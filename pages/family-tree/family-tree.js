@@ -474,7 +474,7 @@ Page({
       this._addLeftPadding(layoutTree, leftPadding);
       
       // 生成树节点和连接线数据
-      const { nodes, connectors, maxX, maxY } = this._generateTreeNodesAndConnectors(layoutTree);
+      const { nodes, connectors, maxX, maxY } = this._buildTreeNodes(layoutTree, direction);
       
       // 计算树的宽高，确保有足够空间
       const treeWidth = maxX + LAYOUT_CONFIG.edgePadding;
@@ -581,34 +581,58 @@ Page({
   },
 
   /**
-   * 生成树节点和连接线数据
+   * 构建族谱树节点
+   * @param {Object} tree - 树形数据
+   * @param {String} direction - 布局方向
+   * @returns {Object} 节点和连接线
    */
-  _generateTreeNodesAndConnectors: function (tree) {
-    if (!tree) return { nodes: [], connectors: [], maxX: 0, maxY: 0 };
-    
+  _buildTreeNodes: function (tree, direction) {
     const nodes = [];
     const connectors = [];
     let maxX = 0;
     let maxY = 0;
-    const direction = this.data.direction || 'vertical';
     
-    // 递归遍历树节点
+    // 节点尺寸常量
+    const NODE_WIDTH = 120;
+    const NODE_HEIGHT = 150;
+    
+    // 构建成员映射，提升查找效率
+    if (!this._membersMap) {
+      this._membersMap = new Map();
+      this.data.members.forEach(member => {
+        this._membersMap.set(member.id, member);
+      });
+      console.log('[族谱树] 构建成员映射，共', this._membersMap.size, '个成员');
+    }
+    
+    // 遍历树结构，构建平面节点数据
     const traverseTree = (node, parentId = null) => {
       if (!node) return;
       
-      // 根据节点ID找到对应的成员数据
+      // 确保节点有必要属性
+      if (!node.x) node.x = 0;
+      if (!node.y) node.y = 0;
+      if (!node.width) node.width = NODE_WIDTH;
+      if (!node.height) node.height = NODE_HEIGHT;
+      
+      // 获取成员资料
       const memberData = this._membersMap ? this._membersMap.get(node.id) : null;
       
-      // 添加节点 - 确保member是真正的成员数据，而不是整个节点对象
+      // 构建节点数据
       const nodeData = {
         id: node.id,
+        name: node.name || (memberData ? memberData.name : ''),
         x: node.x,
         y: node.y,
-        width: node.width,
-        height: node.height,
-        member: memberData // 使用真正的成员数据
+        width: node.width || NODE_WIDTH,
+        height: node.height || NODE_HEIGHT,
+        generation: node.generation || 0,
+        gender: node.gender || (memberData ? memberData.gender : ''),
+        isRoot: !parentId,
+        member: memberData // 添加成员资料
       };
       
+      // 添加节点到数组
       nodes.push(nodeData);
       
       // 更新最大坐标
@@ -619,14 +643,14 @@ Page({
       if (parentId) {
         // 查找父节点
         const parentNode = nodes.find(n => n.id === parentId);
+        
         if (parentNode) {
-          // 添加父子连接线
           if (direction === 'vertical') {
             // 垂直方向的连接线
             connectors.push({
-              id: `${parentId}-${nodeData.id}`,
+              id: `${parentId}-${node.id}`,
               fromId: parentId,
-              toId: nodeData.id,
+              toId: node.id,
               fromX: parentNode.x + parentNode.width / 2,
               fromY: parentNode.y + parentNode.height,
               toX: nodeData.x + nodeData.width / 2,
@@ -636,9 +660,9 @@ Page({
           } else {
             // 水平方向的连接线
             connectors.push({
-              id: `${parentId}-${nodeData.id}`,
+              id: `${parentId}-${node.id}`,
               fromId: parentId,
-              toId: nodeData.id,
+              toId: node.id,
               fromX: parentNode.x + parentNode.width,
               fromY: parentNode.y + parentNode.height / 2,
               toX: nodeData.x,
@@ -652,16 +676,23 @@ Page({
       // 添加与配偶的连接线
       if (node.spouses && node.spouses.length > 0) {
         node.spouses.forEach(spouse => {
+          // 确保配偶节点有必要属性
+          if (!spouse.width) spouse.width = NODE_WIDTH;
+          if (!spouse.height) spouse.height = NODE_HEIGHT;
+          
           // 获取配偶的成员数据
           const spouseMemberData = this._membersMap ? this._membersMap.get(spouse.id) : null;
           
           // 添加配偶节点
           const spouseNode = {
             id: spouse.id,
+            name: spouse.name || (spouseMemberData ? spouseMemberData.name : ''),
             x: spouse.x,
             y: spouse.y,
-            width: spouse.width,
-            height: spouse.height,
+            width: spouse.width || NODE_WIDTH,
+            height: spouse.height || NODE_HEIGHT,
+            generation: spouse.generation || node.generation,
+            gender: spouse.gender || (spouseMemberData ? spouseMemberData.gender : ''),
             member: spouseMemberData // 使用真正的配偶成员数据
           };
           
@@ -710,6 +741,19 @@ Page({
     
     traverseTree(tree);
     
+    // 添加调试日志
+    console.log('[族谱树] 构建节点数据完成，共生成', nodes.length, '个节点，', connectors.length, '条连接线');
+    if (nodes.length > 0) {
+      console.log('[族谱树] 节点示例:', {
+        id: nodes[0].id,
+        name: nodes[0].name,
+        x: nodes[0].x,
+        y: nodes[0].y,
+        width: nodes[0].width,
+        height: nodes[0].height
+      });
+    }
+    
     return { nodes, connectors, maxX, maxY };
   },
 
@@ -735,7 +779,7 @@ Page({
             
             // 确保Canvas有正确的可见性样式
             const query = wx.createSelectorQuery();
-            query.select('.tree-view-container')
+            query.select('.tree-view')
               .fields({ node: true, size: true })
               .exec((res) => {
                 if (res[0]) {
@@ -743,44 +787,42 @@ Page({
                 }
               });
             
-            // 强制刷新Canvas尺寸，因为在隐藏状态时，Canvas尺寸可能未正确初始化
-            if (this.treeCanvas._resizeCanvas) {
-              setTimeout(() => {
+            // 延迟初始化 - 确保DOM已完全渲染
+            setTimeout(() => {
+              // 强制刷新Canvas尺寸，因为在隐藏状态时，Canvas尺寸可能未正确初始化
+              if (this.treeCanvas._resizeCanvas) {
+                console.log('[族谱树] 强制刷新Canvas尺寸');
                 this.treeCanvas._resizeCanvas();
-              }, 50);
-            }
-            
-            // 强制更新WebGL状态
-            if (this.treeCanvas.data.webgl && !this.treeCanvas.data.webgl.initialized) {
-              if (this.treeCanvas._initWebGLCanvas && this.treeCanvas.canvas) {
-                setTimeout(() => {
-                  // 初始化WebGL Canvas
-                  this.treeCanvas._initWebGLCanvas(this.treeCanvas.canvas);
-                }, 100);
               }
-            }
-            
-            // 强制重置族谱树位置 - 解决视图切换后树没有居中的问题
-            setTimeout(() => {
-              if (this.treeCanvas.reset) {
-                // 重置位置和缩放
-                this.treeCanvas.reset();
-              }
-            }, 200);
-            
-            // 延迟强制渲染，确保DOM和Canvas已完全就绪
-            setTimeout(() => {
-              if (this.treeCanvas._render) {
-                this.treeCanvas._render();
+              
+              // 设置数据
+              this.treeCanvas.setData({
+                viewportWidth: this.data.treeViewWidth,
+                viewportHeight: this.data.treeViewHeight,
+                ready: true
+              }, () => {
+                // 强制更新WebGL状态
+                if (this.treeCanvas.data.webgl && !this.treeCanvas.data.webgl.initialized) {
+                  if (this.treeCanvas._initWebGLCanvas && this.treeCanvas.canvas) {
+                    console.log('[族谱树] 强制初始化WebGL画布');
+                    this.treeCanvas._initWebGLCanvas(this.treeCanvas.canvas);
+                  } else {
+                    console.log('[族谱树] 降级到Canvas 2D');
+                    this.treeCanvas._init2DCanvas();
+                  }
+                }
                 
-                // 额外保险，再次延迟后再次渲染以应对一些异步操作
+                // 刷新树节点的渲染
                 setTimeout(() => {
-                  this.treeCanvas._render();
-                }, 300);
-              }
-            }, 150);
+                  if (this.treeCanvas._render) {
+                    console.log('[族谱树] 强制刷新树节点渲染');
+                    this.treeCanvas._render();
+                  }
+                }, 100);
+              });
+            }, 100);
           } else {
-            console.error('[族谱树] 视图切换到树图，但Canvas组件未找到');
+            console.error('[族谱树] 无法获取Canvas组件实例');
           }
         });
       }
