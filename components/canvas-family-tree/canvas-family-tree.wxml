@@ -1,10 +1,24 @@
 <!-- Canvas族谱树渲染器 -->
 <view class="canvas-container">
+  <!-- Canvas 2D 渲染器 -->
   <canvas 
-    type="{{webgl.enabled ? 'webgl' : '2d'}}"
-    id="canvasFamilyTree"
-    canvas-id="familyTreeCanvas" 
-    class="family-tree-canvas"
+    type="2d"
+    id="canvas2dFamilyTree"
+    canvas-id="canvas2dFamilyTree" 
+    class="family-tree-canvas {{!webgl.enabled ? 'active' : 'inactive'}}"
+    bindtouchstart="_onTouchStart"
+    bindtouchmove="_onTouchMove"
+    bindtouchend="_onTouchEnd"
+    bindtap="_onCanvasTap"
+    disable-scroll="true"
+  ></canvas>
+  
+  <!-- WebGL 渲染器 -->
+  <canvas 
+    type="webgl"
+    id="webglFamilyTree"
+    canvas-id="webglFamilyTree" 
+    class="family-tree-canvas {{webgl.enabled ? 'active' : 'inactive'}}"
     bindtouchstart="_onTouchStart"
     bindtouchmove="_onTouchMove"
     bindtouchend="_onTouchEnd"

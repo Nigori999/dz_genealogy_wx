@@ -15,9 +15,8 @@
   overflow: hidden;
 }
 
-/* 性别背景色 */
-.member-card-inner::before {
-  content: '';
+/* 替换伪元素为类选择器 */
+.gender-indicator {
   position: absolute;
   top: 0;
   left: 0;
@@ -25,11 +24,11 @@
   width: 4px;
 }
 
-.member-card-inner.male::before {
+.member-card-inner.male .gender-indicator {
   background-color: var(--color-primary);
 }
 
-.member-card-inner.female::before {
+.member-card-inner.female .gender-indicator {
   background-color: var(--color-accent-light);
 }
 
@@ -64,19 +63,19 @@
   justify-content: center;
 }
 
-.memorial-badge::before {
-  content: '';
+/* 替换伪元素为类选择器 */
+.memorial-badge-line {
+  position: absolute;
   width: 12px;
   height: 2px;
   background-color: #FFFFFF;
+}
+
+.memorial-badge-line-1 {
   transform: rotate(45deg);
 }
 
-.memorial-badge::after {
-  content: '';
-  width: 12px;
-  height: 2px;
-  background-color: #FFFFFF;
+.memorial-badge-line-2 {
   transform: rotate(-45deg);
 }
 

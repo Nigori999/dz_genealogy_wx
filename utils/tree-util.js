@@ -409,66 +409,360 @@ const getDescendants = (memberId, members, levels = -1) => {
 };
 
 /**
- * 布局族谱树节点坐标（用于绘制）
- * @param {Object} treeNode - 树节点
+ * 计算树的边界信息
+ * @param {Array} treeNodes - 树节点数组
+ * @returns {Object} 边界信息
+ */
+const calculateTreeBounds = (treeNodes) => {
+  if (!treeNodes || treeNodes.length === 0) {
+    console.error('calculateTreeBounds: 节点数组为空');
+    return {
+      minX: 0,
+      minY: 0,
+      maxX: 0,
+      maxY: 0,
+      width: 0,
+      height: 0
+    };
+  }
+  
+  // 记录所有节点的坐标边界
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  
+  // 遍历所有节点，找出最大和最小坐标
+  treeNodes.forEach(node => {
+    // 验证节点坐标的有效性
+    if (node.x === undefined || node.y === undefined) {
+      console.warn('calculateTreeBounds: 节点缺少坐标:', node.id);
+      return; // 跳过无坐标的节点
+    }
+    
+    // 节点宽度和高度，如果未定义则使用默认值
+    const width = node.width || 120;
+    const height = node.height || 150;
+    
+    // 确保坐标值是数字
+    const x = Number(node.x);
+    const y = Number(node.y);
+    
+    if (isNaN(x) || isNaN(y)) {
+      console.warn('calculateTreeBounds: 节点坐标无效:', node.id, {x, y});
+      return; // 跳过坐标无效的节点
+    }
+    
+    // 更新边界值
+    minX = Math.min(minX, x);
+    minY = Math.min(minY, y);
+    maxX = Math.max(maxX, x + width);
+    maxY = Math.max(maxY, y + height);
+    
+    // 处理配偶节点
+    if (node.spouses && node.spouses.length > 0) {
+      node.spouses.forEach(spouse => {
+        if (spouse.x === undefined || spouse.y === undefined) {
+          return;
+        }
+        
+        const spouseX = Number(spouse.x);
+        const spouseY = Number(spouse.y);
+        
+        if (isNaN(spouseX) || isNaN(spouseY)) {
+          return;
+        }
+        
+        const spouseWidth = spouse.width || width;
+        const spouseHeight = spouse.height || height;
+        
+        minX = Math.min(minX, spouseX);
+        minY = Math.min(minY, spouseY);
+        maxX = Math.max(maxX, spouseX + spouseWidth);
+        maxY = Math.max(maxY, spouseY + spouseHeight);
+      });
+    }
+  });
+  
+  // 验证计算结果的有效性
+  if (!isFinite(minX) || !isFinite(minY) || !isFinite(maxX) || !isFinite(maxY)) {
+    console.error('calculateTreeBounds: 计算边界无效', {minX, minY, maxX, maxY});
+    return {
+      minX: 0,
+      minY: 0,
+      maxX: 1000,
+      maxY: 1000,
+      width: 1000,
+      height: 1000
+    };
+  }
+  
+  const width = maxX - minX;
+  const height = maxY - minY;
+  
+  // 如果计算的尺寸不合理，使用默认值
+  if (width <= 0 || height <= 0) {
+    console.error('calculateTreeBounds: 计算尺寸无效', {width, height});
+    return {
+      minX: 0,
+      minY: 0,
+      maxX: 1000,
+      maxY: 1000,
+      width: 1000,
+      height: 1000
+    };
+  }
+  
+  // 打印边界信息
+  console.log('树边界计算结果:', {
+    minX: minX.toFixed(1),
+    minY: minY.toFixed(1),
+    maxX: maxX.toFixed(1),
+    maxY: maxY.toFixed(1),
+    width: width.toFixed(1),
+    height: height.toFixed(1)
+  });
+  
+  return {
+    minX,
+    minY,
+    maxX,
+    maxY,
+    width,
+    height
+  };
+};
+
+/**
+ * 全新布局算法 - 7.0版本
+ * 采用自顶向下、从左到右的方式布局，确保所有坐标为正
+ * @param {Object} treeNode - 族谱树节点
  * @param {Number} nodeWidth - 节点宽度
  * @param {Number} nodeHeight - 节点高度
  * @param {Number} horizontalGap - 水平间距
  * @param {Number} verticalGap - 垂直间距
- * @returns {Object} 布局后的树
+ * @returns {Object} 带有布局信息的树节点
  */
 const layoutFamilyTree = (treeNode, nodeWidth = 80, nodeHeight = 100, horizontalGap = 20, verticalGap = 50) => {
   if (!treeNode) return null;
   
-  // 计算每个节点的坐标
-  const layoutNode = (node, x = 0, y = 0, level = 0) => {
+  console.log('[布局算法] 开始布局族谱树:', {
+    根节点: treeNode.name || treeNode.id,
+    节点尺寸: {宽: nodeWidth, 高: nodeHeight},
+    间距: {水平: horizontalGap, 垂直: verticalGap}
+  });
+  
+  // 确保参数都是数字并且有效
+  nodeWidth = Number(nodeWidth) || 80;
+  nodeHeight = Number(nodeHeight) || 100;
+  horizontalGap = Number(horizontalGap) || 20;
+  verticalGap = Number(verticalGap) || 50;
+  
+  // 第一步：预处理，计算每个子树的宽度
+  const calcSubtreeWidth = (node) => {
+    if (!node) return 0;
+    
+    // 叶子节点
+    if (!node.children || node.children.length === 0) {
+      // 包括自己和所有配偶
+      const spouseCount = node.spouses ? node.spouses.length : 0;
+      return nodeWidth + (spouseCount * (nodeWidth + horizontalGap));
+    }
+    
+    // 内部节点 - 计算所有子节点的宽度总和
+    const childrenTotalWidth = node.children.reduce((total, child) => {
+      return total + calcSubtreeWidth(child) + horizontalGap;
+    }, 0);
+    
+    // 减去多余的最后一个间距
+    const subtreeWidth = childrenTotalWidth - horizontalGap;
+    
+    // 计算当前节点及其配偶所需的宽度
+    const spouseCount = node.spouses ? node.spouses.length : 0;
+    const nodeAndSpousesWidth = nodeWidth + (spouseCount * (nodeWidth + horizontalGap));
+    
+    // 返回两者中的较大值，确保父节点和其配偶可以完全容纳
+    return Math.max(subtreeWidth, nodeAndSpousesWidth);
+  };
+  
+  // 第二步：自顶向下进行布局
+  const layoutNode = (node, x, y, availableWidth) => {
     if (!node) return null;
     
-    // 复制节点，添加坐标信息
+    // 创建新节点副本，避免修改原始数据
     const layoutedNode = {
       ...node,
-      x,
-      y,
-      level,
+      x: x,
+      y: y,
       width: nodeWidth,
       height: nodeHeight
     };
     
-    // 布局配偶节点
+    // 记录调试信息
+    console.log(`[布局] 节点 ${node.name || node.id}:`, {
+      位置: {x: x.toFixed(1), y: y.toFixed(1)},
+      可用宽度: availableWidth.toFixed(1),
+      子节点数量: node.children ? node.children.length : 0
+    });
+    
+    // 布局配偶节点 - 从主节点右侧开始排列
     if (node.spouses && node.spouses.length > 0) {
-      layoutedNode.spouses = node.spouses.map((spouse, index) => {
-        return {
+      let spouseX = x + nodeWidth + horizontalGap;
+      
+      layoutedNode.spouses = node.spouses.map(spouse => {
+        const layoutedSpouse = {
           ...spouse,
-          x: x + (index + 1) * (nodeWidth + horizontalGap / 2),
-          y,
-          level,
+          x: spouseX,
+          y: y,
           width: nodeWidth,
           height: nodeHeight
         };
+        
+        spouseX += nodeWidth + horizontalGap;
+        return layoutedSpouse;
       });
+    } else {
+      layoutedNode.spouses = [];
     }
     
-    // 布局子女节点
+    // 布局子节点
     if (node.children && node.children.length > 0) {
-      // 计算子女节点的总宽度
-      const childrenCount = node.children.length;
-      const totalChildrenWidth = childrenCount * nodeWidth + (childrenCount - 1) * horizontalGap;
+      const childrenY = y + nodeHeight + verticalGap;
+      let childrenX = x;
       
-      // 计算起始x坐标
-      const startX = x - totalChildrenWidth / 2 + nodeWidth / 2;
+      // 计算子树总宽度
+      const subtreeWidth = calcSubtreeWidth(node);
+      const nodeAndSpousesWidth = nodeWidth + 
+        (node.spouses ? node.spouses.length * (nodeWidth + horizontalGap) : 0);
       
-      // 递归布局每个子女节点
-      layoutedNode.children = node.children.map((child, index) => {
-        const childX = startX + index * (nodeWidth + horizontalGap);
-        const childY = y + nodeHeight + verticalGap;
-        return layoutNode(child, childX, childY, level + 1);
+      // 增强父子节点对齐逻辑 - 确保父节点中心点和子树中心点对齐
+      if (nodeAndSpousesWidth > subtreeWidth) {
+        // 如果父节点比子树宽，子树居中于父节点下方
+        childrenX = Math.max(0, x + (nodeAndSpousesWidth - subtreeWidth) / 2);
+      } else {
+        // 如果子树比父节点宽，父节点居中于子树上方
+        // 先计算子树布局，再调整父节点位置
+        const parentAdjustX = (subtreeWidth - nodeAndSpousesWidth) / 2;
+        layoutedNode.x = Math.max(0, x + parentAdjustX);
+        
+        // 同时调整配偶节点位置
+        if (layoutedNode.spouses && layoutedNode.spouses.length > 0) {
+          let spouseX = layoutedNode.x + nodeWidth + horizontalGap;
+          layoutedNode.spouses.forEach(spouse => {
+            spouse.x = spouseX;
+            spouseX += nodeWidth + horizontalGap;
+          });
+        }
+      }
+      
+      layoutedNode.children = [];
+      
+      // 明确记录子节点的起始位置和总宽度
+      let childStartX = childrenX;
+      
+      node.children.forEach(child => {
+        const childWidth = calcSubtreeWidth(child);
+        const childNode = layoutNode(child, childrenX, childrenY, childWidth);
+        layoutedNode.children.push(childNode);
+        childrenX += childWidth + horizontalGap;
       });
+      
+      // 二次校正父节点位置，确保精确居中
+      const childEndX = childrenX - horizontalGap;
+      const childrenCenter = (childStartX + childEndX) / 2;
+      const nodeCenter = layoutedNode.x + nodeAndSpousesWidth / 2;
+      
+      // 如果中心点偏离超过阈值，进行微调
+      const centerDiff = Math.abs(childrenCenter - nodeCenter);
+      if (centerDiff > 0.5) {
+        const adjustment = childrenCenter - nodeCenter;
+        layoutedNode.x += adjustment;
+        
+        // 同时调整配偶节点位置
+        if (layoutedNode.spouses && layoutedNode.spouses.length > 0) {
+          let spouseX = layoutedNode.x + nodeWidth + horizontalGap;
+          layoutedNode.spouses.forEach(spouse => {
+            spouse.x = spouseX;
+            spouseX += nodeWidth + horizontalGap;
+          });
+        }
+        
+        console.log(`[布局调整] 节点 ${node.name || node.id} 位置已调整:`, {
+          原中心点: nodeCenter.toFixed(1),
+          子树中心点: childrenCenter.toFixed(1),
+          调整量: adjustment.toFixed(1),
+          新位置: layoutedNode.x.toFixed(1)
+        });
+      }
     }
     
     return layoutedNode;
   };
   
-  return layoutNode(treeNode);
+  // 计算整个树所需的宽度
+  const treeWidth = calcSubtreeWidth(treeNode);
+  
+  // 从原点(0,0)开始布局，确保所有坐标为正
+  const layoutedTree = layoutNode(treeNode, 0, 0, treeWidth);
+  
+  // 计算并附加树的边界信息
+  const nodeArray = [];
+  
+  // 递归收集所有节点到扁平数组
+  const collectNodes = (node) => {
+    if (!node) return;
+    
+    nodeArray.push(node);
+    
+    if (node.spouses) {
+      node.spouses.forEach(spouse => nodeArray.push(spouse));
+    }
+    
+    if (node.children) {
+      node.children.forEach(child => collectNodes(child));
+    }
+  };
+  
+  collectNodes(layoutedTree);
+  
+  // 计算树的边界
+  const bounds = calculateTreeBounds(nodeArray);
+  
+  // 附加边界信息到根节点
+  layoutedTree.bounds = bounds;
+  
+  console.log('[布局算法] 完成族谱树布局:', {
+    节点总数: nodeArray.length,
+    树宽度: bounds.width.toFixed(1),
+    树高度: bounds.height.toFixed(1)
+  });
+  
+  return layoutedTree;
+};
+
+/**
+ * 统计树中的节点数量
+ * @param {Object} node - 树节点
+ * @returns {Number} 节点总数
+ */
+const countNodes = (node) => {
+  if (!node) return 0;
+  
+  let count = 1; // 当前节点
+  
+  // 计算配偶节点
+  if (node.spouses && node.spouses.length > 0) {
+    count += node.spouses.length;
+  }
+  
+  // 递归计算子节点
+  if (node.children && node.children.length > 0) {
+    node.children.forEach(child => {
+      count += countNodes(child);
+    });
+  }
+  
+  return count;
 };
 
 /**
@@ -944,22 +1238,16 @@ const optimizeTreeLayout = (treeNode, width, height, nodeWidth = 80, nodeHeight 
 };
 
 module.exports = {
-  buildFamilyTree,
-  groupMembersByGeneration,
-  findRelationPath,
-  describeRelation,
-  getTreeHeight,
-  getTreeWidth,
-  getAncestors,
-  getDescendants,
+  // 布局算法
   layoutFamilyTree,
-  exportTreeToJSON,
-  importTreeFromJSON,
-  findLatestGeneration,
-  canAddAsChild,
-  canAddAsSpouse,
-  checkCyclicReference,
+  optimizeTreeLayout,
+  
+  // 族谱分析
   findLowestCommonAncestor,
   getGenealogySummary,
-  optimizeTreeLayout
+  getAncestors,
+  
+  // 工具函数
+  calculateTreeBounds,
+  buildFamilyTree
 };

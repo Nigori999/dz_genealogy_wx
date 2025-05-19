@@ -74,30 +74,9 @@
     "canvas-family-tree": "/components/canvas-family-tree/canvas-family-tree"
   },
   "workers": "workers",
-  "wasm": {
-    "modules": [
-      {
-        "name": "tree_layout",
-        "path": "wasm/dist/tree_layout.wasm",
-        "jsPath": "wasm/dist/tree_layout.js"
-      },
-      {
-        "name": "visibility_calculator",
-        "path": "wasm/dist/visibility_calculator.wasm",
-        "jsPath": "wasm/dist/visibility_calculator.js"
-      },
-      {
-        "name": "path_calculator",
-        "path": "wasm/dist/path_calculator.wasm",
-        "jsPath": "wasm/dist/path_calculator.js"
-      }
-    ]
-  },
-  "minifyDescriptor": false,
   "lazyCodeLoading": "requiredComponents",
   "requiredBackgroundModes": [],
   "resizable": false,
-  "navigateToMiniProgramAppIdList": [],
   "permission": {},
   "debug": false
 }

@@ -38,6 +38,8 @@ App({
     this.loadUnreadNotificationCount();
   },
 
+
+
   /**
    * 检查用户登录状态
    * @returns {Promise} 登录状态Promise

@@ -9,6 +9,9 @@ const {
   RenderPipelineFactory
 } = require('./webgl-pipeline');
 
+// 导入错误处理工具
+const ErrorHandler = require('../../../utils/error-handler');
+
 /**
  * WebGL树渲染器
  * 负责WebGL渲染的底层实现
@@ -40,21 +43,22 @@ class WebGLTreeRenderer {
    * 初始化WebGL上下文
    * @returns {Boolean} 是否初始化成功
    */
-  init() {
-    try {
-      // 检查canvas是否存在
-      if (!this.canvas) {
-        console.error('[WebGL诊断] Canvas对象未定义，无法初始化WebGL上下文');
-        return false;
-      }
+  init = ErrorHandler.wrap(function() {
+    // 检查canvas是否存在
+    if (!this.canvas) {
+      console.error('[WebGL诊断] Canvas对象未定义，无法初始化WebGL上下文');
+      return false;
+    }
 
-      // 检查canvas尺寸
-      if (!this.canvas.width || !this.canvas.height) {
-        console.warn('[WebGL诊断] Canvas尺寸无效，尝试设置默认尺寸');
-        this.canvas.width = this.canvas.width || 300;
-        this.canvas.height = this.canvas.height || 300;
-      }
+    // 检查canvas尺寸
+    if (!this.canvas.width || !this.canvas.height) {
+      console.warn('[WebGL诊断] Canvas尺寸无效，尝试设置默认尺寸');
+      this.canvas.width = this.canvas.width || 300;
+      this.canvas.height = this.canvas.height || 300;
+    }
 
+    // 如果gl上下文已经存在，不再尝试获取上下文
+    if (!this.gl) {
       // 微信小程序中获取WebGL上下文的正确方式
       try {
         console.log('[WebGL诊断] 尝试获取WebGL上下文(微信小程序方式)');
@@ -67,79 +71,108 @@ class WebGLTreeRenderer {
         console.warn('[WebGL诊断] 微信小程序WebGL上下文获取失败:', err.message);
         this.gl = null;
       }
+    } else {
+      console.log('[WebGL诊断] 使用已存在的WebGL上下文');
+    }
 
-      // 进行WebGL功能检测
-      try {
-        const maxTextureSize = this.gl.getParameter(this.gl.MAX_TEXTURE_SIZE);
-        const maxViewportDims = this.gl.getParameter(this.gl.MAX_VIEWPORT_DIMS);
+    // 进行WebGL功能检测
+    try {
+      const maxTextureSize = this.gl.getParameter(this.gl.MAX_TEXTURE_SIZE);
+      const maxViewportDims = this.gl.getParameter(this.gl.MAX_VIEWPORT_DIMS);
 
-        console.log('[WebGL诊断] 设备支持的最大纹理尺寸:', maxTextureSize);
-        console.log('[WebGL诊断] 设备支持的最大视口尺寸:', maxViewportDims);
-      } catch (err) {
-        console.warn('[WebGL诊断] WebGL参数获取失败:', err.message);
-      }
+      console.log('[WebGL诊断] 设备支持的最大纹理尺寸:', maxTextureSize);
+      console.log('[WebGL诊断] 设备支持的最大视口尺寸:', maxViewportDims);
+    } catch (err) {
+      console.warn('[WebGL诊断] WebGL参数获取失败:', err.message);
+    }
 
-      // 初始化着色器
-      const shadersResult = this._initShaders();
-      if (!shadersResult) {
-        console.error('[WebGL诊断] 着色器初始化失败');
-        return false;
-      }
+    // 初始化着色器
+    const shadersResult = this._initShaders();
+    if (!shadersResult) {
+      console.error('[WebGL诊断] 着色器初始化失败');
+      return false;
+    }
 
-      // 初始化缓冲区
-      const buffersResult = this._initBuffers();
-      if (!buffersResult) {
-        console.error('[WebGL诊断] 缓冲区初始化失败');
-        return false;
-      }
+    // 初始化缓冲区
+    const buffersResult = this._initBuffers();
+    if (!buffersResult) {
+      console.error('[WebGL诊断] 缓冲区初始化失败');
+      return false;
+    }
 
-      // 设置初始视口
-      this.updateViewport(this.canvas.width, this.canvas.height);
+    // 设置初始视口
+    this.updateViewport(this.canvas.width, this.canvas.height);
 
-      console.log('[WebGL诊断] WebGL初始化成功');
-      return true;
-    } catch (error) {
+    console.log('[WebGL诊断] WebGL初始化成功');
+    return true;
+  }, {
+    operation: 'WebGL上下文初始化',
+    defaultValue: false,
+    onError(error) {
       console.error('[WebGL诊断] 初始化WebGL渲染器失败:', error.message);
       console.error('[WebGL诊断] 错误堆栈:', error.stack);
       return false;
     }
-  }
+  });
 
   /**
    * 初始化着色器
    * @private
    * @returns {Boolean} 是否初始化成功
    */
-  _initShaders() {
+  _initShaders = ErrorHandler.wrap(function() {
     try {
-      // 顶点着色器代码
+      // 定义顶点着色器代码 - 使用一致的属性名"aVertexPosition"
       const vsSource = `
         attribute vec4 aVertexPosition;
         attribute vec2 aTextureCoord;
-        
         uniform mat4 uModelViewMatrix;
         uniform mat4 uProjectionMatrix;
-        
         varying highp vec2 vTextureCoord;
         
         void main() {
-          gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+          // 加入额外的精度保护，避免浮点数精度问题
+          highp vec4 position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+          gl_Position = position;
           vTextureCoord = aTextureCoord;
         }
       `;
 
-      // 片段着色器代码
+      // 定义片段着色器代码  
       const fsSource = `
         varying highp vec2 vTextureCoord;
-        
         uniform sampler2D uSampler;
         uniform highp float uAlpha;
         
         void main() {
           highp vec4 color = texture2D(uSampler, vTextureCoord);
+          // 确保透明度正确应用
           gl_FragColor = vec4(color.rgb, color.a * uAlpha);
         }
       `;
+      
+      // 添加连接线顶点着色器 - 使用相同的属性名"aVertexPosition"
+      const lineVsSource = `
+        attribute vec4 aVertexPosition;
+        uniform mat4 u_matrix;
+        
+        void main() {
+          gl_Position = u_matrix * aVertexPosition;
+        }
+      `;
+      
+      // 连接线片段着色器 - 使用统一的颜色
+      const lineFsSource = `
+        precision mediump float;
+        uniform vec4 u_color;
+        
+        void main() {
+          gl_FragColor = u_color;
+        }
+      `;
+
+      // 添加调试日志
+      console.log('[WebGL诊断] 着色器初始化', {着色器类型: '增强版标准着色器'});
 
       // 创建着色器程序
       const vertexShader = this._createShader(this.gl.VERTEX_SHADER, vsSource);
@@ -164,6 +197,29 @@ class WebGLTreeRenderer {
         console.error('[WebGL诊断] 无法链接着色器程序:', info);
         return false;
       }
+      
+      // 创建连接线着色器程序
+      const lineVertexShader = this._createShader(this.gl.VERTEX_SHADER, lineVsSource);
+      const lineFragmentShader = this._createShader(this.gl.FRAGMENT_SHADER, lineFsSource);
+      
+      if (!lineVertexShader || !lineFragmentShader) {
+        console.error('[WebGL诊断] 连接线着色器创建失败');
+        // 不返回失败，因为我们仍然可以使用主着色器程序
+      } else {
+        // 创建连接线程序
+        this.lineProgram = this.gl.createProgram();
+        this.gl.attachShader(this.lineProgram, lineVertexShader);
+        this.gl.attachShader(this.lineProgram, lineFragmentShader);
+        this.gl.linkProgram(this.lineProgram);
+        
+        if (!this.gl.getProgramParameter(this.lineProgram, this.gl.LINK_STATUS)) {
+          console.error('[WebGL诊断] 连接线着色器程序链接失败:', 
+            this.gl.getProgramInfoLog(this.lineProgram));
+          this.lineProgram = null; // 清除引用
+        } else {
+          console.log('[WebGL诊断] 连接线着色器程序创建成功');
+        }
+      }
 
       this.shaders.vertex = vertexShader;
       this.shaders.fragment = fragmentShader;
@@ -173,7 +229,14 @@ class WebGLTreeRenderer {
       console.error('[WebGL诊断] 着色器初始化错误:', error.message);
       return false;
     }
-  }
+  }, {
+    operation: '着色器初始化',
+    defaultValue: false,
+    onError(error) {
+      console.error('[WebGL诊断] 着色器初始化错误:', error.message);
+      return false;
+    }
+  });
 
   /**
    * 创建着色器
@@ -182,7 +245,7 @@ class WebGLTreeRenderer {
    * @returns {WebGLShader} 着色器对象
    * @private
    */
-  _createShader(type, source) {
+  _createShader = ErrorHandler.wrap(function(type, source) {
     const shader = this.gl.createShader(type);
     this.gl.shaderSource(shader, source);
     this.gl.compileShader(shader);
@@ -194,140 +257,252 @@ class WebGLTreeRenderer {
     }
 
     return shader;
-  }
+  }, {
+    operation: '创建着色器',
+    defaultValue: null,
+    onError(error) {
+      console.error('[WebGL诊断] 创建着色器失败:', error.message);
+      return null;
+    }
+  });
 
   /**
    * 初始化缓冲区
    * @private
    * @returns {Boolean} 是否初始化成功
    */
-  _initBuffers() {
-    try {
-      // 位置缓冲区 - 用于节点的矩形
-      const positionBuffer = this.gl.createBuffer();
-      if (!positionBuffer) {
-        console.error('[WebGL诊断] 无法创建位置缓冲区');
-        return false;
-      }
-      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
+  _initBuffers = ErrorHandler.wrap(function() {
+    // 位置缓冲区 - 用于节点的矩形
+    const positionBuffer = this.gl.createBuffer();
+    if (!positionBuffer) {
+      console.error('[WebGL诊断] 无法创建位置缓冲区');
+      return false;
+    }
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
 
-      // 为节点创建位置缓冲区数据
-      // 定义一个规范化的单位正方形 (-1,-1) 到 (1,1)
-      // 实际渲染时会通过矩阵变换调整大小和位置
-      const positions = [
-        -0.5, -0.5,  // 左下角
-        0.5, -0.5,   // 右下角
-        0.5, 0.5,    // 右上角
-        -0.5, 0.5    // 左上角
-      ];
+    // 为节点创建位置缓冲区数据
+    // 定义一个规范化的单位正方形 (-1,-1) 到 (1,1)
+    // 实际渲染时会通过矩阵变换调整大小和位置
+    const positions = [
+      -0.5, -0.5,  // 左下角
+      0.5, -0.5,   // 右下角
+      0.5, 0.5,    // 右上角
+      -0.5, 0.5    // 左上角
+    ];
 
-      this.gl.bufferData(
-        this.gl.ARRAY_BUFFER,
-        new Float32Array(positions),
-        this.gl.STATIC_DRAW
-      );
+    this.gl.bufferData(
+      this.gl.ARRAY_BUFFER,
+      new Float32Array(positions),
+      this.gl.STATIC_DRAW
+    );
 
-      // 纹理坐标缓冲区
-      const textureCoordBuffer = this.gl.createBuffer();
-      if (!textureCoordBuffer) {
-        console.error('[WebGL诊断] 无法创建纹理坐标缓冲区');
-        return false;
-      }
-      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, textureCoordBuffer);
+    // 纹理坐标缓冲区
+    const textureCoordBuffer = this.gl.createBuffer();
+    if (!textureCoordBuffer) {
+      console.error('[WebGL诊断] 无法创建纹理坐标缓冲区');
+      return false;
+    }
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, textureCoordBuffer);
 
-      // 定义纹理坐标 - 从(0,0)到(1,1)
-      const textureCoordinates = [
-        0.0, 1.0,  // 左下角
-        1.0, 1.0,  // 右下角
-        1.0, 0.0,  // 右上角
-        0.0, 0.0   // 左上角
-      ];
+    // 定义纹理坐标 - 从(0,0)到(1,1)
+    const textureCoordinates = [
+      0.0, 1.0,  // 左下角
+      1.0, 1.0,  // 右下角
+      1.0, 0.0,  // 右上角
+      0.0, 0.0   // 左上角
+    ];
 
-      this.gl.bufferData(
-        this.gl.ARRAY_BUFFER,
-        new Float32Array(textureCoordinates),
-        this.gl.STATIC_DRAW
-      );
+    this.gl.bufferData(
+      this.gl.ARRAY_BUFFER,
+      new Float32Array(textureCoordinates),
+      this.gl.STATIC_DRAW
+    );
 
-      // 索引缓冲区
-      const indexBuffer = this.gl.createBuffer();
-      if (!indexBuffer) {
-        console.error('[WebGL诊断] 无法创建索引缓冲区');
-        return false;
-      }
-      this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+    // 索引缓冲区
+    const indexBuffer = this.gl.createBuffer();
+    if (!indexBuffer) {
+      console.error('[WebGL诊断] 无法创建索引缓冲区');
+      return false;
+    }
+    this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
 
-      // 定义两个三角形组成一个矩形
-      // 注意这里的顶点顺序是逆时针的，这对于面剔除很重要
-      const indices = [
-        0, 1, 2,    // 第一个三角形：左下、右下、右上
-        0, 2, 3     // 第二个三角形：左下、右上、左上
-      ];
+    // 定义两个三角形组成一个矩形
+    // 注意这里的顶点顺序是逆时针的，这对于面剔除很重要
+    const indices = [
+      0, 1, 2,    // 第一个三角形：左下、右下、右上
+      0, 2, 3     // 第二个三角形：左下、右上、左上
+    ];
 
-      this.gl.bufferData(
-        this.gl.ELEMENT_ARRAY_BUFFER,
-        new Uint16Array(indices),
-        this.gl.STATIC_DRAW
-      );
+    this.gl.bufferData(
+      this.gl.ELEMENT_ARRAY_BUFFER,
+      new Uint16Array(indices),
+      this.gl.STATIC_DRAW
+    );
 
-      // 线条缓冲区（用于测试）
-      const lineBuffer = this.gl.createBuffer();
-      if (!lineBuffer) {
-        console.error('[WebGL诊断] 无法创建线条缓冲区');
-        return false;
-      }
-      
-      // 保存缓冲区引用
-      this.buffers = {
-        position: positionBuffer,
-        textureCoord: textureCoordBuffer,
-        indices: indexBuffer,
-        line: lineBuffer
-      };
+    // 线条缓冲区（用于测试）
+    const lineBuffer = this.gl.createBuffer();
+    if (!lineBuffer) {
+      console.error('[WebGL诊断] 无法创建线条缓冲区');
+      return false;
+    }
+    
+    // 保存缓冲区引用
+    this.buffers = {
+      position: positionBuffer,
+      textureCoord: textureCoordBuffer,
+      indices: indexBuffer,
+      line: lineBuffer
+    };
 
-      console.log('[WebGL诊断] 缓冲区初始化成功');
-      return true;
-    } catch (error) {
+    console.log('[WebGL诊断] 缓冲区初始化成功');
+    return true;
+  }, {
+    operation: '缓冲区初始化',
+    defaultValue: false,
+    onError(error) {
       console.error('[WebGL诊断] 缓冲区初始化错误:', error.message);
       return false;
     }
-  }
+  });
 
   /**
    * 更新视口尺寸
-   * @param {Number} width - 宽度
-   * @param {Number} height - 高度
+   * @param {Number} width - 视口宽度
+   * @param {Number} height - 视口高度
    */
-  updateViewport(width, height) {
+  updateViewport = ErrorHandler.wrap(function(width, height) {
     if (!this.gl) return;
 
-    // 设置视口尺寸
-    this.gl.viewport(0, 0, width, height);
+    // 获取设备信息
+    const systemInfo = wx.getWindowInfo();
+    const dpr = systemInfo.pixelRatio || 1;
+    const screenWidth = systemInfo.screenWidth;
+    const screenHeight = systemInfo.screenHeight;
+    
+    console.log(`[WebGL视口] 设备信息: 像素比(${dpr}), 屏幕尺寸(${screenWidth}x${screenHeight})`);
 
-    // 清除画布
+    // 计算物理像素尺寸 - 考虑设备像素比
+    const physicalWidth = Math.floor(width * dpr);
+    const physicalHeight = Math.floor(height * dpr);
+
+    // 更新Canvas物理尺寸(像素)
+    if (this.canvas && (this.canvas.width !== physicalWidth || this.canvas.height !== physicalHeight)) {
+      console.log(`[WebGL视口] 更新Canvas尺寸从 ${this.canvas.width}x${this.canvas.height} 到 ${physicalWidth}x${physicalHeight}`);
+      this.canvas.width = physicalWidth;
+      this.canvas.height = physicalHeight;
+    }
+
+    // 设置视口尺寸 - 与Canvas物理像素尺寸一致
+    // 这一步非常关键，确保WebGL视口与Canvas物理尺寸匹配
+    this.gl.viewport(0, 0, physicalWidth, physicalHeight);
+    
+    // 测试视口尺寸是否设置成功
+    const viewport = this.gl.getParameter(this.gl.VIEWPORT);
+    console.log(`[WebGL视口] 设置后的视口参数: 宽=${viewport[2]}, 高=${viewport[3]}, 起点=(${viewport[0]},${viewport[1]})`);
+    
+    // 验证视口设置是否与预期一致
+    if (viewport[2] !== physicalWidth || viewport[3] !== physicalHeight) {
+      console.warn(`[WebGL视口] 视口尺寸设置不一致! 预期: ${physicalWidth}x${physicalHeight}, 实际: ${viewport[2]}x${viewport[3]}`);
+      
+      // 尝试强制再次设置视口
+      console.log('[WebGL视口] 尝试强制再设置视口尺寸');
+      this.gl.viewport(0, 0, physicalWidth, physicalHeight);
+      
+      // 再次验证
+      const newViewport = this.gl.getParameter(this.gl.VIEWPORT);
+      console.log(`[WebGL视口] 强制设置后: ${newViewport[2]}x${newViewport[3]}`);
+    }
+
+    // 清除画布 - 确保每次视口更新后画布都是干净的
     this.gl.clearColor(0.95, 0.95, 0.95, 1.0);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
-  }
+    
+    console.log(`[WebGL视口] 视口更新完成:
+      - 物理尺寸=${physicalWidth}x${physicalHeight}
+      - 逻辑尺寸=${width}x${height}
+      - 设备像素比=${dpr}
+      - 视口实际配置=${viewport[2]}x${viewport[3]}`);
+    
+    return true;
+  }, {
+    operation: '更新视口尺寸',
+    defaultValue: false,
+    onError(error) {
+      console.error('[WebGL视口] 视口更新失败:', error.message);
+      return false;
+    }
+  });
 
   /**
    * 设置变换参数
-   * @param {Number} offsetX - X偏移
-   * @param {Number} offsetY - Y偏移
-   * @param {Number} scale - 缩放
+   * @param {Number} offsetX - X轴偏移
+   * @param {Number} offsetY - Y轴偏移
+   * @param {Number} scale - 缩放比例
    */
-  setTransform(offsetX, offsetY, scale) {
+  setTransform = ErrorHandler.wrap(function(offsetX, offsetY, scale) {
+    // 验证输入参数
+    if (isNaN(offsetX) || isNaN(offsetY) || isNaN(scale)) {
+      console.error('[WebGL] 无效的变换参数:', {
+        offsetX, offsetY, scale
+      });
+      return;
+    }
+    
+    // 确保缩放不为0
+    if (scale === 0) {
+      console.error('[WebGL] 缩放值不能为0，已设为默认值0.5');
+      scale = 0.5;
+    }
+    
+    // 记录变换参数变化
+    const hasChanged = (
+      this.transformUniforms.offsetX !== offsetX ||
+      this.transformUniforms.offsetY !== offsetY ||
+      this.transformUniforms.scale !== scale
+    );
+    
+    if (hasChanged) {
+      console.log('[WebGL变换] 参数变化:', {
+        从: {
+          offsetX: this.transformUniforms.offsetX.toFixed(1),
+          offsetY: this.transformUniforms.offsetY.toFixed(1),
+          scale: this.transformUniforms.scale.toFixed(3)
+        },
+        到: {
+          offsetX: offsetX.toFixed(1),
+          offsetY: offsetY.toFixed(1),
+          scale: scale.toFixed(3)
+        }
+      });
+    }
+    
+    // 更新变换参数
     this.transformUniforms.offsetX = offsetX;
     this.transformUniforms.offsetY = offsetY;
     this.transformUniforms.scale = scale;
-  }
+  }, {
+    operation: '设置变换参数',
+    onError(error) {
+      console.error('[WebGL变换] 设置变换参数失败:', error.message);
+    }
+  });
 
   /**
    * 设置当前渲染层
    * @param {Number} layer - 层索引
    */
-  setCurrentLayer(layer) {
+  setCurrentLayer = ErrorHandler.wrap(function(layer) {
+    if (isNaN(layer)) {
+      console.warn('[WebGL层管理] 无效的层索引:', layer);
+      layer = 0; // 使用默认值
+    }
     this.currentLayer = layer;
-  }
+  }, {
+    operation: '设置渲染层',
+    onError(error) {
+      console.error('[WebGL层管理] 设置当前渲染层失败:', error.message);
+    }
+  });
 
   /**
    * 渲染族谱树
@@ -340,500 +515,162 @@ class WebGLTreeRenderer {
    * @param {Object} params.nodeTextureMap - 节点纹理映射
    * @returns {Boolean} 渲染是否成功
    */
-  render(params) {
+  render = ErrorHandler.wrap(function(params) {
+    // 从传入的参数中提取渲染数据
+    const { 
+      nodes, 
+      connectors, 
+      visibleArea, 
+      currentMemberId, 
+      layeredRendering
+    } = params;
+    
+    // 如果不可用，则返回失败
     if (!this.gl || !this.program) {
-      console.warn('[WebGL] 渲染器未初始化，无法渲染');
+      console.warn('[WebGL诊断] WebGL上下文或程序未初始化，无法渲染');
       return false;
     }
-
-    const {
-      nodes,
-      connectors,
-      visibleArea,
-      layeredRendering,
-      currentMemberId,
-      nodeTextureMap
-    } = params;
-
-    // 记录接收的纹理映射信息
-    if (nodeTextureMap) {
-      console.log('[WebGL树渲染器] 收到纹理映射，数量:', Object.keys(nodeTextureMap).length);
-      
-      // 确保纹理存储对象存在
-      this.textures = this.textures || {};
-      
-      // 合并纹理映射
-      Object.assign(this.textures, nodeTextureMap);
+    
+    // 将参数记录到调试控制台
+    console.log('[WebGL树渲染器] 准备渲染:', {
+      节点数量: nodes?.length || 0,
+      连接线数量: connectors?.length || 0,
+      带可视区域: !!visibleArea,
+      缩放: this.transformUniforms.scale.toFixed(2),
+      偏移: `X=${this.transformUniforms.offsetX.toFixed(0)}, Y=${this.transformUniforms.offsetY.toFixed(0)}`,
+      当前成员ID: currentMemberId || '无'
+    });
+    
+    // 检查是否有节点数据需要渲染
+    if (!nodes || nodes.length === 0) {
+      console.log('[WebGL树渲染器] 没有节点需要渲染，跳过渲染过程');
+      this.clear();
+      return true; // 没有数据也是正常完成
     }
-
+    
+    // 使用渲染管线执行渲染 - 使用管线模式提高可维护性
     try {
-      // 创建渲染管线选项
-      const pipelineOptions = {
-        program: this.program,
-        buffers: this.buffers,
-        textures: this.textures || {}
-      };
-      
-      // 创建渲染状态
       const renderState = new RenderState({
-        nodes: nodes || [],
-        connectors: connectors || [],
-        visibleArea: visibleArea,
+        nodes,
+        connectors,
+        visibleArea,
+        currentMemberId,
         transform: {
           offsetX: this.transformUniforms.offsetX,
           offsetY: this.transformUniforms.offsetY,
           scale: this.transformUniforms.scale
         },
-        currentMemberId: currentMemberId,
-        layeredRendering: layeredRendering,
+        canvasWidth: this.canvas.width,
+        canvasHeight: this.canvas.height,
+        layeredRendering,
         nodeTextureMap: this.textures
       });
       
-      // 使用渲染管线工厂创建适合的渲染管线
-      const renderPipeline = RenderPipelineFactory.createMainPipeline(
-        this.gl, 
-        pipelineOptions
-      );
+      // 创建渲染管线
+      const renderPipeline = RenderPipelineFactory.createMainPipeline(this.gl, {
+        program: this.program,
+        lineProgram: this.lineProgram,
+        buffers: this.buffers,
+        textures: this.textures
+      });
       
-      // 执行渲染管线
+      // 执行管线
       const finalState = renderPipeline.execute(renderState);
       
-      // 处理渲染结果和错误
-      if (finalState.errors.length > 0) {
-        console.warn(`[WebGL渲染] 渲染过程中出现${finalState.errors.length}个错误`);
-        finalState.errors.forEach((error, index) => {
-          if (index < 3) { // 只显示前3个错误
-            console.error(`[WebGL渲染] 错误 #${index+1} (${error.stage}): ${error.message}`);
-          }
-        });
+      // 检查管线执行结果
+      const success = finalState && finalState.errors.length === 0;
+      
+      if (!success) {
+        console.error('[WebGL树渲染器] 渲染管线执行失败:', finalState?.errors);
       }
       
-      // 如果使用的是离屏Canvas，需要将结果复制到主Canvas
-      if (this._isUsingOffscreenCanvas && this._offscreenCanvas) {
-        try {
-          // 完成渲染后将离屏Canvas内容绘制到主Canvas上
-          const ctx = this.canvas.getContext('2d');
-          if (ctx) {
-            console.log('[WebGL渲染] 从离屏Canvas复制到主Canvas');
-            ctx.drawImage(this._offscreenCanvas, 0, 0);
-          } else {
-            console.warn('[WebGL渲染] 无法获取2D上下文复制离屏内容');
-          }
-        } catch (err) {
-          console.error('[WebGL渲染] 从离屏Canvas复制到主Canvas失败:', err.message);
-          return false;
-        }
-      }
-      
-      return finalState.errors.length === 0;
+      // 总是返回渲染结果
+      return success;
     } catch (error) {
-      console.error('[WebGL渲染] 渲染过程中发生未捕获异常:', error.message);
-      console.error('[WebGL渲染] 错误堆栈:', error.stack);
+      console.error('[WebGL树渲染器] 渲染管线执行出错:', error.message);
+      console.error('[WebGL树渲染器] 错误堆栈:', error.stack);
       return false;
     }
-  }
-
-  /**
-   * 为节点创建或获取纹理
-   * @param {Object} node - 节点对象
-   * @returns {WebGLTexture} 纹理对象
-   * @private
-   */
-  _getNodeTexture(node) {
-    // 如果没有节点ID，无法缓存纹理，返回null
-    if (!node || !node.id) {
-      console.warn('[WebGL] 无效的节点，无法获取纹理');
-      return null;
+  }, {
+    operation: 'WebGL树渲染',
+    defaultValue: false,
+    onError(error) {
+      console.error('[WebGL树渲染器] 渲染族谱树失败:', error.message);
+      return false;
     }
-    
-    // 如果已经为此节点创建了纹理，则直接返回
-    if (this.textures[node.id]) {
-      return this.textures[node.id];
-    }
-    
-    // 创建新纹理
-    const gl = this.gl;
-    if (!gl) {
-      console.error('[WebGL] GL上下文不可用，无法创建纹理');
-      return null;
-    }
-    
-    try {
-      const texture = gl.createTexture();
-      if (!texture) {
-        console.error('[WebGL] 创建纹理失败');
-        return null;
-      }
-      
-      gl.bindTexture(gl.TEXTURE_2D, texture);
-      
-      // 填充纹理为默认颜色
-      const defaultColor = this._getDefaultColorForNode(node);
-      gl.texImage2D(
-        gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0,
-        gl.RGBA, gl.UNSIGNED_BYTE, defaultColor
-      );
-      
-      // 设置纹理参数
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-      
-      // 缓存纹理
-      this.textures[node.id] = texture;
-      
-      // 尝试加载头像
-      const avatarUrl = node.avatarUrl || (node.member ? node.member.avatar : null);
-      if (avatarUrl) {
-        this._loadTextureForNode(avatarUrl, node.id, node.gender);
-      }
-      
-      return texture;
-    } catch (error) {
-      console.error('[WebGL] 创建节点纹理失败:', error.message);
-      return null;
-    }
-  }
-
-  /**
-   * 根据节点属性获取默认颜色
-   * @param {Object} node - 节点对象
-   * @returns {Uint8Array} 颜色数组 
-   * @private
-   */
-  _getDefaultColorForNode(node) {
-    // 根据性别设置不同的默认颜色
-    const gender = node.gender || (node.member ? node.member.gender : 'unknown');
-    
-    if (gender === 'male') {
-      // 男性：蓝色系
-      return new Uint8Array([200, 230, 255, 255]); // 淡蓝色
-    } else if (gender === 'female') {
-      // 女性：粉色系
-      return new Uint8Array([255, 220, 230, 255]); // 淡粉色
-    } else {
-      // 未知或其他：灰色系
-      return new Uint8Array([230, 230, 230, 255]); // 淡灰色
-    }
-  }
-
-  /**
-   * 加载节点头像纹理
-   * @param {String} url - 头像URL
-   * @param {String} nodeId - 节点ID
-   * @param {String} gender - 性别
-   * @private
-   */
-  _loadTextureForNode(url, nodeId, gender) {
-    // 检查参数有效性
-    if (!url || !nodeId || !this.gl) {
-      console.warn('[WebGL] 头像加载参数无效');
-      return;
-    }
-    
-    // 检查纹理是否存在
-    const texture = this.textures[nodeId];
-    if (!texture) {
-      console.warn('[WebGL] 节点纹理不存在，无法加载头像');
-      return;
-    }
-    
-    // 处理URL
-    let imageUrl = url;
-    
-    // 添加基础路径，如果URL是相对路径
-    if (url.startsWith('/')) {
-      // 在微信小程序环境中，相对路径需要转换
-      imageUrl = url.substring(1); // 移除开头的斜杠
-    }
-    
-    console.log(`[WebGL] 开始加载节点 ${nodeId} 的头像: ${imageUrl}`);
-    
-    // 使用微信小程序的图片加载API
-    wx.getImageInfo({
-      src: imageUrl,
-      success: (res) => {
-        console.log(`[WebGL] 成功获取图片信息: ${res.width}x${res.height}`);
-        
-        try {
-          // 创建离屏Canvas用于图像处理
-          const offscreenCanvas = wx.createOffscreenCanvas({
-            type: '2d',
-            width: 128,
-            height: 128
-          });
-          
-          const ctx = offscreenCanvas.getContext('2d');
-          if (!ctx) {
-            console.error(`[WebGL] 为节点 ${nodeId} 获取离屏Canvas上下文失败`);
-            return;
-          }
-          
-          // 创建并加载图片
-          const img = offscreenCanvas.createImage();
-          
-          img.onload = () => {
-            try {
-              // 清除Canvas
-              ctx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
-              
-              // 绘制圆形头像
-              ctx.save();
-              ctx.beginPath();
-              const radius = Math.min(offscreenCanvas.width, offscreenCanvas.height) / 2;
-              ctx.arc(
-                offscreenCanvas.width / 2, 
-                offscreenCanvas.height / 2, 
-                radius, 
-                0, 
-                Math.PI * 2
-              );
-              ctx.closePath();
-              ctx.clip();
-              
-              // 计算如何填充圆形区域
-              const scale = Math.max(
-                offscreenCanvas.width / img.width,
-                offscreenCanvas.height / img.height
-              );
-              
-              const scaledWidth = img.width * scale;
-              const scaledHeight = img.height * scale;
-              
-              const x = (offscreenCanvas.width - scaledWidth) / 2;
-              const y = (offscreenCanvas.height - scaledHeight) / 2;
-              
-              // 绘制图像
-              ctx.drawImage(
-                img, 
-                x, y, 
-                scaledWidth, scaledHeight
-              );
-              
-              // 添加性别相关的颜色边框
-              ctx.restore();
-              ctx.beginPath();
-              ctx.lineWidth = 4;
-              
-              // 性别相关颜色
-              if (gender === 'male') {
-                ctx.strokeStyle = 'rgba(0, 122, 255, 0.8)'; // 男性蓝色
-              } else if (gender === 'female') {
-                ctx.strokeStyle = 'rgba(255, 45, 85, 0.8)'; // 女性粉色
-              } else {
-                ctx.strokeStyle = 'rgba(142, 142, 147, 0.8)'; // 未知灰色
-              }
-              
-              ctx.arc(
-                offscreenCanvas.width / 2, 
-                offscreenCanvas.height / 2, 
-                radius - ctx.lineWidth / 2, 
-                0, 
-                Math.PI * 2
-              );
-              ctx.stroke();
-              
-              // 将Canvas内容转换为WebGL纹理
-              try {
-                // 绑定纹理
-                this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
-                
-                // 将Canvas内容作为纹理
-                this.gl.texImage2D(
-                  this.gl.TEXTURE_2D, 
-                  0, 
-                  this.gl.RGBA, 
-                  this.gl.RGBA, 
-                  this.gl.UNSIGNED_BYTE, 
-                  offscreenCanvas
-                );
-                
-                // 设置纹理参数
-                this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
-                this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
-                this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
-                this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
-                
-                console.log(`[WebGL] 成功更新节点 ${nodeId} 的纹理`);
-              } catch (texError) {
-                console.error(`[WebGL] 纹理更新失败:`, texError);
-                this._setDefaultNodeTexture(texture, gender);
-              }
-            } catch (drawError) {
-              console.error(`[WebGL] 绘制头像失败:`, drawError);
-              this._setDefaultNodeTexture(texture, gender);
-            }
-          };
-          
-          img.onerror = (e) => {
-            console.error(`[WebGL] 加载头像图片失败:`, e);
-            this._setDefaultNodeTexture(texture, gender);
-          };
-          
-          // 设置图片源，使用微信获取到的本地路径
-          img.src = res.path;
-        } catch (canvasError) {
-          console.error(`[WebGL] 处理Canvas错误:`, canvasError);
-          this._setDefaultNodeTexture(texture, gender);
-        }
-      },
-      fail: (error) => {
-        console.error(`[WebGL] 获取图片信息失败:`, error);
-        this._setDefaultNodeTexture(texture, gender);
-      }
-    });
-  }
-
-  /**
-   * 设置默认节点纹理
-   * @param {WebGLTexture} texture - 纹理对象
-   * @param {String} gender - 性别
-   * @private
-   */
-  _setDefaultNodeTexture(texture, gender) {
-    if (!this.gl || !texture) return;
-    
-    try {
-      // 绑定纹理
-      this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
-      
-      // 根据性别设置颜色
-      let defaultColor;
-      if (gender === 'male') {
-        defaultColor = new Uint8Array([200, 230, 255, 255]); // 淡蓝色
-      } else if (gender === 'female') {
-        defaultColor = new Uint8Array([255, 220, 230, 255]); // 淡粉色
-      } else {
-        defaultColor = new Uint8Array([230, 230, 230, 255]); // 淡灰色
-      }
-      
-      // 填充默认颜色
-      this.gl.texImage2D(
-        this.gl.TEXTURE_2D, 0, this.gl.RGBA, 1, 1, 0,
-        this.gl.RGBA, this.gl.UNSIGNED_BYTE, defaultColor
-      );
-      
-      // 设置纹理参数
-      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
-      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
-      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
-      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
-    } catch (error) {
-      console.error('[WebGL] 设置默认纹理失败:', error);
-    }
-  }
-
-  /**
-   * 创建默认纹理
-   * @returns {WebGLTexture} 默认纹理
-   * @private
-   */
-  _createDefaultTexture() {
-    const gl = this.gl;
-    
-    // 如果已经创建了默认纹理，直接返回
-    if (this.textures['default']) {
-      return this.textures['default'];
-    }
-    
-    // 创建新纹理
-    const texture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    
-    // 创建一个64x64的默认纹理
-    const size = 64;
-    const data = new Uint8Array(size * size * 4);
-    
-    // 填充为简单的渐变色
-    for (let i = 0; i < size; i++) {
-      for (let j = 0; j < size; j++) {
-        const idx = (i * size + j) * 4;
-        data[idx] = 180 + i * 0.5; // R
-        data[idx + 1] = 200 + j * 0.5; // G
-        data[idx + 2] = 220; // B
-        data[idx + 3] = 255; // A
-      }
-    }
-    
-    // 设置纹理数据
-    gl.texImage2D(
-      gl.TEXTURE_2D, 0, gl.RGBA, size, size, 0,
-      gl.RGBA, gl.UNSIGNED_BYTE, data
-    );
-    
-    // 设置纹理参数
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    
-    // 缓存默认纹理
-    this.textures['default'] = texture;
-    
-    return texture;
-  }
+  });
 
   /**
    * 清除画布
    */
-  clear() {
+  clear = ErrorHandler.wrap(function() {
     if (!this.gl) return;
-
+    
     this.gl.clearColor(0.95, 0.95, 0.95, 1.0);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
-  }
+  }, {
+    operation: '清除画布',
+    onError(error) {
+      console.error('[WebGL树渲染器] 清除画布失败:', error.message);
+    }
+  });
 
   /**
-   * 销毁渲染器资源
+   * 销毁资源
    */
-  dispose() {
+  dispose = ErrorHandler.wrap(function() {
     if (!this.gl) return;
-
-    // 删除着色器
-    if (this.shaders.vertex) {
-      this.gl.deleteShader(this.shaders.vertex);
-    }
-
-    if (this.shaders.fragment) {
-      this.gl.deleteShader(this.shaders.fragment);
-    }
-
-    // 删除程序
+    
+    // 删除着色器和程序
     if (this.program) {
+      if (this.shaders.vertex) {
+        this.gl.detachShader(this.program, this.shaders.vertex);
+        this.gl.deleteShader(this.shaders.vertex);
+      }
+      
+      if (this.shaders.fragment) {
+        this.gl.detachShader(this.program, this.shaders.fragment);
+        this.gl.deleteShader(this.shaders.fragment);
+      }
+      
       this.gl.deleteProgram(this.program);
     }
-
+    
+    // 删除连接线程序
+    if (this.lineProgram) {
+      this.gl.deleteProgram(this.lineProgram);
+    }
+    
     // 删除缓冲区
-    if (this.buffers.position) {
-      this.gl.deleteBuffer(this.buffers.position);
-    }
-
-    if (this.buffers.textureCoord) {
-      this.gl.deleteBuffer(this.buffers.textureCoord);
-    }
-
-    if (this.buffers.indices) {
-      this.gl.deleteBuffer(this.buffers.indices);
-    }
-
-    // 删除纹理
-    Object.values(this.textures).forEach(texture => {
-      if (texture) {
-        this.gl.deleteTexture(texture);
+    for (const key in this.buffers) {
+      if (this.buffers[key]) {
+        this.gl.deleteBuffer(this.buffers[key]);
       }
-    });
-
-    // 清空引用
-    this.gl = null;
+    }
+    
+    // 删除纹理
+    for (const key in this.textures) {
+      if (this.textures[key]) {
+        this.gl.deleteTexture(this.textures[key]);
+      }
+    }
+    
+    // 清除引用
+    this.shaders = { vertex: null, fragment: null };
     this.program = null;
+    this.lineProgram = null;
     this.buffers = {};
     this.textures = {};
-    this.shaders = {
-      vertex: null,
-      fragment: null
-    };
-  }
+    this.gl = null;
+    this.canvas = null;
+    
+    console.log('[WebGL树渲染器] 资源已释放');
+  }, {
+    operation: '销毁资源',
+    onError(error) {
+      console.error('[WebGL树渲染器] 释放资源失败:', error.message);
+    }
+  });
 }
 
 /**
@@ -845,6 +682,8 @@ class WebGLRenderer {
    * 构造函数
    * @param {Object} options - 配置选项
    * @param {Object} options.canvas - Canvas节点
+   * @param {Object} [options.gl] - WebGL上下文
+   * @param {Object} [options.ctx] - WebGL上下文(兼容新接口)
    * @param {Object} [options.component] - 组件实例
    */
   constructor(options) {
@@ -860,6 +699,24 @@ class WebGLRenderer {
       return;
     }
 
+    // 获取WebGL上下文 - 支持通过gl或ctx参数传入
+    const gl = options.gl || options.ctx;
+    if (gl) {
+      this.gl = gl;
+    } else if (this.canvas) {
+      try {
+        this.gl = this.canvas.getContext('webgl');
+      } catch (e) {
+        console.error('获取WebGL上下文失败:', e.message);
+        this.gl = null;
+      }
+    }
+
+    if (!this.gl) {
+      console.error('WebGL渲染器初始化失败：无法获取WebGL上下文');
+      return;
+    }
+
     // 初始化树渲染器
     this.treeRenderer = null;
     this._initTreeRenderer();
@@ -869,10 +726,16 @@ class WebGLRenderer {
    * 初始化树渲染器
    * @private
    */
-  _initTreeRenderer() {
+  _initTreeRenderer = ErrorHandler.wrap(function() {
     // 检查canvas有效性
     if (!this.canvas) {
       console.error('[WebGL诊断] 无效的Canvas对象，WebGL渲染器初始化失败');
+      return false;
+    }
+
+    // 检查WebGL上下文有效性
+    if (!this.gl) {
+      console.error('[WebGL诊断] 无效的WebGL上下文，WebGL渲染器初始化失败');
       return false;
     }
 
@@ -880,71 +743,45 @@ class WebGLRenderer {
     console.log(`[WebGL诊断] Canvas尺寸: ${this.canvas.width}x${this.canvas.height}`);
     console.log(`[WebGL诊断] Canvas类型: ${this.canvas.constructor.name}`);
 
-    try {
-      // 创建WebGL树渲染器
-      this.treeRenderer = new WebGLTreeRenderer(this.canvas);
+    // 创建WebGL树渲染器
+    this.treeRenderer = new WebGLTreeRenderer(this.canvas);
+    
+    // 设置WebGL上下文
+    this.treeRenderer.gl = this.gl;
 
-      // 尝试初始化
-      const initSuccess = this.treeRenderer.init();
+    // 尝试初始化 - 但不再重复获取上下文
+    // 因为我们已经有了上下文this.gl
+    const initSuccess = this.treeRenderer.init();
 
-      if (initSuccess) {
-        // 初始化成功
-        if (this.component) {
-          // 如果有组件引用，更新组件状态
-          this.component.setData({
-            'webgl.renderer': this.treeRenderer,
-            'webgl.initialized': true
-          });
-        }
-        console.log('[WebGL诊断] WebGL树渲染器初始化成功');
-        return true;
-      } else {
-        // 初始化失败，尝试其他修复措施
-        console.warn('[WebGL诊断] WebGL树渲染器初始化失败，尝试修复');
-
-        // 尝试修复1：确保Canvas已经完全准备好
-        if (this.canvas && (!this.canvas.width || !this.canvas.height)) {
-          console.log('[WebGL诊断] Canvas尺寸无效，设置默认尺寸');
-          this.canvas.width = this.canvas.width || 300;
-          this.canvas.height = this.canvas.height || 300;
-
-          // 重新尝试初始化
-          console.log('[WebGL诊断] 重新尝试初始化WebGL渲染器');
-          this.treeRenderer = new WebGLTreeRenderer(this.canvas);
-          if (this.treeRenderer.init()) {
-            console.log('[WebGL诊断] 修复后WebGL初始化成功');
-            if (this.component) {
-              this.component.setData({
-                'webgl.renderer': this.treeRenderer,
-                'webgl.initialized': true
-              });
-            }
-            return true;
-          }
-        }
-
-        // 尝试修复2：确认Canvas API一致性
-        if (this.canvas && typeof this.canvas.getContext !== 'function') {
-          console.error('[WebGL诊断] Canvas对象没有getContext方法，可能不是有效的Canvas节点');
-          return false;
-        }
-
-        // 如果所有修复尝试都失败了
-        console.error('[WebGL诊断] WebGL初始化修复尝试失败，请检查硬件兼容性');
-        return false;
+    if (initSuccess) {
+      // 初始化成功
+      if (this.component) {
+        // 如果有组件引用，更新组件状态但不存储渲染器
+        // 避免循环引用
+        this.component.setData({
+          'webgl.initialized': true
+        });
       }
-    } catch (error) {
-      console.error('[WebGL诊断] 创建WebGL树渲染器失败:', error.message);
-      console.error('[WebGL诊断] 错误堆栈:', error.stack);
+      console.log('[WebGL诊断] WebGL树渲染器初始化成功');
+      return true;
+    } else {
+      console.error('[WebGL诊断] WebGL树渲染器初始化失败');
       return false;
     }
-  }
+  }, {
+    operation: '初始化WebGL树渲染器',
+    defaultValue: false,
+    onError(error) {
+      console.error('[WebGL诊断] 创建WebGL树渲染器时发生错误:', error.message);
+      return false;
+    }
+  });
 
   /**
    * 检查是否可用
    * @returns {Boolean} 是否可用
    */
-  canUse() {
+  canUse = ErrorHandler.wrap(function() {
     // 如果有组件，检查组件状态
     if (this.component) {
       const { webgl } = this.component.data;
@@ -986,7 +823,14 @@ class WebGLRenderer {
     console.log(`[WebGL] 简单canUse检查结果: ${simpleResult ? '可用' : '不可用'}`, simpleStatus);
     
     return simpleResult;
-  }
+  }, {
+    operation: '检查WebGL可用性',
+    defaultValue: false,
+    onError(error) {
+      console.error('[WebGL] 检查可用性时出错:', error.message);
+      return false;
+    }
+  });
 
   /**
    * 执行渲染
@@ -1001,7 +845,7 @@ class WebGLRenderer {
    * @param {Number} [options.scale] - 缩放值（无组件时使用）
    * @returns {Boolean} 渲染是否成功
    */
-  render(options) {
+  render = ErrorHandler.wrap(function(options) {
     const {
       visibleArea,
       nodes,
@@ -1018,95 +862,127 @@ class WebGLRenderer {
       console.warn('[WebGL渲染器] 无法渲染：树渲染器未初始化');
       return false;
     }
-
+    
+    // 添加详细的连接线调试信息
+    console.log('[WebGL渲染器调试] 连接线数据:', {
+      总数量: connectors?.length || 0,
+      示例连接线: connectors && connectors.length > 0 ? [
+        {
+          id: connectors[0].id,
+          type: connectors[0].type,
+          from: {x: connectors[0].fromX, y: connectors[0].fromY},
+          to: {x: connectors[0].toX, y: connectors[0].toY}
+        },
+        connectors.length > 1 ? {
+          id: connectors[1].id,
+          type: connectors[1].type,
+          from: {x: connectors[1].fromX, y: connectors[1].fromY},
+          to: {x: connectors[1].toX, y: connectors[1].toY}
+        } : null
+      ].filter(Boolean) : []
+    });
+    
     try {
+      // 获取当前变换参数
+      const transformOffsetX = offsetX !== undefined ? 
+        offsetX : (this.component ? this.component.data.offsetX : 0);
+      const transformOffsetY = offsetY !== undefined ? 
+        offsetY : (this.component ? this.component.data.offsetY : 0);
+      const transformScale = scale !== undefined ? 
+        scale : (this.component ? this.component.data.currentScale : 1.0);
+      
       // 设置变换参数
-      if (this.component) {
-        // 从组件获取变换参数
-        this.treeRenderer.setTransform(
-          this.component.data.offsetX,
-          this.component.data.offsetY,
-          this.component.data.currentScale
-        );
-      } else if (offsetX !== undefined && offsetY !== undefined && scale !== undefined) {
-        // 使用传入的变换参数
-        this.treeRenderer.setTransform(offsetX, offsetY, scale);
-      }
-
-      // 设置当前层级（如果启用分层渲染）
-      if (layeredRendering && layeredRendering.enabled) {
-        this.treeRenderer.setCurrentLayer(layeredRendering.currentLayer);
-      }
-
-      // 记录渲染参数
-      console.log('[WebGL渲染器] 渲染参数:', {
-        节点数量: nodes?.length || 0,
-        连接线数量: connectors?.length || 0,
-        纹理数量: nodeTextureMap ? Object.keys(nodeTextureMap).length : 0,
-        当前成员ID: currentMemberId || '未指定'
-      });
-
-      // 使用渲染管线执行渲染
-      const renderResult = this.treeRenderer.render({
+      this.treeRenderer.setTransform(transformOffsetX, transformOffsetY, transformScale);
+      
+      // 执行渲染
+      return this.treeRenderer.render({
         nodes,
         connectors,
         visibleArea,
-        layeredRendering,
         currentMemberId,
+        layeredRendering,
         nodeTextureMap
       });
-
-      return renderResult;
     } catch (error) {
-      console.error('[WebGL渲染器] 渲染过程中发生错误:', error.message);
-      console.error('[WebGL渲染器] 错误堆栈:', error.stack);
+      console.error('[WebGL渲染器] 渲染出错:', error.message);
       return false;
     }
-  }
+  }, {
+    operation: 'WebGL渲染',
+    defaultValue: false,
+    onError(error) {
+      console.error('[WebGL渲染器] 渲染出错:', error.message);
+      return false;
+    }
+  });
 
   /**
    * 清除画布
    */
-  clear() {
+  clear = ErrorHandler.wrap(function() {
     if (this.treeRenderer) {
       this.treeRenderer.clear();
     }
-  }
+  }, {
+    operation: '清除画布',
+    onError(error) {
+      console.error('[WebGL渲染器] 清除画布失败:', error.message);
+    }
+  });
 
   /**
    * 更新视口尺寸
    * @param {Number} width - 宽度
    * @param {Number} height - 高度
    */
-  updateViewport(width, height) {
+  updateViewport = ErrorHandler.wrap(function(width, height) {
     if (this.treeRenderer) {
       this.treeRenderer.updateViewport(width, height);
     }
-  }
+  }, {
+    operation: '更新视口尺寸',
+    onError(error) {
+      console.error('[WebGL渲染器] 更新视口尺寸失败:', error.message);
+    }
+  });
 
   /**
    * 设置变换参数
-   * @param {Number} offsetX - X偏移
-   * @param {Number} offsetY - Y偏移
-   * @param {Number} scale - 缩放值
+   * @param {Number} offsetX - X轴偏移
+   * @param {Number} offsetY - Y轴偏移
+   * @param {Number} scale - 缩放比例
    */
-  setTransform(offsetX, offsetY, scale) {
+  setTransform = ErrorHandler.wrap(function(offsetX, offsetY, scale) {
     if (this.treeRenderer) {
       this.treeRenderer.setTransform(offsetX, offsetY, scale);
-    } else {
-      console.warn('[WebGL渲染器] 无法设置变换参数：树渲染器未初始化');
     }
-  }
+  }, {
+    operation: '设置变换参数',
+    onError(error) {
+      console.error('[WebGL渲染器] 设置变换参数失败:', error.message);
+    }
+  });
 
   /**
-   * 销毁渲染器资源
+   * 销毁资源
    */
-  dispose() {
+  dispose = ErrorHandler.wrap(function() {
     if (this.treeRenderer) {
       this.treeRenderer.dispose();
       this.treeRenderer = null;
     }
-  }
+    
+    this.canvas = null;
+    this.gl = null;
+  }, {
+    operation: '销毁资源',
+    onError(error) {
+      console.error('[WebGL渲染器] 释放资源失败:', error.message);
+    }
+  });
 }
 
-module.exports = WebGLRenderer;
+// 导出渲染器类
+module.exports = {
+  WebGLRenderer
+};

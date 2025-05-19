@@ -12,7 +12,22 @@
   width: 100%;
   height: 100%;
   display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* 活动和非活动状态 */
+.family-tree-canvas.active {
+  z-index: 2;
+  opacity: 1;
+  visibility: visible;
+}
+
+.family-tree-canvas.inactive {
   z-index: 1;
+  opacity: 0;
+  visibility: hidden;
 }
 
 /* 缩放指示器 */

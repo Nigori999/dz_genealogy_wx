@@ -3,23 +3,385 @@
  * 负责Canvas 2D绘制相关的渲染逻辑
  */
 
+// 导入坐标系统工具类
+const { coordinateSystem, CoordinateSystem } = require('../services/coordinate-system');
+// 导入错误处理工具
+const ErrorHandler = require('../../../utils/error-handler');
+
+/**
+ * Canvas 2D树渲染器
+ * 负责2D渲染的底层实现
+ */
+class Canvas2DTreeRenderer {
+  /**
+   * 构造函数
+   * @param {Object} canvas - Canvas对象
+   * @param {Object} ctx - 2D上下文
+   */
+  constructor(canvas, ctx) {
+    this.canvas = canvas;
+    this.ctx = ctx;
+    this.transform = {
+      offsetX: 0,
+      offsetY: 0,
+      scale: 1.0
+    };
+    
+    // 使用新API获取设备像素比
+    this._initDevicePixelRatio();
+    
+    // 初始化坐标系统
+    this.coordSystem = new CoordinateSystem({
+      canvasWidth: this.canvas ? this.canvas.width : 300,
+      canvasHeight: this.canvas ? this.canvas.height : 400,
+      devicePixelRatio: this._dpr,
+      isYAxisDown: true
+    });
+  }
+
+  /**
+   * 初始化设备像素比
+   * @private
+   */
+  _initDevicePixelRatio = ErrorHandler.wrap(function() {
+    const deviceInfo = wx.getDeviceInfo();
+    this._dpr = deviceInfo.pixelRatio || 1;
+  }, {
+    operation: '获取设备像素比',
+    defaultValue: 1,
+    onError(error) {
+      console.warn('[Canvas 2D] 获取设备信息失败，使用默认像素比:', error.message);
+      this._dpr = 1;
+    }
+  });
+
+  /**
+   * 清除画布
+   */
+  clear = ErrorHandler.wrap(function() {
+    if (!this.ctx) return;
+    
+    this.ctx.save();
+    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.ctx.restore();
+  }, {
+    operation: '清除画布',
+    onError(error) {
+      console.error('[Canvas 2D] 清除画布失败:', error.message);
+    }
+  });
+
+  /**
+   * 更新视口尺寸
+   * @param {Number} width - 宽度
+   * @param {Number} height - 高度
+   */
+  updateViewport = ErrorHandler.wrap(function(width, height) {
+    if (!this.canvas) return;
+    
+    this.canvas.width = width;
+    this.canvas.height = height;
+    
+    // 更新坐标系统
+    this.coordSystem.updateCanvasSize(width, height);
+  }, {
+    operation: '更新视口尺寸',
+    onError(error) {
+      console.error('[Canvas 2D] 更新视口尺寸失败:', error.message);
+    }
+  });
+
+  /**
+   * 设置变换参数
+   * @param {Number} offsetX - X轴偏移
+   * @param {Number} offsetY - Y轴偏移
+   * @param {Number} scale - 缩放比例
+   */
+  setTransform = ErrorHandler.wrap(function(offsetX, offsetY, scale) {
+    this.transform.offsetX = offsetX;
+    this.transform.offsetY = offsetY;
+    this.transform.scale = scale;
+    
+    // 更新坐标系统
+    this.coordSystem.updateTransform(scale, offsetX, offsetY);
+  }, {
+    operation: '设置变换参数',
+    onError(error) {
+      console.error('[Canvas 2D] 设置变换参数失败:', error.message);
+    }
+  });
+
+  /**
+   * 渲染族谱树
+   * @param {Object} params - 渲染参数
+   * @returns {Boolean} 渲染是否成功
+   */
+  render = ErrorHandler.wrap(function(params) {
+    if (!this.ctx || !this.canvas) {
+      console.warn('[Canvas2D] 上下文或画布未初始化，无法渲染');
+      return false;
+    }
+
+    const {
+      nodes,
+      connectors,
+      transform,
+      visibleArea,
+      currentMemberId
+    } = params;
+
+    // 应用变换
+    if (transform) {
+      this.setTransform(
+        transform.offsetX || 0,
+        transform.offsetY || 0,
+        transform.scale || 1.0
+      );
+    }
+
+    // 清除画布
+    this.clear();
+    
+    // 设置背景
+    this.ctx.save();
+    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+    this.ctx.fillStyle = '#f5f5f5';
+    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    this.ctx.restore();
+
+    // 设置变换
+    this.ctx.save();
+    this.ctx.translate(this.transform.offsetX, this.transform.offsetY);
+    this.ctx.scale(this.transform.scale, this.transform.scale);
+
+    // 渲染连接线
+    if (connectors && connectors.length) {
+      this._renderConnectors(connectors, visibleArea);
+    }
+
+    // 渲染节点
+    if (nodes && nodes.length) {
+      this._renderNodes(nodes, visibleArea, currentMemberId);
+    }
+
+    // 恢复上下文
+    this.ctx.restore();
+
+    return true;
+  }, {
+    operation: '渲染族谱树',
+    defaultValue: false,
+    onError(error) {
+      console.error('[Canvas2D] 渲染族谱树失败:', error.message);
+      return false;
+    }
+  });
+
+  /**
+   * 渲染连接线
+   * @param {Array} connectors - 连接线数组
+   * @param {Object} visibleArea - 可视区域
+   * @private
+   */
+  _renderConnectors = ErrorHandler.wrap(function(connectors, visibleArea) {
+    if (!connectors || connectors.length === 0) return;
+    
+    // 批量绘制连接线以提高性能
+    this.ctx.beginPath();
+    this.ctx.strokeStyle = 'rgba(128, 128, 128, 0.6)';
+    this.ctx.lineWidth = 1;
+    
+    for (const conn of connectors) {
+      // 快速可见性检查 - 如果可视区域存在，跳过不可见的连接线
+      if (visibleArea && (
+        conn.fromX > visibleArea.right + visibleArea.buffer ||
+        conn.toX < visibleArea.left - visibleArea.buffer ||
+        conn.fromY > visibleArea.bottom + visibleArea.buffer ||
+        conn.toY < visibleArea.top - visibleArea.buffer
+      )) {
+        continue;
+      }
+      
+      this.ctx.moveTo(conn.fromX, conn.fromY);
+      this.ctx.lineTo(conn.toX, conn.toY);
+    }
+    
+    this.ctx.stroke();
+  }, {
+    operation: '渲染连接线',
+    onError(error) {
+      console.error('[Canvas2D] 渲染连接线失败:', error.message);
+    }
+  });
+
+  /**
+   * 渲染节点
+   * @param {Array} nodes - 节点数组
+   * @param {Object} visibleArea - 可视区域
+   * @param {String} currentMemberId - 当前成员ID
+   * @private
+   */
+  _renderNodes(nodes, visibleArea, currentMemberId) {
+    if (!nodes || nodes.length === 0) return;
+    
+    // 筛选可见节点
+    let visibleNodes = nodes;
+    if (visibleArea) {
+      visibleNodes = nodes.filter(node => 
+        node.x < visibleArea.right + visibleArea.buffer &&
+        node.x + node.width > visibleArea.left - visibleArea.buffer &&
+        node.y < visibleArea.bottom + visibleArea.buffer &&
+        node.y + node.height > visibleArea.top - visibleArea.buffer
+      );
+    }
+    
+    // 绘制节点背景
+    this._batchDrawNodeBackgrounds(visibleNodes);
+    
+    // 绘制节点边框
+    this._batchDrawNodeBorders(visibleNodes, currentMemberId);
+    
+    // 绘制节点内容（名称、头像等）
+    this._batchDrawNodeContents(visibleNodes, currentMemberId);
+  }
+  
+  /**
+   * 批量绘制节点背景
+   * @param {Array} nodes - 节点数组
+   * @private
+   */
+  _batchDrawNodeBackgrounds(nodes) {
+    // 默认背景颜色
+    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    
+    // 批量绘制普通节点背景
+    for (const node of nodes) {
+      this.ctx.fillRect(node.x, node.y, node.width, node.height);
+    }
+  }
+  
+  /**
+   * 批量绘制节点边框
+   * @param {Array} nodes - 节点数组
+   * @param {String} currentMemberId - 当前成员ID
+   * @private
+   */
+  _batchDrawNodeBorders(nodes, currentMemberId) {
+    // 分组绘制，减少状态切换
+    
+    // 绘制普通节点边框
+    this.ctx.strokeStyle = 'rgba(204, 204, 204, 0.8)';
+    this.ctx.lineWidth = 1;
+    
+    const normalNodes = nodes.filter(node => 
+      !node.isRoot && (!currentMemberId || node.id !== currentMemberId)
+    );
+    
+    if (normalNodes.length > 0) {
+      this.ctx.beginPath();
+      for (const node of normalNodes) {
+        this.ctx.rect(node.x, node.y, node.width, node.height);
+      }
+      this.ctx.stroke();
+    }
+    
+    // 绘制根节点边框
+    this.ctx.strokeStyle = 'rgba(255, 128, 0, 0.8)';
+    this.ctx.lineWidth = 1.5;
+    
+    const rootNodes = nodes.filter(node => node.isRoot);
+    
+    if (rootNodes.length > 0) {
+      this.ctx.beginPath();
+      for (const node of rootNodes) {
+        this.ctx.rect(node.x, node.y, node.width, node.height);
+      }
+      this.ctx.stroke();
+    }
+    
+    // 绘制当前节点边框
+    if (currentMemberId) {
+      this.ctx.strokeStyle = 'rgba(24, 144, 255, 0.8)';
+      this.ctx.lineWidth = 2;
+      
+      const currentNodes = nodes.filter(node => node.id === currentMemberId);
+      
+      if (currentNodes.length > 0) {
+        this.ctx.beginPath();
+        for (const node of currentNodes) {
+          this.ctx.rect(node.x, node.y, node.width, node.height);
+        }
+        this.ctx.stroke();
+      }
+    }
+  }
+  
+  /**
+   * 批量绘制节点内容
+   * @param {Array} nodes - 节点数组
+   * @param {String} currentMemberId - 当前成员ID
+   * @private
+   */
+  _batchDrawNodeContents(nodes, currentMemberId) {
+    // 绘制节点内容（名称等）
+    this.ctx.fillStyle = 'black';
+    this.ctx.font = '14px Arial';
+    this.ctx.textAlign = 'center';
+    
+    for (const node of nodes) {
+      const name = node.name || '';
+      this.ctx.fillText(name, node.x + node.width / 2, node.y + node.height - 10);
+    }
+  }
+
+  /**
+   * 销毁资源
+   */
+  dispose = ErrorHandler.wrap(function() {
+    // 清理资源
+    this.canvas = null;
+    this.ctx = null;
+    this.coordSystem = null;
+  }, {
+    operation: '释放Canvas2D树渲染器资源',
+    onError(error) {
+      console.error('[Canvas2D] 释放资源失败:', error.message);
+    }
+  });
+}
+
+/**
+ * Canvas 2D渲染器
+ * 作为组件与Canvas 2D树渲染器的桥接层
+ */
 class Canvas2DRenderer {
   /**
    * 构造函数
-   * @param {Object} component - 组件实例
+   * @param {Object} options - 配置选项
+   * @param {Object} options.canvas - Canvas节点
+   * @param {Object} options.ctx - 2D上下文
+   * @param {Object} [options.component] - 组件实例
    */
-  constructor(component) {
-    this.component = component;
-    this.ctx = component.ctx;
-    this.canvas = component.canvas;
-    // 使用新API获取设备像素比
-    try {
-      const deviceInfo = wx.getDeviceInfo();
-      this._dpr = deviceInfo.pixelRatio || 1;
-    } catch (e) {
-      console.warn('[Canvas 2D] 获取设备信息失败，使用默认像素比:', e.message);
-      this._dpr = 1;
+  constructor(options) {
+    // 支持直接传递组件或传递options对象
+    if (options.component) {
+      this.component = options.component;
+      this.canvas = options.canvas || options.component.canvas;
+      this.ctx = options.ctx || (this.canvas ? this.canvas.getContext('2d') : null);
+    } else if (options.canvas) {
+      this.canvas = options.canvas;
+      this.ctx = options.ctx || (this.canvas ? this.canvas.getContext('2d') : null);
+      this.component = null;
+    } else {
+      console.error('Canvas 2D渲染器初始化失败：未提供Canvas或组件实例');
+      return;
     }
+
+    // 初始化树渲染器
+    this.treeRenderer = null;
+    this._initTreeRenderer();
+    
     // 精灵图相关属性
     this._spriteEnabled = false;
     this._spriteCache = null;
@@ -27,25 +389,90 @@ class Canvas2DRenderer {
   }
 
   /**
+   * 初始化树渲染器
+   * @private
+   */
+  _initTreeRenderer = ErrorHandler.wrap(function() {
+    if (!this.canvas || !this.ctx) {
+      console.error('[Canvas2D] 无效的Canvas或上下文，无法初始化树渲染器');
+      return;
+    }
+
+    // 创建树渲染器
+    this.treeRenderer = new Canvas2DTreeRenderer(this.canvas, this.ctx);
+  }, {
+    operation: '初始化树渲染器',
+    onError(error) {
+      console.error('[Canvas2D] 初始化树渲染器失败:', error.message);
+    }
+  });
+
+  /**
    * 检查是否可用
    * @returns {Boolean} 是否可用
    */
   canUse() {
-    return !!this.ctx && !!this.canvas;
+    return !!this.ctx && !!this.canvas && !!this.treeRenderer;
   }
 
   /**
-   * 执行渲染
+   * 清除画布
+   */
+  clear = ErrorHandler.wrap(function() {
+    if (this.treeRenderer) {
+      this.treeRenderer.clear();
+    }
+  }, {
+    operation: '清除画布',
+    onError(error) {
+      console.error('[Canvas2D] 清除画布失败:', error.message);
+    }
+  });
+
+  /**
+   * 更新视口尺寸
+   * @param {Number} width - 宽度
+   * @param {Number} height - 高度
+   */
+  updateViewport = ErrorHandler.wrap(function(width, height) {
+    if (this.treeRenderer) {
+      this.treeRenderer.updateViewport(width, height);
+    }
+  }, {
+    operation: '更新视口尺寸',
+    onError(error) {
+      console.error('[Canvas2D] 更新视口尺寸失败:', error.message);
+    }
+  });
+
+  /**
+   * 设置变换参数
+   * @param {Number} offsetX - X轴偏移
+   * @param {Number} offsetY - Y轴偏移
+   * @param {Number} scale - 缩放比例
+   */
+  setTransform = ErrorHandler.wrap(function(offsetX, offsetY, scale) {
+    if (this.treeRenderer) {
+      this.treeRenderer.setTransform(offsetX, offsetY, scale);
+    }
+  }, {
+    operation: '设置变换参数',
+    onError(error) {
+      console.error('[Canvas2D] 设置变换参数失败:', error.message);
+    }
+  });
+
+  /**
+   * 渲染族谱树
    * @param {Object} options - 渲染选项
-   * @param {Object} options.visibleArea - 可视区域
-   * @param {Array} options.nodes - 节点数据
-   * @param {Array} options.connectors - 连接线数据
-   * @param {String} options.currentMemberId - 当前成员ID
-   * @param {Object} options.layeredRendering - 分层渲染配置
-   * @param {Object} options.spriteSupport - 精灵图支持配置
    * @returns {Boolean} 渲染是否成功
    */
-  render(options) {
+  render = ErrorHandler.wrap(function(options) {
+    if (!this.treeRenderer) {
+      console.warn('[Canvas2D] 树渲染器未初始化，无法渲染');
+      return false;
+    }
+
     const { 
       visibleArea, 
       nodes, 
@@ -58,109 +485,55 @@ class Canvas2DRenderer {
     // 更新精灵图设置
     this._spriteEnabled = spriteSupport && spriteSupport.enabled;
     this._spriteCache = spriteSupport && spriteSupport.spriteCache;
-    
-    // 获取当前缩放和偏移值
-    const { currentScale, offsetX, offsetY } = this.component.data;
-    
-    // 单次清除与设置背景，减少状态变化
-    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.ctx.fillStyle = '#f5f5f5';
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-    
-    // 保存状态并应用变换（仅一次状态保存）
-    this.ctx.save();
-    this.ctx.scale(this._dpr, this._dpr);
-    this.ctx.translate(offsetX, offsetY);
-    this.ctx.scale(currentScale, currentScale);
-    
-    // 初始化URL集合用于收集需要的头像URL
-    this._avatarUrls = new Set();
-    
+
+    // 获取当前变换参数
+    const transformOffsetX = options.offsetX !== undefined ? 
+      options.offsetX : (this.component ? this.component.data.offsetX : 0);
+    const transformOffsetY = options.offsetY !== undefined ? 
+      options.offsetY : (this.component ? this.component.data.offsetY : 0);
+    const transformScale = options.scale !== undefined ? 
+      options.scale : (this.component ? this.component.data.currentScale : 1.0);
+
     // 按优化模式渲染
-    if (this.component.data.layeredRendering.enabled && layeredRendering) {
-      this._renderLayers(visibleArea, layeredRendering);
+    if (this.component && this.component.data.layeredRendering && 
+        this.component.data.layeredRendering.enabled && layeredRendering) {
+      return this._renderLayers(layeredRendering, transformOffsetX, transformOffsetY, transformScale);
     } else {
-      this._renderStandard(visibleArea, nodes, connectors, currentMemberId);
-    }
-    
-    // 恢复画布状态
-    this.ctx.restore();
-    
-    // 如果启用了精灵图，处理收集到的URL
-    if (this._spriteEnabled && this._avatarUrls.size > 0) {
-      this._processCollectedAvatars();
-    }
-    
-    return true;
-  }
-  
-  /**
-   * 处理收集到的头像URL，生成精灵图
-   * @private
-   */
-  _processCollectedAvatars() {
-    // 从组件获取RenderStrategies引用
-    const RenderStrategies = require('../strategies/render-strategies');
-    
-    // 获取批处理大小
-    const batchSize = this.component.data.spriteSupport.batchSize || 20;
-    
-    // 将头像URL转为数组并限制批处理大小
-    const avatarUrls = Array.from(this._avatarUrls).slice(0, batchSize);
-    
-    if (avatarUrls.length === 0) return;
-    
-    // 生成精灵图
-    RenderStrategies.getAvatarSprite(avatarUrls, (spriteInfo) => {
-      if (spriteInfo) {
-        console.log(`精灵图生成成功，包含${avatarUrls.length}个头像，尺寸：${spriteInfo.width}x${spriteInfo.height}`);
-        
-        // 将精灵图添加到队列加载并注册为精灵图
-        if (spriteInfo.spriteUrl && this.component.imageCacheManager) {
-          // 注册精灵图并预加载
-          this.component.imageCacheManager.registerSprite(spriteInfo.spriteUrl);
-          this.component.imageCacheManager.preloadSprite(spriteInfo.spriteUrl);
+      // 执行标准渲染
+      return this.treeRenderer.render({
+        nodes,
+        connectors,
+        visibleArea,
+        currentMemberId,
+        transform: {
+          offsetX: transformOffsetX,
+          offsetY: transformOffsetY,
+          scale: transformScale
         }
-        
-        // 触发重新渲染
-        if (this.component._render) {
-          setTimeout(() => {
-            this.component._render();
-          }, 150); // 延迟一点时间，确保精灵图有机会加载到缓存
-        }
-      } else {
-        console.error('精灵图生成失败');
-      }
-    });
-    
-    // 清空URL集合，避免重复生成
-    this._avatarUrls.clear();
-  }
-  
-  /**
-   * 标准渲染（非分层）
-   * @param {Object} visibleArea - 可视区域
-   * @param {Array} nodes - 节点数据
-   * @param {Array} connectors - 连接线数据
-   * @param {String} currentMemberId - 当前成员ID
-   * @private
-   */
-  _renderStandard(visibleArea, nodes, connectors, currentMemberId) {
-    this.drawConnectors(visibleArea, connectors);
-    this.drawNodes(visibleArea, nodes, true, currentMemberId);
-  }
+      });
+    }
+  }, {
+    operation: '渲染族谱树',
+    defaultValue: false,
+    onError(error) {
+      console.error('[Canvas2D] 渲染出错:', error.message);
+      return false;
+    }
+  });
   
   /**
    * 分层渲染
-   * @param {Object} visibleArea - 可视区域
    * @param {Object} layeredData - 分层数据
+   * @param {Number} offsetX - X轴偏移
+   * @param {Number} offsetY - Y轴偏移
+   * @param {Number} scale - 缩放比例
+   * @returns {Boolean} 渲染是否成功
    * @private
    */
-  _renderLayers(visibleArea, layeredData) {
+  _renderLayers = ErrorHandler.wrap(function(layeredData, offsetX, offsetY, scale) {
     const { layerCount, layerNodes, layerConnectors, currentLayer } = layeredData;
     
-    if (layerCount === 0) return;
+    if (layerCount === 0) return true;
     
     // 优化渲染顺序：使用距离排序算法
     const renderOrder = [];
@@ -185,6 +558,16 @@ class Canvas2DRenderer {
       return a.isCurrent ? 1 : -1;
     });
     
+    // 清除画布
+    this.clear();
+    
+    // 设置背景
+    this.ctx.save();
+    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+    this.ctx.fillStyle = '#f5f5f5';
+    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    this.ctx.restore();
+    
     // 按顺序渲染各层
     for (const item of renderOrder) {
       const layer = item.layer;
@@ -200,427 +583,54 @@ class Canvas2DRenderer {
       const alpha = isCurrentLayer ? 1.0 : Math.max(0.6, 1 - (item.distance * 0.1));
       this.ctx.globalAlpha = alpha;
       
-      // 先绘制连接线，再绘制节点，确保节点在线的上面
-      if (hasConnectors) {
-        this.drawConnectors(visibleArea, layerConnectors[layer], isCurrentLayer);
-      }
-      
-      if (hasNodes) {
-        this.drawNodes(visibleArea, layerNodes[layer], isCurrentLayer, this.component.properties.currentMemberId);
-      }
+      // 渲染当前层
+      this.treeRenderer.render({
+        nodes: hasNodes ? layerNodes[layer] : [],
+        connectors: hasConnectors ? layerConnectors[layer] : [],
+        visibleArea: null, // 分层渲染时不进行可见性筛选
+        currentMemberId: this.component ? this.component.properties.currentMemberId : null,
+        transform: {
+          offsetX,
+          offsetY,
+          scale
+        }
+      });
     }
     
     // 恢复默认状态
     this.ctx.globalAlpha = 1.0;
-  }
-  
-  /**
-   * 清除画布
-   */
-  clear() {
-    if (!this.ctx || !this.canvas) return;
     
-    // 重置为单位矩阵
-    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
-    
-    // 清除整个画布
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    
-    // 填充背景色
-    this.ctx.fillStyle = '#f5f5f5';
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-  }
+    return true;
+  }, {
+    operation: '分层渲染',
+    defaultValue: false,
+    onError(error) {
+      console.error('[Canvas2D] 分层渲染失败:', error.message);
+      return false;
+    }
+  });
 
   /**
-   * 绘制所有节点
-   * @param {Object} visibleArea - 可视区域
-   * @param {Array} nodes - 节点数组
-   * @param {Boolean} isCurrentLayer - 是否当前层
-   * @param {String} currentMemberId - 当前成员ID
+   * 销毁资源
    */
-  drawNodes(visibleArea, nodes, isCurrentLayer = true, currentMemberId) {
-    if (!this.ctx || !nodes || !nodes.length) return;
-    
-    // 过滤可见节点
-    const visibleNodes = this._filterVisibleNodes(nodes, visibleArea);
-    
-    if (!visibleNodes.length) return;
-    
-    // 绘制节点背景
-    this._batchDrawNodeBackgrounds(visibleNodes);
-    
-    // 绘制节点边框
-    this._batchDrawNodeBorders(visibleNodes, currentMemberId);
-    
-    // 绘制节点内容
-    this._batchDrawNodeContents(visibleNodes, currentMemberId);
-  }
-  
-  /**
-   * 过滤可见节点
-   * @param {Array} nodes - 节点数组
-   * @param {Object} visibleArea - 可视区域
-   * @returns {Array} 可见节点数组
-   * @private
-   */
-  _filterVisibleNodes(nodes, visibleArea) {
-    if (!visibleArea) return [];
-    
-    return nodes.filter(node => {
-      // 基本边界框检查
-      const right = node.x + (node.width || 120);
-      const bottom = node.y + (node.height || 150);
-      
-      return (
-        right >= visibleArea.left - visibleArea.buffer &&
-        node.x <= visibleArea.right + visibleArea.buffer &&
-        bottom >= visibleArea.top - visibleArea.buffer &&
-        node.y <= visibleArea.bottom + visibleArea.buffer
-      );
-    });
-  }
-  
-  /**
-   * 绘制连接线
-   * @param {Object} visibleArea - 可视区域
-   * @param {Array} connectors - 连接线数组
-   * @param {Boolean} isCurrentLayer - 是否当前层
-   */
-  drawConnectors(visibleArea, connectors, isCurrentLayer = true) {
-    if (!this.ctx || !connectors || !connectors.length) return;
-    
-    // 绘制连接线
-    connectors.forEach(conn => {
-      // 基本可见性检查
-      if (
-        conn.fromX > visibleArea.right + visibleArea.buffer ||
-        conn.toX < visibleArea.left - visibleArea.buffer ||
-        conn.fromY > visibleArea.bottom + visibleArea.buffer ||
-        conn.toY < visibleArea.top - visibleArea.buffer
-      ) {
-        return; // 不可见，跳过
-      }
-      
-      // 设置线的样式
-      this.ctx.strokeStyle = conn.type === 'spouse' ? '#f0c542' : '#4287f5';
-      this.ctx.lineWidth = 2;
-      
-      // 绘制连接线
-      this.ctx.beginPath();
-      this.ctx.moveTo(conn.fromX, conn.fromY);
-      
-      if (conn.type === 'spouse') {
-        // 配偶关系用直线
-        this.ctx.lineTo(conn.toX, conn.toY);
-      } else {
-        // 父子关系用折线
-        const midY = (conn.fromY + conn.toY) / 2;
-        this.ctx.lineTo(conn.fromX, midY);
-        this.ctx.lineTo(conn.toX, midY);
-        this.ctx.lineTo(conn.toX, conn.toY);
-      }
-      
-      this.ctx.stroke();
-    });
-  }
-  
-  /**
-   * 批量绘制节点背景
-   * @param {Array} nodes - 节点数组
-   * @private
-   */
-  _batchDrawNodeBackgrounds(nodes) {
-    this.ctx.fillStyle = '#ffffff';
-    
-    nodes.forEach(node => {
-      const x = node.x;
-      const y = node.y;
-      const width = node.width || 120;
-      const height = node.height || 150;
-      const radius = 10;
-      
-      // 使用统一的圆角矩形绘制
-      this._drawRoundRect(x, y, width, height, radius);
-      this.ctx.fill();
-    });
-  }
-  
-  /**
-   * 绘制圆角矩形
-   * @param {Number} x - X坐标
-   * @param {Number} y - Y坐标
-   * @param {Number} width - 宽度
-   * @param {Number} height - 高度
-   * @param {Number} radius - 圆角半径
-   * @private
-   */
-  _drawRoundRect(x, y, width, height, radius) {
-    if (!this.ctx) return;
-    
-    // 参数验证
-    x = Number(x) || 0;
-    y = Number(y) || 0;
-    width = Number(width) || 0;
-    height = Number(height) || 0;
-    radius = Number(radius) || 0;
-    
-    // 异常大小检查
-    if (width > 10000 || height > 10000 || width < 0 || height < 0) {
-      width = Math.max(0, Math.min(width, 10000));
-      height = Math.max(0, Math.min(height, 10000));
-    }
-
-    // 无效尺寸不绘制
-    if (width <= 0 || height <= 0) return;
-
-    // 确保半径不超过矩形尺寸的一半
-    radius = Math.min(radius, Math.min(width / 2, height / 2));
-    
-    // 极小半径使用普通矩形
-    if (radius <= 1) {
-      this.ctx.beginPath();
-      this.ctx.rect(x, y, width, height);
-      this.ctx.closePath();
-      return;
-    }
-
-    // 使用arcTo方法绘制圆角
-    this.ctx.beginPath();
-    this.ctx.moveTo(x + radius, y);
-    this.ctx.arcTo(x + width, y, x + width, y + height, radius);
-    this.ctx.arcTo(x + width, y + height, x, y + height, radius);
-    this.ctx.arcTo(x, y + height, x, y, radius);
-    this.ctx.arcTo(x, y, x + width, y, radius);
-    this.ctx.closePath();
-  }
-  
-  /**
-   * 批量绘制节点边框
-   * @param {Array} nodes - 节点数组
-   * @param {String} currentMemberId - 当前成员ID
-   * @private
-   */
-  _batchDrawNodeBorders(nodes, currentMemberId) {
-    // 保存当前状态
-    this.ctx.save();
-    
-    nodes.forEach(node => {
-      const x = node.x;
-      const y = node.y;
-      const width = node.width || 120;
-      const height = node.height || 150;
-      const radius = 10;
-      
-      // 判断是否当前成员
-      const isCurrent = node.memberId === currentMemberId;
-      
-      // 根据状态设置边框颜色
-      if (isCurrent) {
-        this.ctx.strokeStyle = '#FF5722'; // 当前成员高亮
-        this.ctx.lineWidth = 3;
-      } else {
-        this.ctx.strokeStyle = '#E0E0E0';
-        this.ctx.lineWidth = 1;
-      }
-      
-      // 绘制边框
-      this._drawRoundRect(x, y, width, height, radius);
-      this.ctx.stroke();
-    });
-    
-    // 恢复状态
-    this.ctx.restore();
-  }
-  
-  /**
-   * 批量绘制节点内容
-   * @param {Array} nodes - 节点数组
-   * @param {String} currentMemberId - 当前成员ID
-   * @private
-   */
-  _batchDrawNodeContents(nodes, currentMemberId) {
-    const allMembers = this.component.properties.allMembers || [];
-    
-    // 遍历所有节点
-    nodes.forEach(node => {
-      const x = node.x;
-      const y = node.y;
-      const width = node.width || 120;
-      const height = node.height || 150;
-      
-      // 查找成员数据
-      const member = allMembers.find(m => m.id === node.memberId);
-      if (!member) return;
-      
-      // 计算头像位置
-      const avatarSize = Math.min(width * 0.6, 60);
-      const avatarX = x + (width - avatarSize) / 2;
-      const avatarY = y + 20;
-      
-      // 绘制头像
-      this._drawAvatar(member, avatarX, avatarY, avatarSize);
-      
-      // 绘制文字
-      this._drawNodeText(member, x, y, width, height, avatarY, avatarSize);
-    });
-  }
-  
-  /**
-   * 绘制头像
-   * @param {Object} member - 成员数据
-   * @param {Number} avatarX - 头像X坐标
-   * @param {Number} avatarY - 头像Y坐标
-   * @param {Number} avatarSize - 头像尺寸
-   * @private
-   */
-  _drawAvatar(member, avatarX, avatarY, avatarSize) {
-    // 保存当前状态
-    this.ctx.save();
-    
-    // 创建圆形裁剪区域
-    this.ctx.beginPath();
-    this.ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
-    this.ctx.clip();
-    
-    // 获取头像URL
-    const avatarUrl = member.avatar || '';
-    
-    // 精灵图渲染模式
-    if (this._spriteEnabled && avatarUrl) {
-      // 添加到要处理的URL集合，稍后会用于生成新的精灵图
-      this._avatarUrls.add(avatarUrl);
-      
-      // 检查是否存在精灵图信息
-      if (this._spriteCache) {
-        // 查找包含该URL的所有精灵图
-        for (const cacheKey in this._spriteCache) {
-          const spriteInfo = this._spriteCache[cacheKey];
-          
-          // 如果该精灵图包含这个头像
-          if (spriteInfo && spriteInfo.positionMap && spriteInfo.positionMap[avatarUrl]) {
-            // 获取头像在精灵图中的位置信息
-            const pos = spriteInfo.positionMap[avatarUrl];
-            
-            // 绘制精灵图的对应区域
-            try {
-              // 使用组件的图像缓存管理器获取图像
-              if (this.component.imageCacheManager) {
-                const image = this.component.imageCacheManager.get(spriteInfo.spriteUrl);
-                if (image) {
-                  this.ctx.drawImage(
-                    image,
-                    pos.x, pos.y, pos.size, pos.size, // 精灵图中的位置和大小
-                    avatarX, avatarY, avatarSize, avatarSize // 画布上的位置和大小
-                  );
-                  // 成功绘制，恢复状态并返回
-                  this.ctx.restore();
-                  return;
-                } else {
-                  // 精灵图未加载，预加载它
-                  this.component.imageCacheManager.preloadSprite(spriteInfo.spriteUrl);
-                }
-              }
-            } catch (error) {
-              console.error('绘制精灵图失败:', error);
-              // 失败时继续使用普通模式
-            }
-          }
-        }
-      }
+  dispose = ErrorHandler.wrap(function() {
+    if (this.treeRenderer) {
+      this.treeRenderer.dispose();
+      this.treeRenderer = null;
     }
     
-    // 普通模式：使用单张图像
-    // 使用组件的图像缓存管理器获取图像
-    if (this.component.imageCacheManager && avatarUrl) {
-      const cachedImage = this.component.imageCacheManager.get(avatarUrl);
-      
-      if (cachedImage) {
-        // 从缓存绘制
-        try {
-          this.ctx.drawImage(cachedImage, avatarX, avatarY, avatarSize, avatarSize);
-          // 恢复状态并返回
-          this.ctx.restore();
-          return;
-        } catch (error) {
-          console.warn('绘制头像失败:', error);
-          // 继续执行, 使用默认头像
-        }
-      }
+    this.canvas = null;
+    this.ctx = null;
+    this._spriteCache = null;
+    this._avatarUrls.clear();
+  }, {
+    operation: '释放Canvas2D渲染器资源',
+    onError(error) {
+      console.error('[Canvas2D] 释放资源失败:', error.message);
     }
-    
-    // 缓存中没有图像或绘制失败，使用默认头像
-    this._drawDefaultAvatar(member, avatarX, avatarY, avatarSize);
-    
-    // 队列加载图像
-    if (avatarUrl && this.component.imageCacheManager) {
-      this.component.imageCacheManager.queueImageLoad(avatarUrl);
-    }
-    
-    // 恢复状态
-    this.ctx.restore();
-  }
-  
-  /**
-   * 绘制默认头像
-   * @param {Object} member - 成员数据
-   * @param {Number} x - X坐标
-   * @param {Number} y - Y坐标
-   * @param {Number} size - 尺寸
-   * @private
-   */
-  _drawDefaultAvatar(member, x, y, size) {
-    // 根据性别绘制不同底色
-    if (member.gender === 'female') {
-      this.ctx.fillStyle = '#FFC0CB'; // 女性粉色
-    } else {
-      this.ctx.fillStyle = '#ADD8E6'; // 男性蓝色
-    }
-    
-    // 绘制圆形背景
-    this.ctx.fillRect(x, y, size, size);
-    
-    // 绘制文本
-    this.ctx.fillStyle = '#333333';
-    this.ctx.font = `${Math.floor(size / 3)}px sans-serif`;
-    this.ctx.textAlign = 'center';
-    this.ctx.textBaseline = 'middle';
-    
-    // 获取姓名首字
-    const firstChar = (member.name || '').charAt(0) || '?';
-    this.ctx.fillText(firstChar, x + size / 2, y + size / 2);
-  }
-  
-  /**
-   * 绘制节点文本
-   * @param {Object} member - 成员数据
-   * @param {Number} nodeX - 节点X坐标
-   * @param {Number} nodeY - 节点Y坐标
-   * @param {Number} width - 节点宽度
-   * @param {Number} height - 节点高度
-   * @param {Number} avatarY - 头像Y坐标
-   * @param {Number} avatarSize - 头像尺寸
-   * @private
-   */
-  _drawNodeText(member, nodeX, nodeY, width, height, avatarY, avatarSize) {
-    // 设置文本样式
-    this.ctx.textAlign = 'center';
-    this.ctx.textBaseline = 'top';
-    
-    // 计算文本位置
-    const textY = avatarY + avatarSize + 10;
-    const textX = nodeX + width / 2;
-    
-    // 绘制姓名
-    this.ctx.font = '14px sans-serif';
-    this.ctx.fillStyle = '#333333';
-    this.ctx.fillText(member.name || '', textX, textY, width - 10);
-    
-    // 绘制年龄
-    const birthYear = member.birthYear ? ` (${member.birthYear})` : '';
-    this.ctx.font = '12px sans-serif';
-    this.ctx.fillStyle = '#666666';
-    this.ctx.fillText(birthYear, textX, textY + 20, width - 10);
-  }
+  });
 }
 
-module.exports = Canvas2DRenderer; 
+module.exports = {
+  Canvas2DRenderer
+}; 

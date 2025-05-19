@@ -39,7 +39,7 @@ Page({
     }
     
     // 获取屏幕高度
-    const systemInfo = wx.getSystemInfoSync();
+    const systemInfo = wx.getWindowInfo();
     const windowHeight = systemInfo.windowHeight;
     
     // 计算时间轴高度（减去顶部区域高度）

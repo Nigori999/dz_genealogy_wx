@@ -112,31 +112,36 @@
   display: flex;
 }
 
-.control-btn {
+.control-item {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 6px 12px;
-  border-radius: 16px;
-  margin-right: 8px;
+  padding: 8px 16px;
+  border-radius: 18px;
+  margin-right: 10px;
   font-size: 14px;
   color: var(--color-text-medium);
   background-color: var(--color-background);
+  transition: all 0.3s ease;
 }
 
-.control-btn:last-child {
+.control-item:last-child {
   margin-right: 0;
 }
 
-.control-btn.active {
+.control-item.active {
   background-color: var(--color-primary-ultralight);
   color: var(--color-primary);
   font-weight: bold;
 }
 
-.control-btn .iconfont {
-  margin-right: 4px;
+.control-item .iconfont {
+  margin-right: 6px;
   font-size: 16px;
+}
+
+.control-text {
+  font-size: 14px;
 }
 
 /* 世代筛选器 */
@@ -168,6 +173,16 @@
   background-color: var(--color-primary-ultralight);
   color: var(--color-primary);
   font-weight: bold;
+}
+
+/* 视图相关样式 */
+.tree-view, .list-view {
+  display: none;
+  width: 100%;
+}
+
+.tree-view.active, .list-view.active {
+  display: block;
 }
 
 /* 树图视图 */
@@ -714,4 +729,51 @@ cover-view.control-label {
 .member-select-icon {
   color: #bbb;
   font-size: 40rpx;
+}
+
+/* 搜索栏样式 */
+.search-bar {
+  padding: 10px 16px;
+  background-color: #fff;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.search-input-wrap {
+  display: flex;
+  align-items: center;
+  background-color: #f5f5f5;
+  border-radius: 18px;
+  padding: 8px 12px;
+}
+
+.search-input-wrap .iconfont {
+  color: #999;
+  margin-right: 8px;
+  font-size: 16px;
+}
+
+.search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  height: 20px;
+  font-size: 14px;
+}
+
+/* 空列表状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 0;
+  color: #999;
+}
+
+.empty-state .iconfont {
+  font-size: 40px;
+  margin-bottom: 10px;
+  color: #ddd;
 }

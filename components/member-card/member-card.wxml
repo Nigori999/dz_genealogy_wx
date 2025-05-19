@@ -1,13 +1,19 @@
 <!-- 成员卡片组件 -->
 <view class="member-card">
   <view class="member-card-inner {{cardClasses}}">
+    <!-- 添加性别标识条 -->
+    <view class="gender-indicator"></view>
     <view class="member-avatar">
       <image 
         src="{{member.avatar || (member.gender === 'male' ? '/images/avatar_male_default.png' : '/images/avatar_female_default.png')}}" 
         mode="aspectFill"
         bindtap="previewAvatar"
       ></image>
-      <view wx:if="{{member.deathDate}}" class="memorial-badge"></view>
+      <view wx:if="{{member.deathDate}}" class="memorial-badge">
+        <!-- 添加X标记线条 -->
+        <view class="memorial-badge-line memorial-badge-line-1"></view>
+        <view class="memorial-badge-line memorial-badge-line-2"></view>
+      </view>
     </view>
     <view class="member-info">
       <view class="member-name">{{member.name}}</view>

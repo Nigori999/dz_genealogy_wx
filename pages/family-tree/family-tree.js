@@ -97,7 +97,7 @@ Page({
    * 初始化视图高度
    */
   _initViewHeights: function() {
-    const systemInfo = wx.getSystemInfoSync();
+    const systemInfo = wx.getWindowInfo();
     const windowHeight = systemInfo.windowHeight;
     const windowWidth = systemInfo.windowWidth;
     
@@ -132,7 +132,7 @@ Page({
    */
   _detectDeviceCapabilities: function() {
     try {
-      const systemInfo = wx.getSystemInfoSync();
+      const systemInfo = wx.getAppBaseInfo();
       const sdkVersion = systemInfo.SDKVersion;
       
       // 检查基础库版本, Canvas 2D API需要2.9.0+
@@ -723,6 +723,67 @@ Page({
         viewMode: mode,
         direction: 'vertical' // 确保总是使用垂直显示方向
       });
+      
+      // 如果切换到树图视图，确保Canvas正确初始化和渲染
+      if (mode === 'tree') {
+        wx.nextTick(() => {
+          // 重新获取Canvas组件实例
+          this.treeCanvas = this.selectComponent('#canvasFamilyTree');
+          
+          if (this.treeCanvas) {
+            console.log('[族谱树] 视图切换到树图，触发Canvas重新初始化和渲染');
+            
+            // 确保Canvas有正确的可见性样式
+            const query = wx.createSelectorQuery();
+            query.select('.tree-view-container')
+              .fields({ node: true, size: true })
+              .exec((res) => {
+                if (res[0]) {
+                  console.log('[族谱树] 树视图容器尺寸:', res[0].width, 'x', res[0].height);
+                }
+              });
+            
+            // 强制刷新Canvas尺寸，因为在隐藏状态时，Canvas尺寸可能未正确初始化
+            if (this.treeCanvas._resizeCanvas) {
+              setTimeout(() => {
+                this.treeCanvas._resizeCanvas();
+              }, 50);
+            }
+            
+            // 强制更新WebGL状态
+            if (this.treeCanvas.data.webgl && !this.treeCanvas.data.webgl.initialized) {
+              if (this.treeCanvas._initWebGLCanvas && this.treeCanvas.canvas) {
+                setTimeout(() => {
+                  // 初始化WebGL Canvas
+                  this.treeCanvas._initWebGLCanvas(this.treeCanvas.canvas);
+                }, 100);
+              }
+            }
+            
+            // 强制重置族谱树位置 - 解决视图切换后树没有居中的问题
+            setTimeout(() => {
+              if (this.treeCanvas.reset) {
+                // 重置位置和缩放
+                this.treeCanvas.reset();
+              }
+            }, 200);
+            
+            // 延迟强制渲染，确保DOM和Canvas已完全就绪
+            setTimeout(() => {
+              if (this.treeCanvas._render) {
+                this.treeCanvas._render();
+                
+                // 额外保险，再次延迟后再次渲染以应对一些异步操作
+                setTimeout(() => {
+                  this.treeCanvas._render();
+                }, 300);
+              }
+            }, 150);
+          } else {
+            console.error('[族谱树] 视图切换到树图，但Canvas组件未找到');
+          }
+        });
+      }
     }
   },
 
