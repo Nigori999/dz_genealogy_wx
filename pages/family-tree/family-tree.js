@@ -24,34 +24,42 @@ Page({
    * 页面的初始数据
    */
   data: {
-    isLoading: true,
+    // 族谱数据
     currentGenealogy: null,
-    currentUser: null,
+    members: [],
     allMembers: [],
-    familyTree: null,
-    allTreeNodes: [],         // 所有树节点（完整树）
-    allTreeConnectors: [],    // 所有连接线（完整树）
-    treeWidth: 1000,
-    treeHeight: 1000,
-    treeViewHeight: 500,
-    treeViewWidth: 0,         // 视图宽度
-    listViewHeight: 500,
-    viewMode: 'tree',         // tree 或 list
-    direction: 'vertical',    // vertical 或 horizontal
-    generations: [],          // 所有世代数
-    selectedGeneration: 0,    // 0 表示全部
     filteredMembers: [],
+    familyTree: null,
+    allTreeNodes: [],
+    allTreeConnectors: [],
+    selectedMember: null,
+    // 当前用户信息 - 确保设置当前用户
+    currentUser: {
+      memberId: 'test_016'  // 设置为赵伟ID
+    },
+    // 布局计算
+    treeWidth: 0,
+    treeHeight: 0,
+    // 视图相关
+    treeViewWidth: 0,
+    treeViewHeight: 0,
+    direction: 'vertical',
+    viewMode: 'tree',
+    // 缩放相关
+    zoomScale: 1,
+    zoomLevel: 100,
+    // 状态
+    isLoading: true,
+    searchKeyword: '',
     maxGeneration: 0,
-    zoomScale: 1,             // 缩放比例
-    zoomLevel: 100,           // 缩放百分比
-    currentUserNodeInfo: null, // 当前用户在树图中的节点信息
-    isControlsExpanded: false, // 控制按钮组是否展开
-    centerNodeGeneration: null, // 屏幕中央节点的世代
-    MIN_ZOOM: MIN_ZOOM,       // 最小缩放值
-    MAX_ZOOM: MAX_ZOOM,       // 最大缩放值
-    isHistoryPopupVisible: false, // 家族史弹窗是否可见
-    isGuidePopupVisible: false,   // 操作指引弹窗是否可见
-    genealogyHistory: '',     // 家族史内容
+    // 布局和打印相关
+    pageScale: 1,
+    printMode: false,
+    printOrientation: 'portrait',
+    // 高级设置
+    enableStaticLayout: true,
+    enableNodeTextWrap: false,
+    enableNodeDynamicSize: true,
     // 性能优化设置 - 默认全部启用，系统会自动根据设备能力降级
     optimization: {
       sprite: true,      // 是否启用精灵图
@@ -216,15 +224,19 @@ Page({
   _getUserInfo: function() {
     return api.userAPI.getUserInfo()
       .then(user => {
-        // 确保user和user.memberId有效
+        // 确保user有效
         if (!user) {
-          user = { memberId: '' };
-        } else if (!user.memberId) {
-          user.memberId = '';
+          user = {};
+        }
+        
+        // 保留当前设置的memberId (test_016)，当API未返回有效值时
+        if (!user.memberId || user.memberId === '') {
+          // 使用页面初始化时设置的memberId
+          user.memberId = this.data.currentUser.memberId;
         }
         
         // 确保memberId始终是字符串
-        user.memberId = String(user.memberId || '');
+        user.memberId = String(user.memberId);
         
         console.log('[族谱树] 当前用户信息:', JSON.stringify(user));
         
@@ -233,10 +245,8 @@ Page({
       })
       .catch(error => {
         console.error('获取用户信息失败:', error);
-        // 设置默认值避免null
-        const defaultUser = { memberId: '' };
-        this.setData({ currentUser: defaultUser });
-        return defaultUser;
+        // 使用当前设置的默认值
+        return this.data.currentUser;
       });
   },
 
@@ -629,6 +639,11 @@ Page({
         generation: node.generation || 0,
         gender: node.gender || (memberData ? memberData.gender : ''),
         isRoot: !parentId,
+        // 添加生卒日期信息
+        birthDate: memberData ? memberData.birthDate : null,
+        deathDate: memberData ? memberData.deathDate : null,
+        // 添加称呼关系
+        relationToCurrentUser: memberData ? memberData.relationToCurrentUser : '',
         member: memberData // 添加成员资料
       };
       
@@ -740,19 +755,6 @@ Page({
     };
     
     traverseTree(tree);
-    
-    // 添加调试日志
-    console.log('[族谱树] 构建节点数据完成，共生成', nodes.length, '个节点，', connectors.length, '条连接线');
-    if (nodes.length > 0) {
-      console.log('[族谱树] 节点示例:', {
-        id: nodes[0].id,
-        name: nodes[0].name,
-        x: nodes[0].x,
-        y: nodes[0].y,
-        width: nodes[0].width,
-        height: nodes[0].height
-      });
-    }
     
     return { nodes, connectors, maxX, maxY };
   },

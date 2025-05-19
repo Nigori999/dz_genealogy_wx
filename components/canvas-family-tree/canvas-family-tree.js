@@ -58,6 +58,26 @@ Component({
     viewportHeight: {
       type: Number,
       value: 0
+    },
+    // 【总开关参数】是否启用WebGL
+    enableWebGL: {
+      type: Boolean,
+      value: false
+    },
+    // 【总开关参数】是否启用设备检测
+    enableDeviceDetection: {
+      type: Boolean,
+      value: true
+    },
+    // 【总开关参数】是否启用分层渲染
+    enableLayeredRendering: {
+      type: Boolean,
+      value: true
+    },
+    // 【总开关参数】是否启用精灵图
+    enableSpriteSupport: {
+      type: Boolean,
+      value: true
     }
   },
 
@@ -65,6 +85,7 @@ Component({
    * 组件数据
    */
   data: {
+    // 【变换参数】
     // 偏移量
     offsetX: 0,
     offsetY: 0,
@@ -98,29 +119,29 @@ Component({
     throttleDelay: 30, // 基础节流延迟，单位毫秒
     inFastMovement: false, // 是否在快速移动
 
+    // 【渲染技术配置】
+    // WebGL支持
+    webgl: {
+      enabled: true, // 实际使用的WebGL状态
+      supported: true, // 设备是否支持WebGL
+      initialized: false, // 是否已初始化
+      initializing: false // 是否正在初始化
+    },
+
     // 精灵图支持
     spriteSupport: {
-      enabled: true, // 默认启用精灵图，在设备不支持时才降级
-      supported: false, // 设备是否支持精灵图，将通过检测更新
+      enabled: true, // 实际使用的精灵图状态
+      supported: false, // 设备是否支持精灵图
       batchSize: 20 // 每批处理的头像数量
     },
 
     // 分层渲染配置
     layeredRendering: {
-      enabled: true, // 是否启用分层渲染
+      enabled: true, // 实际使用的分层渲染状态
       currentLayer: 0, // 当前关注的层级
       layerCount: 0, // 总层数
       layerNodes: [], // 按层存储的节点
       layerConnectors: [] // 按层存储的连接线
-    },
-
-    // WebGL支持
-    webgl: {
-      enabled: true, // 默认启用WebGL，在设备不支持时才降级
-      supported: true, // 默认认为设备支持WebGL，只有在检测不支持时才更新为false
-      renderer: null, // WebGL渲染器实例
-      initialized: false, // 是否已初始化
-      initializing: false // 是否正在初始化
     },
 
     // Worker相关状态
@@ -133,28 +154,41 @@ Component({
    */
   lifetimes: {
     async attached() {
-      console.log('组件挂载 - 开始初始化流程');
+      console.log('[族谱树] 组件挂载 - 开始初始化流程');
+
+      // 应用总开关参数到实际配置
+      this._applyGlobalSettings();
 
       // 初始化服务
       this._initServices();
 
       // 检查Worker是否可用
-      this._checkWorkerAvailability();
+      if (this.properties.enableDeviceDetection) {
+        this._checkWorkerAvailability();
+      }
       
       // 直接初始化渲染策略
       wx.nextTick(async () => {
         try {
-          // 初始化渲染策略
+          // 根据配置选择合适的初始化流程
+          if (!this.properties.enableDeviceDetection) {
+            console.log('[族谱树] 设备检测已禁用，直接使用配置的渲染模式');
+            if (this.data.webgl.enabled) {
+              this._initWebGLCanvas();
+            } else {
+              this._init2DCanvas();
+            }
+            return;
+          }
+          
+          // 开启设备检测下的初始化流程
           const success = await RenderStrategies.init(this);
           if (success) {
             console.log('[族谱树] 渲染策略初始化成功');
             
-            // 渲染策略初始化成功后，根据当前渲染模式初始化相应的Canvas
-            if (this.data.webgl && this.data.webgl.enabled) {
-              // 初始化WebGL渲染器
+            if (this.data.webgl.enabled) {
               this._initWebGLCanvas();
             } else {
-              // 初始化Canvas 2D渲染器
               this._init2DCanvas();
             }
             
@@ -166,12 +200,10 @@ Component({
             });
           } else {
             console.warn('[族谱树] 渲染策略初始化失败，使用默认策略');
-            // 默认使用Canvas 2D
             this._init2DCanvas();
           }
         } catch (error) {
           console.error('[族谱树] 渲染策略初始化错误:', error);
-          // 出错时降级到Canvas 2D
           this._init2DCanvas();
         }
         
@@ -201,6 +233,12 @@ Component({
       if (ready && this.ctx && this.canvas && this.properties.treeNodes && this.properties.treeNodes.length > 0) {
         this._render();
       }
+    },
+
+    // 监听总开关参数变化
+    'enableWebGL, enableDeviceDetection, enableLayeredRendering, enableSpriteSupport': function() {
+      console.log('[族谱树] 检测到总开关参数变化，重新应用设置');
+      this._applyGlobalSettings();
     }
   },
 
@@ -208,6 +246,31 @@ Component({
    * 组件方法
    */
   methods: {
+    /**
+     * 应用总开关参数到实际配置
+     * @private
+     */
+    _applyGlobalSettings() {
+      const { enableWebGL, enableDeviceDetection, enableLayeredRendering, enableSpriteSupport } = this.properties;
+      
+      console.log('[族谱树] 应用总开关参数:', {
+        enableWebGL,
+        enableDeviceDetection,
+        enableLayeredRendering,
+        enableSpriteSupport
+      });
+
+      // 设置渲染模式
+      const useWebGL = enableDeviceDetection ? (enableWebGL && this.data.webgl.supported) : enableWebGL;
+      
+      // 应用设置
+      this.setData({
+        'webgl.enabled': useWebGL,
+        'layeredRendering.enabled': enableLayeredRendering,
+        'spriteSupport.enabled': enableSpriteSupport && this.data.spriteSupport.supported
+      });
+    },
+
     /**
      * 初始化服务
      * @private
@@ -590,8 +653,13 @@ Component({
             // 检查是否已存在上下文，如果存在且类型不是2D，需要先清除
             if (this.ctx) {
               console.log('[族谱树] 已存在上下文，类型:', typeof this.ctx);
-              // 如果现有上下文不是2D上下文，需要先清除
-              if (!(this.ctx instanceof CanvasRenderingContext2D)) {
+              // 检查是否为Canvas 2D上下文 - 使用特性检测
+              const is2DContext = this.ctx && 
+                typeof this.ctx.fillRect === 'function' && 
+                typeof this.ctx.drawImage === 'function' && 
+                typeof this.ctx.getImageData === 'function';
+                
+              if (!is2DContext) {
                 console.log('[族谱树] 清除已存在的非2D上下文');
                 this.ctx = null;
               }
@@ -628,9 +696,14 @@ Component({
             // 调整Canvas尺寸
             this._resizeCanvas();
             
-            // 设置为当前渲染模式
+            // 设置为当前渲染模式 - 根据总开关参数
+            // 当WebGL不可用或被禁用时，使用Canvas 2D
+            const useWebGL = this.properties.enableDeviceDetection 
+              ? (this.properties.enableWebGL && this.data.webgl.supported) 
+              : this.properties.enableWebGL;
+              
             this.setData({
-              'webgl.enabled': false
+              'webgl.enabled': useWebGL
             });
             
             // 如果有树节点数据，尝试渲染
@@ -661,6 +734,12 @@ Component({
      * @private
      */
     _initWebGLCanvas: ErrorHandler.wrap(function() {
+        // 如果禁用WebGL，直接使用2D画布
+        if (!this.properties.enableWebGL) {
+          console.log('[族谱树] WebGL已在全局设置中禁用，降级到Canvas 2D');
+          return this._init2DCanvas();
+        }
+    
         console.log('[族谱树] 开始初始化WebGL Canvas');
         
         this._initCanvasBase('#webglFamilyTree', true)
@@ -672,8 +751,13 @@ Component({
             // 检查是否已存在上下文，如果存在且类型不是WebGL，需要先清除
             if (this.ctx) {
               console.log('[族谱树] 已存在上下文，类型:', typeof this.ctx);
-              // 如果现有上下文不是WebGL上下文，需要先清除
-              if (!(this.ctx instanceof WebGLRenderingContext)) {
+              // 检查是否为WebGL上下文 - 使用特性检测
+              const isWebGLContext = this.ctx && 
+                typeof this.ctx.createTexture === 'function' && 
+                typeof this.ctx.viewport === 'function' && 
+                typeof this.ctx.getParameter === 'function';
+                
+              if (!isWebGLContext) {
                 console.log('[族谱树] 清除已存在的非WebGL上下文');
                 this.ctx = null;
               }
@@ -776,7 +860,7 @@ Component({
               'webgl.initialized': true,
               'webgl.initializing': false,
               'webgl.supported': true, // 明确标记为支持
-              'webgl.enabled': true    // 明确启用
+              'webgl.enabled': this.properties.enableWebGL // 使用全局开关状态
             });
             
             // 调整Canvas尺寸
@@ -937,12 +1021,20 @@ Component({
      * @private
      */
     _divideNodesIntoLayers: function() {
+      // 如果不启用分层渲染，则不进行分层处理
+      if (!this.properties.enableLayeredRendering) {
+        console.log('[族谱树] 分层渲染已禁用，跳过分层处理');
+        return;
+      }
+
       const nodes = this.properties.treeNodes;
       const connectors = this.properties.treeConnectors;
 
       if (!nodes || !nodes.length) {
         return;
       }
+
+      console.log('[族谱树] 开始进行节点分层处理，节点数量:', nodes.length);
 
       // 根据节点的generation属性分组
       const layerNodes = [];
@@ -999,8 +1091,11 @@ Component({
         'layeredRendering.currentLayer': Math.min(
           this.data.layeredRendering.currentLayer,
           maxGeneration - 1
-        )
+        ),
+        'layeredRendering.enabled': this.properties.enableLayeredRendering
       });
+
+      console.log('[族谱树] 分层处理完成，共', maxGeneration, '层');
     },
 
     /**
@@ -1040,7 +1135,7 @@ Component({
      * @private
      */
     _getActiveCanvas: function() {
-      const useWebGL = this.data.webgl && this.data.webgl.enabled;
+      const useWebGL = this.properties.enableDeviceDetection ? (this.properties.enableWebGL && this.data.webgl.supported) : this.properties.enableWebGL;
       return useWebGL ? this.canvasWebGL : this.canvas2d;
     },
 
@@ -1081,7 +1176,8 @@ Component({
           console.log('[族谱树] 画布对象存在但渲染器不存在，尝试重新初始化渲染器');
           
           // 重新尝试初始化渲染器
-          const useWebGL = this.data.webgl && this.data.webgl.enabled;
+          const useWebGL = this.properties.enableDeviceDetection ? (this.properties.enableWebGL && this.data.webgl.supported) : this.properties.enableWebGL;
+          
           if (useWebGL) {
             // 尝试重新初始化WebGL
             setTimeout(() => {
@@ -1102,6 +1198,59 @@ Component({
     },
 
     /**
+     * 重置视图 - 使树图以第一个节点为中心显示
+     */
+    reset: function() {
+      console.log('[族谱树] 重置视图，以第一个节点为中心');
+      
+      // 检查节点数据
+      if (!this.properties.treeNodes || this.properties.treeNodes.length === 0) {
+        console.warn('[族谱树] 无节点数据，无法重置视图');
+        return;
+      }
+      
+      // 获取第一个节点
+      const firstNode = this.properties.treeNodes[0];
+      if (!firstNode) {
+        console.warn('[族谱树] 无法获取第一个节点');
+        return;
+      }
+      
+      // 获取视口尺寸
+      const viewportWidth = this.properties.viewportWidth;
+      const viewportHeight = this.properties.viewportHeight;
+      
+      if (!viewportWidth || !viewportHeight) {
+        console.warn('[族谱树] 视口尺寸无效');
+        return;
+      }
+      
+      // 设置合适的缩放比例
+      const scale = 1.0;
+      
+      // 计算偏移量，使第一个节点居中
+      // 顶部边距设为25像素
+      const topMargin = 25;
+      
+      // 计算水平居中的偏移量
+      const offsetX = viewportWidth / 2 - (firstNode.x + firstNode.width / 2) * scale;
+      // 计算垂直偏移量，确保有顶部边距
+      const offsetY = topMargin - firstNode.y * scale;
+      
+      // 更新变换参数
+      this.setData({
+        offsetX,
+        offsetY,
+        currentScale: scale,
+        scalePercentage: Math.round(scale * 100)
+      }, () => {
+        // 更新后立即渲染
+        this._render();
+        console.log('[族谱树] 视图已重置，第一个节点居中显示');
+      });
+    },
+
+    /**
      * 渲染族谱树
      * @private
      */
@@ -1112,7 +1261,9 @@ Component({
         }
 
         // 确定渲染模式
-        const useWebGL = this.data.webgl && this.data.webgl.enabled;
+        const useWebGL = this.properties.enableDeviceDetection 
+          ? (this.properties.enableWebGL && this.data.webgl.supported) 
+          : this.properties.enableWebGL;
         
         // 检查节点数据 - 确保每个节点有必要的属性
         const nodes = this.properties.treeNodes.map(node => {
@@ -1135,6 +1286,9 @@ Component({
           });
         }
         
+        // 获取可视区域
+        const visibleArea = this._calculateVisibleArea();
+        
         // 获取渲染数据
         const treeData = {
           nodes: nodes,
@@ -1144,7 +1298,20 @@ Component({
           scale: this.data.currentScale,
           currentMemberId: this.properties.currentMemberId,
           viewportWidth: this.properties.viewportWidth,
-          viewportHeight: this.properties.viewportHeight
+          viewportHeight: this.properties.viewportHeight,
+          visibleArea: visibleArea,
+          // 渲染配置
+          config: {
+            useWebGL: useWebGL,
+            useLayeredRendering: this.properties.enableLayeredRendering,
+            useSpriteSupport: this.properties.enableSpriteSupport && this.data.spriteSupport.supported,
+            layerData: this.properties.enableLayeredRendering ? {
+              layerNodes: this.data.layeredRendering.layerNodes,
+              layerConnectors: this.data.layeredRendering.layerConnectors,
+              currentLayer: this.data.layeredRendering.currentLayer,
+              layerCount: this.data.layeredRendering.layerCount
+            } : null
+          }
         };
         
         console.log('[族谱树] 开始渲染族谱树，节点数量:', treeData.nodes.length, 
@@ -1153,6 +1320,10 @@ Component({
                       offsetX: this.data.offsetX,
                       offsetY: this.data.offsetY,
                       scale: this.data.currentScale
+                    },
+                    '功能配置:', {
+                      分层渲染: this.properties.enableLayeredRendering ? '启用' : '禁用',
+                      精灵图: this.properties.enableSpriteSupport ? '启用' : '禁用'
                     });
 
         // 使用统一的渲染器接口执行渲染

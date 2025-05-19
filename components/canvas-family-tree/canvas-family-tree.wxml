@@ -14,7 +14,7 @@
   ></canvas>
   
   <!-- WebGL 渲染器 -->
-  <canvas 
+ <canvas 
     type="webgl"
     id="webglFamilyTree"
     canvas-id="webglFamilyTree" 

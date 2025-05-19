@@ -8,6 +8,17 @@ const { coordinateSystem, CoordinateSystem } = require('../services/coordinate-s
 // 导入错误处理工具
 const ErrorHandler = require('../../../utils/error-handler');
 
+// 定义样式常量
+const COLORS = {
+  MALE_BORDER: 'rgba(30, 144, 255, 0.9)',  // 男性节点边框 - 蓝色
+  FEMALE_BORDER: 'rgba(255, 105, 180, 0.9)', // 女性节点边框 - 粉红色
+  CURRENT_USER_BORDER: 'rgba(255, 204, 0, 0.9)', // 当前用户边框 - 杏黄色
+  ROOT_BORDER: 'rgba(255, 128, 0, 0.8)', // 根节点边框 - 橙色
+  DEFAULT_BORDER: 'rgba(204, 204, 204, 0.8)', // 默认边框 - 灰色
+  PARENT_CHILD_LINE: 'rgba(150, 150, 150, 0.7)', // 父子关系连接线 - 中灰色
+  SPOUSE_LINE: 'rgba(130, 130, 130, 0.7)' // 夫妻关系连接线 - 深灰色
+};
+
 /**
  * Canvas 2D树渲染器
  * 负责2D渲染的底层实现
@@ -187,11 +198,11 @@ class Canvas2DTreeRenderer {
   _renderConnectors = ErrorHandler.wrap(function(connectors, visibleArea) {
     if (!connectors || connectors.length === 0) return;
     
-    // 批量绘制连接线以提高性能
-    this.ctx.beginPath();
-    this.ctx.strokeStyle = 'rgba(128, 128, 128, 0.6)';
-    this.ctx.lineWidth = 1;
+    // 按类型分组
+    const parentChildConnectors = [];
+    const spouseConnectors = [];
     
+    // 分类连接线
     for (const conn of connectors) {
       // 快速可见性检查 - 如果可视区域存在，跳过不可见的连接线
       if (visibleArea && (
@@ -203,11 +214,74 @@ class Canvas2DTreeRenderer {
         continue;
       }
       
-      this.ctx.moveTo(conn.fromX, conn.fromY);
-      this.ctx.lineTo(conn.toX, conn.toY);
+      // 按类型归类
+      if (conn.type === 'spouse') {
+        spouseConnectors.push(conn);
+      } else {
+        parentChildConnectors.push(conn);
+      }
     }
     
-    this.ctx.stroke();
+    // 1. 绘制父子关系连接线 - 贝塞尔曲线
+    if (parentChildConnectors.length > 0) {
+      this.ctx.strokeStyle = COLORS.PARENT_CHILD_LINE;
+      this.ctx.lineWidth = 1;
+      // 重置虚线模式，确保使用实线
+      this.ctx.setLineDash([]);
+      
+      for (const conn of parentChildConnectors) {
+        const startX = conn.fromX;
+        const startY = conn.fromY;
+        const endX = conn.toX;
+        const endY = conn.toY;
+        const yDistance = endY - startY;
+        
+        // 创建贝塞尔曲线控制点
+        // 控制点在起点和终点的垂直中点
+        const controlY = startY + yDistance / 2;
+        
+        // 绘制贝塞尔曲线
+        this.ctx.beginPath();
+        this.ctx.moveTo(startX, startY);
+        this.ctx.bezierCurveTo(
+          startX, controlY, // 第一控制点
+          endX, controlY,   // 第二控制点
+          endX, endY        // 终点
+        );
+        this.ctx.stroke();
+      }
+    }
+    
+    // 2. 绘制夫妻关系连接线 - 虚线贝塞尔曲线
+    if (spouseConnectors.length > 0) {
+      this.ctx.strokeStyle = COLORS.SPOUSE_LINE;
+      this.ctx.lineWidth = 1;
+      // 设置虚线样式
+      this.ctx.setLineDash([4, 3]);
+      
+      for (const conn of spouseConnectors) {
+        const startX = conn.fromX;
+        const startY = conn.fromY;
+        const endX = conn.toX;
+        const endY = conn.toY;
+        const xDistance = endX - startX;
+        
+        // 绘制略带弧度的贝塞尔曲线
+        // 水平夫妻关系连接线的控制点向下偏移一些，形成轻微的弧度
+        const controlY = startY + 10; // 偏移10像素形成弧度
+        
+        this.ctx.beginPath();
+        this.ctx.moveTo(startX, startY);
+        this.ctx.quadraticCurveTo(
+          startX + xDistance / 2, controlY, // 控制点
+          endX, endY                        // 终点
+        );
+        this.ctx.stroke();
+      }
+      
+      // 重置虚线模式，避免影响其他绘制
+      this.ctx.setLineDash([]);
+    }
   }, {
     operation: '渲染连接线',
     onError(error) {
@@ -239,7 +313,7 @@ class Canvas2DTreeRenderer {
     // 绘制节点背景
     this._batchDrawNodeBackgrounds(visibleNodes);
     
-    // 绘制节点边框
+    // 绘制节点边框和阴影
     this._batchDrawNodeBorders(visibleNodes, currentMemberId);
     
     // 绘制节点内容（名称、头像等）
@@ -261,9 +335,14 @@ class Canvas2DTreeRenderer {
         y: nodes[0].y,
         width: nodes[0].width,
         height: nodes[0].height,
-        name: nodes[0].name
+        name: nodes[0].name,
+        gender: nodes[0].gender,
+        member: nodes[0].member
       });
     }
+    
+    // 圆角半径
+    const borderRadius = 8;
     
     // 修复节点尺寸
     for (const node of nodes) {
@@ -271,76 +350,188 @@ class Canvas2DTreeRenderer {
       if (!node.width) node.width = 120; // 提供默认宽度
       if (!node.height) node.height = 150; // 提供默认高度
       
-      // 默认背景颜色
-      if (node.id === this.currentMemberId) {
-        // 当前选中节点使用高亮背景
-        this.ctx.fillStyle = 'rgba(230, 247, 255, 0.9)';
-      } else if (node.isRoot) {
-        // 根节点使用特殊背景
-        this.ctx.fillStyle = 'rgba(255, 248, 230, 0.9)';
+      // 创建渐变背景
+      const x = node.x;
+      const y = node.y;
+      const width = node.width;
+      const height = node.height;
+      const gradient = this.ctx.createLinearGradient(x, y, x, y + height);
+      
+      // 默认背景颜色 - 当前用户节点不再使用特殊背景，而是使用其性别对应的背景
+      if (node.isRoot) {
+        // 根节点使用特殊背景 - 暖橙色渐变
+        gradient.addColorStop(0, 'rgba(255, 248, 230, 0.95)');
+        gradient.addColorStop(1, 'rgba(255, 235, 205, 0.9)');
+      } else if (node.gender === 'male') {
+        // 男性节点 - 蓝色渐变
+        gradient.addColorStop(0, 'rgba(240, 248, 255, 0.95)');
+        gradient.addColorStop(1, 'rgba(230, 240, 250, 0.9)');
+      } else if (node.gender === 'female') {
+        // 女性节点 - 粉色渐变
+        gradient.addColorStop(0, 'rgba(255, 240, 245, 0.95)');
+        gradient.addColorStop(1, 'rgba(250, 230, 240, 0.9)');
       } else {
-        // 普通节点
-        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        // 普通节点 - 灰白渐变
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+        gradient.addColorStop(1, 'rgba(245, 245, 245, 0.9)');
       }
       
-      this.ctx.fillRect(node.x, node.y, node.width, node.height);
+      this.ctx.fillStyle = gradient;
+      
+      // 绘制圆角矩形
+      this.ctx.beginPath();
+      this.ctx.moveTo(x + borderRadius, y);
+      this.ctx.lineTo(x + width - borderRadius, y);
+      this.ctx.quadraticCurveTo(x + width, y, x + width, y + borderRadius);
+      this.ctx.lineTo(x + width, y + height - borderRadius);
+      this.ctx.quadraticCurveTo(x + width, y + height, x + width - borderRadius, y + height);
+      this.ctx.lineTo(x + borderRadius, y + height);
+      this.ctx.quadraticCurveTo(x, y + height, x, y + height - borderRadius);
+      this.ctx.lineTo(x, y + borderRadius);
+      this.ctx.quadraticCurveTo(x, y, x + borderRadius, y);
+      this.ctx.closePath();
+      this.ctx.fill();
     }
   }
   
   /**
-   * 批量绘制节点边框
+   * 批量绘制节点边框和阴影
    * @param {Array} nodes - 节点数组
    * @param {String} currentMemberId - 当前成员ID
    * @private
    */
   _batchDrawNodeBorders(nodes, currentMemberId) {
-    // 分组绘制，减少状态切换
+    // 圆角半径
+    const borderRadius = 8;
     
-    // 绘制普通节点边框
-    this.ctx.strokeStyle = 'rgba(204, 204, 204, 0.8)';
-    this.ctx.lineWidth = 1;
+    // 按类型分组，减少状态切换
+    const maleNodes = [];
+    const femaleNodes = [];
+    const rootNodes = [];
+    const currentNodes = [];
+    const otherNodes = [];
     
-    const normalNodes = nodes.filter(node => 
-      !node.isRoot && (!currentMemberId || node.id !== currentMemberId)
-    );
-    
-    if (normalNodes.length > 0) {
-      this.ctx.beginPath();
-      for (const node of normalNodes) {
-        this.ctx.rect(node.x, node.y, node.width, node.height);
+    // 分类节点
+    for (const node of nodes) {
+      if (node.id === currentMemberId) {
+        currentNodes.push(node);
+      } else if (node.isRoot) {
+        rootNodes.push(node);
+      } else if (node.gender === 'male') {
+        maleNodes.push(node);
+      } else if (node.gender === 'female') {
+        femaleNodes.push(node);
+      } else {
+        otherNodes.push(node);
       }
-      this.ctx.stroke();
     }
     
-    // 绘制根节点边框
-    this.ctx.strokeStyle = 'rgba(255, 128, 0, 0.8)';
-    this.ctx.lineWidth = 1.5;
+    // 保存当前绘图状态
+    this.ctx.save();
     
-    const rootNodes = nodes.filter(node => node.isRoot);
+    // 添加阴影效果
+    this.ctx.shadowOffsetX = 0;
+    this.ctx.shadowOffsetY = 2;
+    this.ctx.shadowBlur = 5;
     
+    // 绘制普通节点阴影
+    if (otherNodes.length > 0) {
+      this.ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+      
+      for (const node of otherNodes) {
+        this._drawRoundedRect(node.x, node.y, node.width, node.height, borderRadius);
+        this.ctx.fillStyle = 'rgba(255, 255, 255, 0)'; // 透明填充，只渲染阴影
+        this.ctx.fill();
+      }
+    }
+    
+    // 绘制男性节点阴影 - 带淡蓝色调
+    if (maleNodes.length > 0) {
+      this.ctx.shadowColor = 'rgba(30, 144, 255, 0.3)';
+      
+      for (const node of maleNodes) {
+        this._drawRoundedRect(node.x, node.y, node.width, node.height, borderRadius);
+        this.ctx.fillStyle = 'rgba(255, 255, 255, 0)';
+        this.ctx.fill();
+      }
+    }
+    
+    // 绘制女性节点阴影 - 带淡粉色调
+    if (femaleNodes.length > 0) {
+      this.ctx.shadowColor = 'rgba(255, 105, 180, 0.3)';
+      
+      for (const node of femaleNodes) {
+        this._drawRoundedRect(node.x, node.y, node.width, node.height, borderRadius);
+        this.ctx.fillStyle = 'rgba(255, 255, 255, 0)';
+        this.ctx.fill();
+      }
+    }
+    
+    // 绘制根节点阴影 - 带橙色调
     if (rootNodes.length > 0) {
-      this.ctx.beginPath();
+      this.ctx.shadowColor = 'rgba(255, 128, 0, 0.35)';
+      this.ctx.shadowBlur = 6;
+      
       for (const node of rootNodes) {
-        this.ctx.rect(node.x, node.y, node.width, node.height);
+        this._drawRoundedRect(node.x, node.y, node.width, node.height, borderRadius);
+        this.ctx.fillStyle = 'rgba(255, 255, 255, 0)';
+        this.ctx.fill();
       }
-      this.ctx.stroke();
     }
     
-    // 绘制当前节点边框
-    if (currentMemberId) {
-      this.ctx.strokeStyle = 'rgba(24, 144, 255, 0.8)';
-      this.ctx.lineWidth = 2;
+    // 绘制当前节点阴影和边框 - 使用更明显的黄色调
+    if (currentNodes.length > 0) {
+      // 绘制阴影
+      this.ctx.shadowColor = 'rgba(255, 204, 0, 0.45)';
+      this.ctx.shadowBlur = 7;
       
-      const currentNodes = nodes.filter(node => node.id === currentMemberId);
+      for (const node of currentNodes) {
+        this._drawRoundedRect(node.x, node.y, node.width, node.height, borderRadius);
+        this.ctx.fillStyle = 'rgba(255, 255, 255, 0)';
+        this.ctx.fill();
+      }
       
-      if (currentNodes.length > 0) {
-        this.ctx.beginPath();
-        for (const node of currentNodes) {
-          this.ctx.rect(node.x, node.y, node.width, node.height);
-        }
+      // 恢复绘图状态以绘制边框
+      this.ctx.restore();
+      
+      // 为当前用户节点添加杏黄色边框
+      this.ctx.strokeStyle = 'rgba(255, 204, 0, 0.9)'; // 杏黄色边框
+      this.ctx.lineWidth = 2.5;
+      
+      for (const node of currentNodes) {
+        this._drawRoundedRect(node.x, node.y, node.width, node.height, borderRadius);
         this.ctx.stroke();
       }
+      
+      // 防止函数末尾的this.ctx.restore()重复调用
+      return;
     }
+    
+    // 恢复绘图状态
+    this.ctx.restore();
+  }
+  
+  /**
+   * 绘制圆角矩形路径（不执行绘制）
+   * @param {Number} x - 左上角x坐标
+   * @param {Number} y - 左上角y坐标
+   * @param {Number} width - 宽度
+   * @param {Number} height - 高度
+   * @param {Number} radius - 圆角半径
+   * @private
+   */
+  _drawRoundedRect(x, y, width, height, radius) {
+    this.ctx.beginPath();
+    this.ctx.moveTo(x + radius, y);
+    this.ctx.lineTo(x + width - radius, y);
+    this.ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    this.ctx.lineTo(x + width, y + height - radius);
+    this.ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    this.ctx.lineTo(x + radius, y + height);
+    this.ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    this.ctx.lineTo(x, y + radius);
+    this.ctx.quadraticCurveTo(x, y, x + radius, y);
+    this.ctx.closePath();
   }
   
   /**
@@ -349,15 +540,21 @@ class Canvas2DTreeRenderer {
    * @param {String} currentMemberId - 当前成员ID
    * @private
    */
-  _batchDrawNodeContents(nodes, currentMemberId) {
+  _batchDrawNodeContents = ErrorHandler.wrap(function(nodes, currentMemberId) {
     // 保存当前的成员ID
     this.currentMemberId = currentMemberId;
     
     // 添加调试信息
     console.log('[Canvas2D] 绘制节点内容，节点数量:', nodes.length, '当前成员ID:', currentMemberId);
+    if (nodes.length > 0) {
+      console.log('[Canvas2D] 首个节点详细信息:', nodes[0]);
+    }
+
+    // 缓存图像加载状态，避免重复加载
+    const loadedImages = this._imageCache || {};
+    this._imageCache = loadedImages;
     
-    // 绘制节点内容（名称等）
-    this.ctx.font = '14px Arial';
+    // 设置字体和对齐方式
     this.ctx.textAlign = 'center';
     
     for (const node of nodes) {
@@ -365,23 +562,287 @@ class Canvas2DTreeRenderer {
       if (!node.width) node.width = 120;
       if (!node.height) node.height = 150;
       
-      // 文本颜色
-      this.ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
-      
-      const name = node.name || '';
       const centerX = node.x + node.width / 2;
-      const bottomY = node.y + node.height - 10;
+      const width = node.width;
+      const height = node.height;
       
-      // 实际绘制文本
-      this.ctx.fillText(name, centerX, bottomY);
+      // 获取成员完整信息
+      const memberInfo = this._getMemberInfo(node);
       
-      // 如果没有姓名，至少显示一个占位符，方便调试
-      if (!name && (node.id || '').length > 0) {
+      // 定义布局常量
+      const padding = 10; // 增加内边距
+      const contentWidth = width - (padding * 2); // 内容区宽度
+      
+      // 1. 绘制头像（如果有）
+      const avatarUrl = memberInfo.avatar;
+      if (avatarUrl) {
+        // 恢复合适的头像尺寸
+        const avatarSize = Math.min(width * 0.55, 55); // 适当调整头像尺寸
+        const avatarY = node.y + 14; // 适当调整头像位置
+        
+        // 绘制头像背景圆形
+        this.ctx.fillStyle = '#e0e0e0';
+        this.ctx.beginPath();
+        this.ctx.arc(centerX, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // 尝试加载头像 - 使用微信小程序的方式加载图像
+        if (avatarUrl && avatarUrl.length > 5) {
+          if (loadedImages[avatarUrl]) {
+            // 已加载图像
+            this._drawAvatar(avatarUrl, centerX, avatarY, avatarSize);
+          } else {
+            // 加载新图像 - 使用微信API
+            this._loadImage(avatarUrl, (success) => {
+              if (success) {
+                this._drawAvatar(avatarUrl, centerX, avatarY, avatarSize);
+              }
+            });
+          }
+        }
+      }
+      
+      // 计算文本位置，确保布局舒适
+      const hasAvatar = !!avatarUrl;
+      // 如果有头像，从头像底部留出更多空间再开始文本
+      const textStartY = hasAvatar ? node.y + (width * 0.55) + 28 : node.y + 25;
+      let textY = textStartY;
+      const textLineHeight = 17; // 增加文本行高
+      
+      // 2. 绘制姓名 (大号字体、加粗)
+      if (memberInfo.name) {
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+        this.ctx.font = 'bold 15px sans-serif'; // 调整姓名字号
+        this.ctx.fillText(memberInfo.name, centerX, textY);
+        textY += textLineHeight + 5; // 增加姓名与称呼之间的间距
+      } else if ((node.id || '').length > 0) {
+        // 没有姓名时显示占位符
         this.ctx.fillStyle = 'rgba(150, 150, 150, 0.5)';
-        this.ctx.fillText('未命名', centerX, bottomY);
+        this.ctx.font = 'bold 15px sans-serif';
+        this.ctx.fillText('未命名', centerX, textY);
+        textY += textLineHeight + 5;
+      }
+      
+      // 3. 绘制当前人与节点成员的称呼关系 (突出显示)
+      if (memberInfo.relationToCurrentUser) {
+        this.ctx.fillStyle = 'rgba(24, 144, 255, 0.9)'; // 蓝色突出显示
+        this.ctx.font = 'bold 13px sans-serif'; // 调整称呼关系字号
+        this.ctx.fillText(memberInfo.relationToCurrentUser, centerX, textY);
+        textY += textLineHeight + 3; // 适当的行间距
+      } else if (memberInfo.relation) {
+        // 退化为显示基本关系
+        this.ctx.fillStyle = 'rgba(102, 102, 102, 0.8)';
+        this.ctx.font = '13px sans-serif';
+        this.ctx.fillText(memberInfo.relation, centerX, textY);
+        textY += textLineHeight + 3;
+      }
+      
+      // 4. 绘制生卒年 (小号字体)
+      if (memberInfo.yearRange) {
+        this.ctx.fillStyle = 'rgba(102, 102, 102, 0.7)';
+        this.ctx.font = '12px sans-serif';
+        // 显示年份范围
+        this.ctx.fillText(memberInfo.yearRange, centerX, textY);
       }
     }
-  }
+  }, {
+    operation: '绘制节点内容',
+    onError(error) {
+      console.error('[Canvas2D] 绘制节点内容失败:', error.message);
+    }
+  });
+  
+  /**
+   * 获取成员完整信息
+   * @param {Object} node - 节点数据
+   * @returns {Object} 成员信息
+   * @private
+   */
+  _getMemberInfo = function(node) {
+    // 默认信息
+    const info = {
+      name: '',
+      avatar: '',
+      relation: '',             // 基本关系标签
+      relationToCurrentUser: '', // 与当前用户的称呼关系
+      yearRange: '',
+      gender: ''
+    };
+    
+    // 1. 尝试从节点直接获取
+    if (node.name) info.name = node.name;
+    if (node.avatar) info.avatar = node.avatar;
+    if (node.avatarUrl) info.avatar = node.avatarUrl;
+    if (node.relation) info.relation = node.relation;
+    if (node.relationLabel) info.relation = node.relationLabel;
+    if (node.relationToCurrentUser) info.relationToCurrentUser = node.relationToCurrentUser;
+    if (node.gender) info.gender = node.gender;
+    
+    // 生成年份范围 - 优先从yearRange直接获取
+    if (node.yearRange) {
+      info.yearRange = node.yearRange;
+    } else if (node.birthYear || node.deathYear) {
+      // 直接从birthYear/deathYear获取
+      const birth = node.birthYear || '';
+      const death = node.deathYear || '';
+      if (birth || death) {
+        info.yearRange = `${birth || '?'} - ${death || ''}`;
+      }
+    } else if (node.birthDate || node.deathDate) {
+      // 从birthDate/deathDate提取年份
+      const birth = node.birthDate ? new Date(node.birthDate).getFullYear() : '';
+      const death = node.deathDate ? new Date(node.deathDate).getFullYear() : '';
+      if (birth || death) {
+        info.yearRange = `${birth || '?'} - ${death || ''}`;
+      }
+    }
+    
+    // 2. 尝试从节点的member属性获取
+    if (node.member) {
+      if (!info.name && node.member.name) info.name = node.member.name;
+      if (!info.avatar && node.member.avatar) info.avatar = node.member.avatar;
+      if (!info.avatar && node.member.avatarUrl) info.avatar = node.member.avatarUrl;
+      if (!info.relation && node.member.relation) info.relation = node.member.relation;
+      if (!info.relationToCurrentUser && node.member.relationToCurrentUser) {
+        info.relationToCurrentUser = node.member.relationToCurrentUser;
+      }
+      if (!info.gender && node.member.gender) info.gender = node.member.gender;
+      
+      // 生成年份范围 - 如果尚未设置
+      if (!info.yearRange) {
+        if (node.member.yearRange) {
+          // 直接从成员yearRange获取
+          info.yearRange = node.member.yearRange;
+        } else if (node.member.birthYear || node.member.deathYear) {
+          // 从成员birthYear/deathYear获取
+          const birth = node.member.birthYear || '';
+          const death = node.member.deathYear || '';
+          if (birth || death) {
+            info.yearRange = `${birth || '?'} - ${death || ''}`;
+          }
+        } else if (node.member.birthDate || node.member.deathDate) {
+          // 从成员birthDate/deathDate提取年份
+          const birth = node.member.birthDate ? new Date(node.member.birthDate).getFullYear() : '';
+          const death = node.member.deathDate ? new Date(node.member.deathDate).getFullYear() : '';
+          if (birth || death) {
+            info.yearRange = `${birth || '?'} - ${death || ''}`;
+          }
+        }
+      }
+    }
+    
+    // 3. 尝试从其他可能的属性获取
+    if (!info.name && node.memberName) info.name = node.memberName;
+    if (!info.gender && node.sex) info.gender = node.sex === 'M' ? 'male' : (node.sex === 'F' ? 'female' : '');
+    
+    return info;
+  };
+  
+  /**
+   * 加载图像 - 适配微信小程序环境
+   * @param {String} url - 图像URL
+   * @param {Function} callback - 加载完成回调
+   * @private
+   */
+  _loadImage = function(url, callback) {
+    if (!url) {
+      callback && callback(false);
+      return;
+    }
+    
+    // 检查是否已缓存
+    if (this._imageCache && this._imageCache[url]) {
+      callback && callback(true);
+      return;
+    }
+    
+    // 创建图片对象
+    try {
+      if (typeof wx !== 'undefined' && wx.createImage) {
+        // 微信小程序环境
+        const img = wx.createImage();
+        img.onload = () => {
+          if (this._imageCache) {
+            this._imageCache[url] = img;
+          }
+          callback && callback(true);
+        };
+        img.onerror = () => {
+          console.warn('[Canvas2D] 头像加载失败:', url);
+          callback && callback(false);
+        };
+        img.src = url;
+      } else if (typeof wx !== 'undefined' && wx.downloadFile) {
+        // 另一种微信小程序环境
+        wx.downloadFile({
+          url: url,
+          success: (res) => {
+            if (res.statusCode === 200) {
+              if (this._imageCache) {
+                this._imageCache[url] = res.tempFilePath;
+              }
+              callback && callback(true);
+            } else {
+              console.warn('[Canvas2D] 头像下载失败:', res.statusCode);
+              callback && callback(false);
+            }
+          },
+          fail: (err) => {
+            console.warn('[Canvas2D] 头像下载失败:', err);
+            callback && callback(false);
+          }
+        });
+      } else {
+        // 通用环境 - 浏览器
+        const img = new Image();
+        img.onload = () => {
+          if (this._imageCache) {
+            this._imageCache[url] = img;
+          }
+          callback && callback(true);
+        };
+        img.onerror = () => {
+          console.warn('[Canvas2D] 头像加载失败:', url);
+          callback && callback(false);
+        };
+        img.src = url;
+      }
+    } catch (error) {
+      console.error('[Canvas2D] 加载图像出错:', error);
+      callback && callback(false);
+    }
+  };
+  
+  /**
+   * 绘制头像
+   * @param {String} url - 图像URL
+   * @param {Number} centerX - 中心X坐标
+   * @param {Number} y - Y坐标
+   * @param {Number} size - 尺寸
+   * @private
+   */
+  _drawAvatar = function(url, centerX, y, size) {
+    if (!this._imageCache || !this._imageCache[url]) {
+      return;
+    }
+    
+    try {
+      const x = centerX - size / 2;
+      
+      this.ctx.save();
+      this.ctx.beginPath();
+      this.ctx.arc(centerX, y + size / 2, size / 2, 0, Math.PI * 2);
+      this.ctx.clip();
+      
+      // 绘制图像
+      const img = this._imageCache[url];
+      this.ctx.drawImage(img, x, y, size, size);
+      
+      this.ctx.restore();
+    } catch (error) {
+      console.error('[Canvas2D] 绘制头像出错:', error);
+    }
+  };
 
   /**
    * 销毁资源
@@ -434,6 +895,7 @@ class Canvas2DRenderer {
     this._spriteEnabled = false;
     this._spriteCache = null;
     this._avatarUrls = new Set(); // 用于收集需要的头像URL
+    this._imageCache = {}; // 图像缓存
   }
 
   /**

@@ -793,24 +793,39 @@ const RenderStrategies = {
         return { renderer, strategy };
       }
       
-      // 判断WebGL支持
-      let webglSupported = this.compatibility.webglSupported;
+      // 根据组件的总开关参数确定是否使用WebGL
+      let shouldUseWebGL = false;
       
-      // 更积极的WebGL启用策略 - 几乎默认启用WebGL，只有明确不支持的设备才禁用
-      const shouldUseWebGL = webglSupported;
-      
-      // 更新组件状态
-      component.setData({
-        'webgl.supported': webglSupported,
-        'webgl.enabled': shouldUseWebGL,
-        'spriteSupport.supported': this.compatibility.spriteSupported,
-        'spriteSupport.enabled': this.compatibility.spriteSupported // 默认启用精灵图
-      });
+      if (component.properties && component.properties.enableDeviceDetection) {
+        // 开启设备检测时，检查设备兼容性
+        console.log('[策略] 设备检测已启用，检查WebGL兼容性');
+        let webglSupported = this.compatibility.webglSupported;
+        
+        // 根据设备兼容性和用户配置决定是否使用WebGL
+        shouldUseWebGL = component.properties.enableWebGL && webglSupported;
+        
+        // 更新组件状态
+        component.setData({
+          'webgl.supported': webglSupported,
+          'webgl.enabled': shouldUseWebGL,
+          'spriteSupport.supported': this.compatibility.spriteSupported && component.properties.enableSpriteSupport,
+          'spriteSupport.enabled': this.compatibility.spriteSupported && component.properties.enableSpriteSupport
+        });
+      } else {
+        // 未开启设备检测，直接使用用户配置
+        console.log('[策略] 设备检测已禁用，直接使用用户配置');
+        shouldUseWebGL = component.properties.enableWebGL;
+        
+        // 更新组件状态
+        component.setData({
+          'webgl.enabled': shouldUseWebGL
+        });
+      }
       
       // 创建策略实例
       strategy = RenderStrategyFactory.createStrategy({
         useWebGL: shouldUseWebGL,
-        webglSupported: webglSupported,
+        webglSupported: component.properties.enableDeviceDetection ? this.compatibility.webglSupported : true,
         context: component
       });
       
@@ -831,7 +846,7 @@ const RenderStrategies = {
         }
         
         // 检查是否为有效的WebGL上下文
-        // 注意：在小程序环境中，instanceof检查可能不准确
+        // 注意：在小程序环境中，instanceof检查不可用
         // 改为功能检测方式判断是否为WebGL上下文
         const isWebGLContext = ctx && 
           typeof ctx.createTexture === 'function' && 
@@ -860,8 +875,12 @@ const RenderStrategies = {
           return { renderer, strategy };
         }
         
-        // 检查是否为有效的2D上下文
-        const is2DContext = ctx instanceof CanvasRenderingContext2D;
+        // 检查是否为有效的2D上下文 - 使用特性检测
+        const is2DContext = ctx && 
+          typeof ctx.fillRect === 'function' && 
+          typeof ctx.drawImage === 'function' && 
+          typeof ctx.getImageData === 'function';
+          
         if (!is2DContext) {
           console.error('[策略] 当前上下文不是Canvas 2D上下文，但渲染模式为Canvas 2D');
           return { renderer, strategy };

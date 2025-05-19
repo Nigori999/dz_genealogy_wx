@@ -718,11 +718,20 @@ class LayerControlStage extends BaseRenderStage {
  * 分层渲染阶段 - 处理分层数据
  */
 class LayeredRenderStage extends BaseRenderStage {
-  constructor(context, program, buffers, textures) {
+  /**
+   * 构造函数
+   * @param {WebGLRenderingContext} context - WebGL上下文
+   * @param {WebGLProgram} program - 主着色器程序
+   * @param {Object} buffers - 缓冲区对象
+   * @param {Object} textures - 纹理对象
+   * @param {WebGLProgram} [lineProgram] - 可选的连接线着色器程序
+   */
+  constructor(context, program, buffers, textures, lineProgram = null) {
     super(context);
     this.program = program;
     this.buffers = buffers;
     this.textures = textures;
+    this.lineProgram = lineProgram;
   }
   
   process(state) {
@@ -889,7 +898,7 @@ class RenderPipelineFactory {
    */
   static createLayeredPipeline = ErrorHandler.wrap(function(gl, options) {
     const initStage = new InitStage(gl);
-    const layeredStage = new LayeredRenderStage(gl, options.program, options.buffers, options.textures);
+    const layeredStage = new LayeredRenderStage(gl, options.program, options.buffers, options.textures, options.lineProgram);
     
     // 链接管线阶段
     initStage.setNext(layeredStage);

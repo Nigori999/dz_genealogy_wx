@@ -12,22 +12,20 @@
         <text class="meta-label">世代</text>
         <text class="meta-value">{{maxGeneration || 0}}</text>
       </view>
-            <!-- 提高家族史按钮的可见度 -->      <view class="meta-item history-btn" bindtap="showFamilyHistory">        <text class="meta-label">家族史</text>        <text class="iconfont icon-history"></text>      </view>            <!-- 操作指引按钮 -->      <view class="meta-item guide-btn" bindtap="showGuide">        <text class="meta-label">操作指引</text>        <text class="iconfont icon-guide"></text>      </view>    </view>  </view>
+      <!-- 提高家族史按钮的可见度 -->
+      <view class="meta-item history-btn" bindtap="showFamilyHistory"> <text class="meta-label">家族史</text> <text class="iconfont icon-history"></text> </view> <!-- 操作指引按钮 -->
+      <view class="meta-item guide-btn" bindtap="showGuide"> <text class="meta-label">操作指引</text> <text class="iconfont icon-guide"></text> </view>
+    </view>
+  </view>
 
   <!-- 控制面板 - 只保留视图切换功能 -->
   <view class="tree-controls">
     <view class="control-group">
-      <view 
-        class="control-item {{viewMode === 'tree' ? 'active' : ''}}" 
-        bindtap="switchViewMode" 
-        data-mode="tree">
+      <view class="control-item {{viewMode === 'tree' ? 'active' : ''}}" bindtap="switchViewMode" data-mode="tree">
         <text class="iconfont icon-tree"></text>
         <text class="control-text">树图</text>
       </view>
-      <view 
-        class="control-item {{viewMode === 'list' ? 'active' : ''}}" 
-        bindtap="switchViewMode" 
-        data-mode="list">
+      <view class="control-item {{viewMode === 'list' ? 'active' : ''}}" bindtap="switchViewMode" data-mode="list">
         <text class="iconfont icon-list"></text>
         <text class="control-text">列表</text>
       </view>
@@ -36,19 +34,7 @@
 
   <!-- 树图区域 -->
   <view class="tree-view {{viewMode === 'tree' ? 'active' : ''}}" style="height: calc(100vh - 180px);">
-    <canvas-family-tree 
-      id="canvasFamilyTree"
-      treeNodes="{{allTreeNodes}}"
-      treeConnectors="{{allTreeConnectors}}"
-      currentMemberId="{{currentUser.memberId || ''}}"
-      scale="{{zoomScale}}"
-      viewportWidth="{{treeViewWidth}}"
-      viewportHeight="{{treeViewHeight}}"
-      ready="{{!isLoading}}"
-      bindscale="onCanvasScale"
-      bindselect="onNodeSelect"
-      style="width: 100%; height: 100%;"
-    ></canvas-family-tree>
+    <canvas-family-tree id="canvasFamilyTree" enableWebGL="{{false}}" treeNodes="{{allTreeNodes}}" treeConnectors="{{allTreeConnectors}}" currentMemberId="{{currentUser.memberId || ''}}" scale="{{zoomScale}}" viewportWidth="{{treeViewWidth}}" viewportHeight="{{treeViewHeight}}" ready="{{!isLoading}}" bindscale="onCanvasScale" bindselect="onNodeSelect" style="width: 100%; height: 100%;"></canvas-family-tree>
   </view>
 
   <!-- 列表视图 -->
@@ -56,21 +42,11 @@
     <view class="search-bar">
       <view class="search-input-wrap">
         <text class="iconfont icon-search"></text>
-        <input 
-          class="search-input" 
-          placeholder="搜索成员..." 
-          value="{{searchKeyword}}"
-          bindinput="onSearchInput"
-        />
+        <input class="search-input" placeholder="搜索成员..." value="{{searchKeyword}}" bindinput="onSearchInput" />
       </view>
     </view>
 
-    <scroll-view 
-      class="member-list" 
-      scroll-y 
-      enable-back-to-top
-      style="height: calc(100vh - 240px);"
-    >
+    <scroll-view class="member-list" scroll-y enable-back-to-top style="height: calc(100vh - 240px);">
       <block wx:for="{{filteredMembers}}" wx:key="id">
         <view class="member-item" bindtap="selectMember" data-id="{{item.id}}">
           <image class="member-avatar" src="{{item.avatar || (item.gender === 'male' ? '/images/avatar_male_default.png' : '/images/avatar_female_default.png')}}" mode="aspectFill"></image>
@@ -85,7 +61,7 @@
           <text class="member-select-icon iconfont icon-right"></text>
         </view>
       </block>
-      
+
       <view class="empty-state" wx:if="{{filteredMembers.length === 0}}">
         <text class="iconfont icon-search"></text>
         <text>没有找到符合条件的成员</text>
@@ -93,4 +69,31 @@
     </scroll-view>
   </view>
 
-    <!-- 悬浮操作按钮已移除 -->    <!-- 弹窗遮罩 -->  <view class="popup-overlay" wx:if="{{isHistoryPopupVisible || isGuidePopupVisible}}" bindtap="hidePopup"></view>    <!-- 家族史弹窗 -->  <view class="history-popup {{isHistoryPopupVisible ? 'visible' : ''}}">    <view class="popup-header">      <text class="popup-title">家族史</text>      <text class="popup-close" bindtap="hidePopup">×</text>    </view>    <scroll-view class="popup-content" scroll-y>      <text class="history-text">{{genealogyHistory || '暂无家族史记录'}}</text>    </scroll-view>  </view>    <!-- 操作指引弹窗 -->  <view class="guide-popup {{isGuidePopupVisible ? 'visible' : ''}}">    <view class="popup-header">      <text class="popup-title">操作指引</text>      <text class="popup-close" bindtap="hidePopup">×</text>    </view>    <scroll-view class="popup-content" scroll-y>      <view class="guide-item">        <view class="guide-title">基本操作</view>        <view class="guide-content">          <view class="guide-line"><text>• 拖动：直接用手指在屏幕上拖动可移动族谱树</text></view>          <view class="guide-line"><text>• 缩放：使用双指捏合可放大缩小族谱树</text></view>          <view class="guide-line"><text>• 点击：点击成员节点可查看该成员详细信息</text></view>        </view>      </view>            <view class="guide-item">        <view class="guide-title">视图模式</view>        <view class="guide-content">          <view class="guide-line"><text>• 树图：以树状图形式展示族谱关系</text></view>          <view class="guide-line"><text>• 列表：以列表形式查看所有族谱成员</text></view>        </view>      </view>    </scroll-view>  </view></view>
+  <!-- 悬浮操作按钮已移除 -->
+  <!-- 弹窗遮罩 -->
+  <view class="popup-overlay" wx:if="{{isHistoryPopupVisible || isGuidePopupVisible}}" bindtap="hidePopup"></view> <!-- 家族史弹窗 -->
+  <view class="history-popup {{isHistoryPopupVisible ? 'visible' : ''}}">
+    <view class="popup-header"> <text class="popup-title">家族史</text> <text class="popup-close" bindtap="hidePopup">×</text> </view>
+    <scroll-view class="popup-content" scroll-y> <text class="history-text">{{genealogyHistory || '暂无家族史记录'}}</text> </scroll-view>
+  </view> <!-- 操作指引弹窗 -->
+  <view class="guide-popup {{isGuidePopupVisible ? 'visible' : ''}}">
+    <view class="popup-header"> <text class="popup-title">操作指引</text> <text class="popup-close" bindtap="hidePopup">×</text> </view>
+    <scroll-view class="popup-content" scroll-y>
+      <view class="guide-item">
+        <view class="guide-title">基本操作</view>
+        <view class="guide-content">
+          <view class="guide-line"><text>• 拖动：直接用手指在屏幕上拖动可移动族谱树</text></view>
+          <view class="guide-line"><text>• 缩放：使用双指捏合可放大缩小族谱树</text></view>
+          <view class="guide-line"><text>• 点击：点击成员节点可查看该成员详细信息</text></view>
+        </view>
+      </view>
+      <view class="guide-item">
+        <view class="guide-title">视图模式</view>
+        <view class="guide-content">
+          <view class="guide-line"><text>• 树图：以树状图形式展示族谱关系</text></view>
+          <view class="guide-line"><text>• 列表：以列表形式查看所有族谱成员</text></view>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+</view>
